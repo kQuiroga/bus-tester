@@ -92,6 +92,35 @@ Forecast was ~500-700 lines / High risk for PR2 — confirmed, and then grew fur
 
 **User decision**: approved as a one-time exception for PR2, same category as the PR1 exception but this time over genuinely hand-written volume rather than generated boilerplate. The orchestrator owns the `gentle-ai sdd-attempt` reset/re-acquire/settle sequence for the *final* PR2 diff (all 4 commits, including this controller-test retrofit) in one shot — this apply agent did not touch the ledger again after the 3rd commit's settle above.
 
-### Not started (PR3 — separate change batch per tasks.md)
+## PR3: SignalR Hub + Angular SPA — COMPLETE (12/12 tasks)
 
-- Phase 7 (SignalR Hub), Phase 8 (Angular SPA features), Phase 9 (E2E verification) — PR3.
+Branch: `bus-tester-foundation/pr3-signalr-ui` (off `pr2-usecases-adapter`, unpushed), 3 commits (`31b4d58` feat backend, `28877d1` feat frontend, `81a8137` docs). Combined with PR1 (12/12) and PR2 (17/17), bus-tester-foundation is functionally complete as a RabbitMQ-only walking skeleton (Kafka is a separate future change).
+
+### What was built
+
+- **Backend seam**: `src/BusTester.Application/Ports/{IMessageBroadcaster,NoOpMessageBroadcaster}.cs` — new Application-layer port so `SubscriptionCoordinator` pushes to the UI without Application ever referencing SignalR (mirrors `IBusPort`). `SubscriptionCoordinator` takes an optional `IMessageBroadcaster` (defaults to a no-op) and calls it after buffering each delivered message.
+- **SignalR impl**: `src/BusTester.Infrastructure/BusHub.cs` (group-per-subscription: `JoinSubscription`/`LeaveSubscription`), `SignalRMessageBroadcaster.cs` (`IMessageBroadcaster` via `IHubContext<BusHub>`, pushes `MessageReceivedDto`). `Program.cs`: `AddSignalR()`, `AddSingleton<IMessageBroadcaster, SignalRMessageBroadcaster>()`, CORS policy `AngularDev` for `http://localhost:4200` with credentials, `MapHub<BusHub>("/hubs/bus")`.
+- **Tests**: `tests/BusTester.Application.Tests/{Fakes/FakeMessageBroadcaster.cs, Subscriptions/SubscriptionCoordinatorTests.cs}` (2 tests, RED confirmed via missing-type compile error before GREEN).
+- **Frontend**: `frontend/src/app/core/{api-config.ts,api-client.service.ts,bus-hub.service.ts+.spec.ts}` (`bus-hub.service.ts` uses an `InjectionToken<HubConnection>` so tests inject a fake connection instead of opening a real socket; exposes a `messages` signal, newest-first). `frontend/src/app/features/{connect,send,messages}/*` — standalone components, signals + `FormsModule` `[ngModel]`/`(ngModelChange)`. `app.ts/app.html/app.css/app.spec.ts` rewritten to host the three feature components.
+- **Docs**: root `README.md` (backend/frontend run + test instructions).
+
+### Deviation from design.md
+
+Design's receive-flow diagram shows `SubscriptionCoordinator` calling `IHubContext<BusHub>` directly, which is in tension with "Domain and Application never reference SignalR" stated elsewhere in the same doc. Resolved by introducing `IMessageBroadcaster` as an Application-layer port (adapted, not literal — strengthens rather than violates the hex boundary). Flagged by `sdd-verify` as a SUGGESTION to update the diagram, not a defect.
+
+### Verification run (all green)
+
+`dotnet test BusTester.sln` — 56/56 (Domain 29, Application 10, Api 12, Infrastructure 5 real-broker via Testcontainers). `npm test` (Vitest) — 17/17. Manually verified the full live e2e flow (Docker RabbitMQ + `dotnet run` + a throwaway Node SignalR client, deleted afterward) — connect→send→subscribe→live feed push confirmed end to end.
+
+### Review workload — line-budget overage, reported honestly
+
+PR3 diff: 1529 changed lines (1160+/369-) vs. the 400 budget (~198 lines `package-lock.json` churn from `@microsoft/signalr`, ~345 lines deleted default Angular scaffold, remainder genuine hand-written code). `gentle-ai sdd-attempt settle` returned `changed_line_budget_exceeded: true`. Did not self-approve — stopped and reported to the orchestrator, same pattern as PR1/PR2.
+
+## Post-Verify Remediation
+
+`sdd-verify` returned `FAIL` (0 blockers, 0 critical findings) driven solely by 2/9 spec scenarios ("No state survives restart", "Feed resets on restart") lacking a runtime-executed test — only static architectural evidence (no persistence dependency anywhere in `src/`) backed them. Added regression tests proving the property without an OS-level process restart:
+
+- `tests/BusTester.Api.Tests/Controllers/RestartRegressionTests.cs` — a fresh `BusTesterApiFactory` (new DI container) has zero knowledge of a prior instance's connection/subscription state. RED confirmed by temporarily making `SubscriptionCoordinator`'s dictionary `static` (test failed as expected), then reverted; GREEN reconfirmed after revert.
+- `frontend/src/app/core/bus-hub.service.spec.ts` (new case) — a fresh `BusHubService` instance ignores pre-populated `localStorage`/`sessionStorage` and starts with an empty `messages` signal. RED confirmed by temporarily reading the initial signal value from `localStorage` (test failed as expected), then reverted; GREEN reconfirmed after revert.
+
+Full suite re-run after remediation: .NET 57/57 (Api.Tests now 13), Vitest 18/18. `openspec/changes/bus-tester-foundation/tasks.md` and this file synced to disk to match Engram (verify had flagged this file as stale on disk for PR3; now current for both PR3 and this remediation). `state.yaml`'s `verify` phase intentionally left untouched — the orchestrator re-runs `sdd-verify` to confirm the gap is closed.

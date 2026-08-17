@@ -45,6 +45,27 @@ describe('BusHubService', () => {
     expect(service.messages()).toEqual([]);
   });
 
+  it('a fresh instance (simulating an app reload) ignores any pre-existing browser storage and starts empty', () => {
+    // Populate both storages the way a prior "session" might have left them behind, then build a
+    // brand-new service instance the same way a page reload would (fresh TestBed module + fresh
+    // fake connection — no shared state with the `service` created in beforeEach). Proves the
+    // feed has no client-side persistence layer reading from localStorage/sessionStorage on init
+    // (message-consumption spec: "Feed resets on restart").
+    localStorage.setItem('busHub.messages', JSON.stringify([{ subscriptionId: 'sub-1', exchange: 'orders', routingKey: 'orders.created', payload: '{}' }]));
+    sessionStorage.setItem('busHub.messages', JSON.stringify([{ subscriptionId: 'sub-1', exchange: 'orders', routingKey: 'orders.created', payload: '{}' }]));
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [{ provide: BUS_HUB_CONNECTION, useValue: new FakeHubConnection() }],
+    });
+    const freshInstanceService = TestBed.inject(BusHubService);
+
+    expect(freshInstanceService.messages()).toEqual([]);
+
+    localStorage.removeItem('busHub.messages');
+    sessionStorage.removeItem('busHub.messages');
+  });
+
   it('prepends each MessageReceived push to the messages signal (newest first)', () => {
     fakeConnection.emit('MessageReceived', {
       subscriptionId: 'sub-1',

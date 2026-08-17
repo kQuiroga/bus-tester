@@ -99,3 +99,10 @@ Chain strategy: stacked-to-main
 
 - [x] 9.1 Verify e2e flow (connect→send→subscribe→live feed) against RabbitMQ container (message-consumption: "Live delivery"). Verified live: Docker RabbitMQ + `dotnet run` (http profile) + a Node script using the installed `@microsoft/signalr` client joined the hub group and received the `MessageReceived` push seconds after a message was published — full RabbitMQ → RabbitMqAdapter → SubscriptionCoordinator → SignalRMessageBroadcaster → BusHub → client round trip confirmed.
 - [x] 9.2 Run full `dotnet test` + `npm test -- --run`; update README with run instructions. All non-Docker-dependent suites green (29+10+12 .NET, 17 Vitest); root `README.md` added with backend/frontend run + test instructions.
+
+## Post-Verify Remediation: restart/no-persistence regression coverage
+
+`sdd-verify` found 7/9 spec scenarios had runtime test coverage; the 2 remaining ("No state survives restart", "Feed resets on restart") had only static architectural evidence, not a runtime test. Added regression coverage for both without requiring an actual OS-level process restart:
+
+- [x] R.1 `tests/BusTester.Api.Tests/Controllers/RestartRegressionTests.cs` — connects + subscribes + delivers a message on a `BusTesterApiFactory` instance, disposes it, then boots a brand-new `BusTesterApiFactory` (fresh DI container, same code a real restart would boot) and asserts its `SubscriptionCoordinator` and `IBusPort` have zero knowledge of the prior instance's state. RED confirmed meaningful (temporarily made `SubscriptionCoordinator`'s backing dictionary `static` — test failed as expected — then reverted).
+- [x] R.2 `frontend/src/app/core/bus-hub.service.spec.ts` — pre-populates `localStorage`/`sessionStorage` with fake messages, then builds a fresh `BusHubService` instance via a reset `TestBed` module (simulating an app reload) and asserts the `messages` signal still starts empty. RED confirmed meaningful (temporarily made the service read its initial signal value from `localStorage` — test failed as expected — then reverted).
