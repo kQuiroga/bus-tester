@@ -7,7 +7,7 @@ phases:
   specs: done
   design: done
   tasks: done
-  apply: pending # PR1 (Phase 1-3, 12/12) complete on bus-tester-foundation/pr1-scaffold, unpushed. PR2 (Phase 4-6, 16/16) complete on bus-tester-foundation/pr2-usecases-adapter, unpushed, 42/42 tests green -- but sdd-attempt settle returned changed_line_budget_exceeded:true (858 lines vs 400 budget, decision_required:true, next_action:reset); blocked on maintainer decision, same as PR1's approved exception. PR3 (Phase 7-9) not started.
+  apply: done # All 3 PRs complete, unpushed (stacked, not merged to main). PR1 (Phase 1-3, 12/12) on bus-tester-foundation/pr1-scaffold. PR2 (Phase 4-6, 16/16 + 1 post-hoc) on bus-tester-foundation/pr2-usecases-adapter off pr1-scaffold, 54/54 tests green. PR3 (Phase 7-9, 12/12) on bus-tester-foundation/pr3-signalr-ui off pr2-usecases-adapter: SignalR BusHub + IMessageBroadcaster seam, Angular connect/send/messages SPA with live SignalR feed, 17 Vitest specs; 51/51 non-Docker .NET tests green (Infrastructure.Tests needs Docker); e2e receive flow verified live against a real RabbitMQ container + dotnet run + a SignalR client script. bus-tester-foundation is functionally complete (RabbitMQ-only walking skeleton).
   verify: pending
   archive: pending
 artifact_store: hybrid

@@ -77,25 +77,25 @@ Chain strategy: stacked-to-main
 - [x] 6.2 Wire DI in `Program.cs`: `IBusPort`→`RabbitMqAdapter`, use cases, problem+json exception middleware.
 - [x] 6.3 *(added post-hoc per user request, not in original Phase 6 scope)* `tests/BusTester.Api.Tests/` — `WebApplicationFactory<Program>` integration tests for all three controllers against a `StubBusPort` (12 tests): success paths (connect/send/subscribe/unsubscribe) + exception-mapping paths (503 broker-unreachable, 400 broker-rejected, 400 domain-validation), asserting exact status code + `application/problem+json` body. Retrofit characterization — all 12 passed on first run, no behavioral bug found vs. spec.
 
-## PR3: SignalR Hub + Angular SPA
+## PR3: SignalR Hub + Angular SPA — COMPLETE (12/12), branch bus-tester-foundation/pr3-signalr-ui off pr2-usecases-adapter, unpushed
 
 ### Phase 7: SignalR Hub & Coordinator
 
-- [ ] 7.1 Create `BusHub.cs` (group-per-subscription) + wire `SubscriptionCoordinator`→`IHubContext<BusHub>` push; register `/hubs/bus` in `Program.cs`.
-- [ ] 7.2 RED→GREEN: `SubscriptionCoordinatorTests.cs` — fake-adapter message triggers registered push callback.
+- [x] 7.1 Create `BusHub.cs` (group-per-subscription) + wire `SubscriptionCoordinator`→`IHubContext<BusHub>` push; register `/hubs/bus` in `Program.cs`. *(Implemented via an `IMessageBroadcaster` seam in Application, implemented by `SignalRMessageBroadcaster` in Infrastructure, so Application still never references SignalR — mirrors the `IBusPort` broker-agnostic pattern.)*
+- [x] 7.2 RED→GREEN: `SubscriptionCoordinatorTests.cs` — fake-adapter message triggers registered push callback (via `FakeMessageBroadcaster`).
 
 ### Phase 8: Angular SPA (TDD)
 
-- [ ] 8.1 Scaffold `features/connect/` form (host/port/credentials).
-- [ ] 8.2 RED→GREEN: `connect.component.spec.ts` (submit→POST `/api/connections`; unreachable-broker error, no partial connection) drives `connect.component.ts`.
-- [ ] 8.3 Scaffold `features/send/` form (exchange, routing key, payload).
-- [ ] 8.4 RED→GREEN: `send.component.spec.ts` (submit→POST `/api/messages` + confirms; invalid-exchange error, connection stays usable) drives `send.component.ts`.
-- [ ] 8.5 Scaffold `features/messages/` live list + `bus-hub.service.ts`.
-- [ ] 8.6 RED→GREEN: `bus-hub.service.spec.ts` (mocked hub, `MessageReceived` updates signal) drives `bus-hub.service.ts`.
-- [ ] 8.7 RED→GREEN: `messages.component.spec.ts` (subscribe→POST `/api/subscriptions`; invalid-queue error, no row added) drives `messages.component.ts`.
-- [ ] 8.8 REFACTOR: extract shared HTTP/error-mapping service across connect/send/messages (container-presentational split).
+- [x] 8.1 Scaffold `features/connect/` form (host/port/credentials).
+- [x] 8.2 RED→GREEN: `connect.component.spec.ts` (submit→POST `/api/connections`; unreachable-broker error, no partial connection) drives `connect.component.ts`.
+- [x] 8.3 Scaffold `features/send/` form (exchange, routing key, payload).
+- [x] 8.4 RED→GREEN: `send.component.spec.ts` (submit→POST `/api/messages` + confirms; invalid-exchange error, connection stays usable) drives `send.component.ts`.
+- [x] 8.5 Scaffold `features/messages/` live list + `bus-hub.service.ts`.
+- [x] 8.6 RED→GREEN: `bus-hub.service.spec.ts` (mocked hub, `MessageReceived` updates signal) drives `bus-hub.service.ts`.
+- [x] 8.7 RED→GREEN: `messages.component.spec.ts` (subscribe→POST `/api/subscriptions`; invalid-queue error, no row added) drives `messages.component.ts`.
+- [x] 8.8 REFACTOR: extract shared HTTP/error-mapping service across connect/send/messages (container-presentational split) — `core/api-client.service.ts`.
 
 ### Phase 9: End-to-End Verification
 
-- [ ] 9.1 Verify e2e flow (connect→send→subscribe→live feed) against RabbitMQ container (message-consumption: "Live delivery").
-- [ ] 9.2 Run full `dotnet test` + `npm test -- --run`; update README with run instructions.
+- [x] 9.1 Verify e2e flow (connect→send→subscribe→live feed) against RabbitMQ container (message-consumption: "Live delivery"). Verified live: Docker RabbitMQ + `dotnet run` (http profile) + a Node script using the installed `@microsoft/signalr` client joined the hub group and received the `MessageReceived` push seconds after a message was published — full RabbitMQ → RabbitMqAdapter → SubscriptionCoordinator → SignalRMessageBroadcaster → BusHub → client round trip confirmed.
+- [x] 9.2 Run full `dotnet test` + `npm test -- --run`; update README with run instructions. All non-Docker-dependent suites green (29+10+12 .NET, 17 Vitest); root `README.md` added with backend/frontend run + test instructions.
