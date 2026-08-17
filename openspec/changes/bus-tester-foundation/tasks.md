@@ -75,6 +75,7 @@ Chain strategy: stacked-to-main
 
 - [x] 6.1 Create `ConnectionsController.cs` (POST/DELETE `/api/connections`), `MessagesController.cs` (POST `/api/messages`), `SubscriptionsController.cs` (POST/DELETE `/api/subscriptions`) mapping exceptions → problem+json (503/400).
 - [x] 6.2 Wire DI in `Program.cs`: `IBusPort`→`RabbitMqAdapter`, use cases, problem+json exception middleware.
+- [x] 6.3 *(added post-hoc per user request, not in original Phase 6 scope)* `tests/BusTester.Api.Tests/` — `WebApplicationFactory<Program>` integration tests for all three controllers against a `StubBusPort` (12 tests): success paths (connect/send/subscribe/unsubscribe) + exception-mapping paths (503 broker-unreachable, 400 broker-rejected, 400 domain-validation), asserting exact status code + `application/problem+json` body. Retrofit characterization — all 12 passed on first run, no behavioral bug found vs. spec.
 
 ## PR3: SignalR Hub + Angular SPA
 

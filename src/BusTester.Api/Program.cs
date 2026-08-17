@@ -25,3 +25,7 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 app.Run();
+
+// Exposes the top-level-statement entry point so WebApplicationFactory<Program> (integration
+// tests) can bootstrap the same host in-process.
+public partial class Program;
