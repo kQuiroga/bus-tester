@@ -36,7 +36,53 @@ Branch: `bus-tester-foundation/pr1-scaffold` (off `main`, unpushed — awaiting 
 
 Forecast was ~300-450 lines / Medium risk for PR1. Hand-written source (Domain entities + IBusPort + tests, excluding generated scaffolding like `package-lock.json`, `.csproj` boilerplate, Angular default files): approximately 300 lines across the Phase 2/3 commits. The Phase 1 scaffold commit is large in raw diff (~11k lines) almost entirely from `frontend/package-lock.json` and Angular/dotnet template boilerplate — none of it hand-authored logic, flagged here for the reviewer's awareness rather than re-generated to hide the count.
 
-### Not started (PR2/PR3 — separate change batches per tasks.md)
+## PR2: Use Cases, RabbitMqAdapter, API — COMPLETE (16/16 tasks), BLOCKED on line-budget maintainer decision
 
-- Phase 4 (Use Cases), Phase 5 (RabbitMqAdapter), Phase 6 (API Endpoints) — PR2.
+Branch: `bus-tester-foundation/pr2-usecases-adapter` (off `bus-tester-foundation/pr1-scaffold`, unpushed).
+
+### Commits (in order)
+
+1. `feat(application): add SendMessageUseCase and SubscribeUseCase (TDD, fake IBusPort)` — `BusConnectionException`/`BusPublishException`/`BusSubscriptionException` in Domain; `SendMessageUseCase`; `SubscribeUseCase` + `SubscriptionCoordinator`; `UnsubscribeUseCase`; `FakeBusPort` test double.
+2. `feat(infrastructure): add RabbitMqAdapter implementing IBusPort (RabbitMQ.Client v7)` — live-Docker Testcontainers integration tests, `.gitignore` gains `.vs/`.
+3. `feat(api): add Connections/Messages/Subscriptions controllers and DI wiring` — controllers, `BusExceptionHandler`, `Program.cs` rewired.
+
+### What was built
+
+- **Domain exceptions** (`src/BusTester.Domain/Exceptions/`): `BusConnectionException`, `BusPublishException`, `BusSubscriptionException` — typed failures `IBusPort` implementations throw; controllers map them to problem+json.
+- **Application use cases** (`src/BusTester.Application/UseCases/`): `SendMessageUseCase` (builds a `BusMessage`, calls `IBusPort.SendAsync`, propagates broker exceptions unchanged). `SubscribeUseCase` (builds a `SubscriptionRequest`, registers a closure-captured `onMessage` callback that forwards to `SubscriptionCoordinator` once the handle is known, registers the subscription only after the port call succeeds). `UnsubscribeUseCase` (calls `IBusPort.UnsubscribeAsync`, then unregisters from the coordinator).
+- **`SubscriptionCoordinator`** (`src/BusTester.Application/Subscriptions/`): in-memory `ConcurrentDictionary<SubscriptionHandle, ConcurrentQueue<BusMessage>>`, process-lifetime only (no persistence — matches "feed resets on restart"). PR3 will wire this to `IHubContext<BusHub>` for SignalR push; for now it's a readable buffer.
+- **`RabbitMqAdapter`** (`src/BusTester.Infrastructure/RabbitMqAdapter.cs`): RabbitMQ.Client v7.2.2 async API (`IConnection`/`IChannel`/`IAsyncBasicConsumer`). `ConnectAsync` maps `BrokerUnreachableException`/`SocketException`/`TimeoutException`→`BusConnectionException`. `SendAsync` opens a fresh per-call `IChannel`, does a passive exchange-declare before `BasicPublishAsync` (see deviation below), maps `OperationInterruptedException`→`BusPublishException`. `SubscribeAsync` opens a dedicated per-subscription `IChannel` + `AsyncEventingBasicConsumer`, maps missing-queue `OperationInterruptedException`→`BusSubscriptionException`; each subscription's channel is tracked so `UnsubscribeAsync` only tears down its own consumer.
+- **API** (`src/BusTester.Api/`): `ConnectionsController` (POST/DELETE `/api/connections`, calls `IBusPort` directly — no use case, per design this is a pure passthrough). `MessagesController` (POST `/api/messages`→`SendMessageUseCase`). `SubscriptionsController` (POST `/api/subscriptions`→`SubscribeUseCase`, DELETE `/api/subscriptions/{id}`→`UnsubscribeUseCase`). `BusExceptionHandler` (`IExceptionHandler`): `BusConnectionException`→503, `BusPublishException`/`BusSubscriptionException`/`ArgumentException`→400, all as `application/problem+json`. `Program.cs` rewritten: removed the weather-forecast scaffold, wired `IBusPort`→`RabbitMqAdapter` and `SubscriptionCoordinator` as singletons (in-memory session state per design), use cases as transient, `UseExceptionHandler()`+`MapControllers()`.
+- **Tests**: 3 new `SendMessageUseCaseTests` + 3 new `SubscribeUseCaseTests` (fake `IBusPort`, no broker) → Application.Tests now 8/8. 5 `RabbitMqAdapterTests` (Testcontainers, live Docker `rabbitmq:3.13-management` container) → Infrastructure.Tests 5/5, actually exercised against a real broker, not just compiled. No dedicated API/controller test project was created — Phase 6 in `tasks.md` has no RED→GREEN bullets (unlike Phase 4/5), matching the design's own testing-strategy table (Domain/Application/Infrastructure/Frontend layers only, no API layer). Verified the exception-mapping wiring manually instead: `dotnet run` + `curl` against `/api/messages` (no connection → 503), `/api/messages` with empty exchange (→ 400 domain validation), `/api/connections` against an unreachable host (→ 503) — all returned correct `application/problem+json` bodies.
+
+### Verification run (all green)
+
+- `dotnet build BusTester.sln` — 0 warnings, 0 errors.
+- `dotnet test BusTester.sln` — **42/42 passed, 0 failed** (Domain.Tests 29, Application.Tests 8, Infrastructure.Tests 5 — the 5 Infrastructure tests ran against a real RabbitMQ container via Testcontainers, Docker Desktop 4.55.0 was available and used).
+- Manual `dotnet run` + `curl` smoke test of all three exception-mapping paths (503/503/400), confirmed above.
+
+### Real RED found via live Docker (not just a compile-error RED)
+
+Task 5.5 initially failed for real: `IChannel.BasicPublishAsync` to a non-existent exchange does **not** throw synchronously — AMQP `basic.publish` has no ack, so the server only closes the channel *after* the client call has already returned, and that close is only observable on a later channel operation. Fixed by adding a synchronous `ExchangeDeclarePassiveAsync` check immediately before `BasicPublishAsync`, which does round-trip and throws `OperationInterruptedException` if the exchange is missing — while the failure is still scoped to that call's own short-lived channel, leaving the connection (and any other channel) unaffected. This is documented inline in `RabbitMqAdapter.SendAsync`.
+
+### Deviations from literal task/design wording
+
+1. **No dedicated `SendResult`/`SubscriptionResult` DTO types** beyond what's needed: `SendMessageUseCase.HandleAsync` returns `Task` (success = no exception, matching the design's "surface the failure to the UI immediately" error model — there's nothing else to report on success). `SubscribeUseCase.HandleAsync` returns `SubscriptionHandle` directly (no wrapper record) since that's the only thing a caller needs.
+2. **Exception types**: design.md only explicitly names `BusConnectionException`/`BusPublishException`; a third, `BusSubscriptionException`, was added for subscribe-side broker rejections (missing queue) to keep the 400-vs-503 mapping semantically named rather than overloading `BusPublishException` for a non-publish operation.
+3. **`ConnectionsController` has no dedicated use case** — task list's Phase 4 only names `SendMessageUseCase`/`SubscribeUseCase`; connect/disconnect stayed a direct `IBusPort` passthrough in the controller, consistent with the design explicitly deferring persistence/business logic for connection management.
+4. **Passive-declare-before-publish** (see "Real RED" above) — not specified in design.md's interface sketch, added because the literal `BasicPublishAsync`+try/catch approach the design implies does not actually surface missing-exchange errors synchronously in RabbitMQ.Client v7's async API.
+5. **No API/controller-level automated tests** — see "What was built" above; matches `tasks.md` Phase 6's own granularity (no RED→GREEN bullets) and the design's testing-strategy table. Verified manually instead (documented above). Flagging this explicitly rather than silently skipping, since Strict TDD Mode is active for this session — this was a deliberate scope-boundary decision, not an oversight.
+
+### Review workload — BLOCKED on maintainer decision
+
+Forecast was ~500-700 lines / High risk for PR2 — confirmed. `git diff --stat` against PR1's tip: **858 insertions, ~26 deletions across 23 files**. Unlike PR1, this is **not** lockfile/scaffold-driven — RabbitMQ.Client/Testcontainers are plain NuGet `PackageReference` additions (~5 `.csproj` lines total), so essentially all 858 lines are hand-authored production code + tests. `gentle-ai sdd-attempt settle` (evidence-revision `sha256:4c01b56461d9f0f39c613fb8149c99b1843c9e985c7da7488319e8ac1a1b1c1a`) returned:
+
+```json
+{ "changed_lines": 858, "changed_line_budget_exceeded": true, "decision_required": true, "next_action": "reset" }
+```
+
+Per runtime-attempt authority instructions, this apply agent did **not** self-approve or run `reset` — the code is complete, committed, and fully green, but the attempt sits blocked pending a maintainer decision (same category of decision the user already made once for PR1, but this time the overage is genuine hand-written volume, not generated boilerplate — a real reviewer-burden signal worth a closer look, e.g. splitting Phase 6 API controllers into a follow-up commit/PR, before approving).
+
+### Not started (PR3 — separate change batch per tasks.md)
+
 - Phase 7 (SignalR Hub), Phase 8 (Angular SPA features), Phase 9 (E2E verification) — PR3.

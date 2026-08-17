@@ -7,7 +7,7 @@ phases:
   specs: done
   design: done
   tasks: done
-  apply: pending # PR1 (Phase 1-3, 12/12 tasks) complete on branch bus-tester-foundation/pr1-scaffold, unpushed; PR2 (Phase 4-6) and PR3 (Phase 7-9) not started
+  apply: pending # PR1 (Phase 1-3, 12/12) complete on bus-tester-foundation/pr1-scaffold, unpushed. PR2 (Phase 4-6, 16/16) complete on bus-tester-foundation/pr2-usecases-adapter, unpushed, 42/42 tests green -- but sdd-attempt settle returned changed_line_budget_exceeded:true (858 lines vs 400 budget, decision_required:true, next_action:reset); blocked on maintainer decision, same as PR1's approved exception. PR3 (Phase 7-9) not started.
   verify: pending
   archive: pending
 artifact_store: hybrid

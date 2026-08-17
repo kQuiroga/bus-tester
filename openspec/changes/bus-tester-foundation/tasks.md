@@ -16,6 +16,8 @@ Chained PRs recommended: Yes
 Chain strategy: stacked-to-main
 400-line budget risk: High
 
+**PR2 budget outcome**: forecast confirmed — 858 changed lines (mostly hand-authored: use cases, adapter, tests, controllers; only ~5 lines are `.csproj` package-reference additions, no lockfiles this time). `gentle-ai sdd-attempt settle` returned `changed_line_budget_exceeded: true`, `decision_required: true`, `next_action: "reset"`. Work is complete and green (42/42 tests) but the attempt is **blocked on a maintainer decision** (rescope/reset the objective, or accept the overage as PR1's was) — not auto-approved, since this is real hand-written code, not generated/vendored content.
+
 ### Suggested Work Units
 
 | Unit | Goal | Likely PR | Focused test command | Runtime harness | Rollback boundary |
@@ -47,32 +49,32 @@ Chain strategy: stacked-to-main
 - [x] 3.1 Define `src/BusTester.Application/Ports/IBusPort.cs` (Connect/Disconnect/Send/Subscribe/UnsubscribeAsync) + `SubscriptionRequest`/`SubscriptionHandle` types per design.
 - [x] 3.2 RED→GREEN: assembly-reference test asserting Domain/Application have no RabbitMQ.Client dependency (bus-connection: "Adapter is swappable").
 
-## PR2: Use Cases, RabbitMqAdapter, API
+## PR2: Use Cases, RabbitMqAdapter, API — COMPLETE (16/16), branch bus-tester-foundation/pr2-usecases-adapter off pr1-scaffold, unpushed
 
 ### Phase 4: Use Cases (TDD, fake IBusPort first)
 
-- [ ] 4.1 RED→GREEN: `SendMessageUseCaseTests.cs` (fake `IBusPort`, successful publish) drives `SendMessageUseCase.cs`.
-- [ ] 4.2 RED→GREEN: `SendMessageUseCaseTests.cs` (invalid exchange/no connection rejected, connection stays usable) drives `BusPublishException`/`BusConnectionException` path.
-- [ ] 4.3 REFACTOR: `SendMessageUseCase.cs` + command/result types.
-- [ ] 4.4 RED→GREEN: `SubscribeUseCaseTests.cs` (fake `IBusPort`, valid subscribe returns handle) drives `SubscribeUseCase.cs`.
-- [ ] 4.5 RED→GREEN: `SubscribeUseCaseTests.cs` (invalid queue rejected, no subscription started) drives error path.
-- [ ] 4.6 REFACTOR: `SubscribeUseCase.cs` + `SubscriptionCoordinator` in-memory registry.
+- [x] 4.1 RED→GREEN: `SendMessageUseCaseTests.cs` (fake `IBusPort`, successful publish) drives `SendMessageUseCase.cs`.
+- [x] 4.2 RED→GREEN: `SendMessageUseCaseTests.cs` (invalid exchange/no connection rejected, connection stays usable) drives `BusPublishException`/`BusConnectionException` path.
+- [x] 4.3 REFACTOR: `SendMessageUseCase.cs` + command/result types.
+- [x] 4.4 RED→GREEN: `SubscribeUseCaseTests.cs` (fake `IBusPort`, valid subscribe returns handle) drives `SubscribeUseCase.cs`.
+- [x] 4.5 RED→GREEN: `SubscribeUseCaseTests.cs` (invalid queue rejected, no subscription started) drives error path.
+- [x] 4.6 REFACTOR: `SubscribeUseCase.cs` + `SubscriptionCoordinator` in-memory registry.
 
 ### Phase 5: RabbitMqAdapter (Integration, Testcontainers)
 
-- [ ] 5.1 Add RabbitMQ.Client v7.x to Infrastructure; `Testcontainers.RabbitMq` to Infrastructure.Tests.
-- [ ] 5.2 RED→GREEN: `RabbitMqAdapterTests.cs` (connect succeeds vs live container) drives `ConnectAsync`/`DisconnectAsync`.
-- [ ] 5.3 RED→GREEN: unreachable host throws `BusConnectionException` within bounded timeout drives `BrokerUnreachableException` mapping.
-- [ ] 5.4 RED→GREEN: `SendAsync` publishes via `BasicPublishAsync` (message-sending: successful publish).
-- [ ] 5.5 RED→GREEN: missing exchange throws `BusPublishException`, connection stays usable drives error mapping.
-- [ ] 5.6 RED→GREEN: `SubscribeAsync` consumes via `IAsyncBasicConsumer` callback (message-consumption: live delivery).
-- [ ] 5.7 RED→GREEN: missing queue throws, no subscription started drives error mapping.
-- [ ] 5.8 REFACTOR: `RabbitMqAdapter.cs` — consolidate exception mapping, dispose/cleanup.
+- [x] 5.1 Add RabbitMQ.Client v7.x to Infrastructure; `Testcontainers.RabbitMq` to Infrastructure.Tests.
+- [x] 5.2 RED→GREEN: `RabbitMqAdapterTests.cs` (connect succeeds vs live container) drives `ConnectAsync`/`DisconnectAsync`.
+- [x] 5.3 RED→GREEN: unreachable host throws `BusConnectionException` within bounded timeout drives `BrokerUnreachableException` mapping.
+- [x] 5.4 RED→GREEN: `SendAsync` publishes via `BasicPublishAsync` (message-sending: successful publish).
+- [x] 5.5 RED→GREEN: missing exchange throws `BusPublishException`, connection stays usable drives error mapping. (Real RED found live against Docker: `basic.publish` has no synchronous ack, so this needed a passive `ExchangeDeclarePassiveAsync` check before publish, not just a try/catch around `BasicPublishAsync`.)
+- [x] 5.6 RED→GREEN: `SubscribeAsync` consumes via `IAsyncBasicConsumer` callback (message-consumption: live delivery).
+- [x] 5.7 RED→GREEN: missing queue throws, no subscription started drives error mapping.
+- [x] 5.8 REFACTOR: `RabbitMqAdapter.cs` — consolidate exception mapping, dispose/cleanup.
 
 ### Phase 6: API Endpoints
 
-- [ ] 6.1 Create `ConnectionsController.cs` (POST/DELETE `/api/connections`), `MessagesController.cs` (POST `/api/messages`), `SubscriptionsController.cs` (POST `/api/subscriptions`) mapping exceptions → problem+json (503/400).
-- [ ] 6.2 Wire DI in `Program.cs`: `IBusPort`→`RabbitMqAdapter`, use cases, problem+json exception middleware.
+- [x] 6.1 Create `ConnectionsController.cs` (POST/DELETE `/api/connections`), `MessagesController.cs` (POST `/api/messages`), `SubscriptionsController.cs` (POST/DELETE `/api/subscriptions`) mapping exceptions → problem+json (503/400).
+- [x] 6.2 Wire DI in `Program.cs`: `IBusPort`→`RabbitMqAdapter`, use cases, problem+json exception middleware.
 
 ## PR3: SignalR Hub + Angular SPA
 
