@@ -5,6 +5,7 @@
 bin/
 obj/
 *.user
+.vs/
 
 # Node / Angular
 node_modules/
