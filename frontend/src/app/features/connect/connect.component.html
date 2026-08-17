@@ -1,0 +1,41 @@
+<section class="panel">
+  <h2>Connection</h2>
+  <form (ngSubmit)="connect()">
+    <label>
+      Host
+      <input name="host" [ngModel]="host()" (ngModelChange)="host.set($event)" [disabled]="connected()" />
+    </label>
+    <label>
+      Port
+      <input
+        name="port"
+        type="number"
+        [ngModel]="port()"
+        (ngModelChange)="port.set($event)"
+        [disabled]="connected()"
+      />
+    </label>
+    <label>
+      Username
+      <input name="username" [ngModel]="username()" (ngModelChange)="username.set($event)" [disabled]="connected()" />
+    </label>
+    <label>
+      Password
+      <input
+        name="password"
+        type="password"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+        [disabled]="connected()"
+      />
+    </label>
+    <button type="submit" [disabled]="connected()">Connect</button>
+    <button type="button" (click)="disconnect()" [disabled]="!connected()">Disconnect</button>
+  </form>
+  @if (connected()) {
+    <p class="status status--ok">Connected</p>
+  }
+  @if (errorMessage()) {
+    <p class="status status--error">{{ errorMessage() }}</p>
+  }
+</section>

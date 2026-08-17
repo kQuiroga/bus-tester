@@ -1,0 +1,26 @@
+<section class="panel">
+  <h2>Live messages</h2>
+  <form (ngSubmit)="subscribeToQueue()">
+    <label>
+      Queue
+      <input
+        name="queueName"
+        [ngModel]="queueName()"
+        (ngModelChange)="queueName.set($event)"
+        [disabled]="subscriptionId() !== null"
+      />
+    </label>
+    <button type="submit" [disabled]="subscriptionId() !== null">Subscribe</button>
+    <button type="button" (click)="unsubscribe()" [disabled]="subscriptionId() === null">Unsubscribe</button>
+  </form>
+  @if (errorMessage()) {
+    <p class="status status--error">{{ errorMessage() }}</p>
+  }
+  <ul class="message-feed">
+    @for (message of visibleMessages(); track message) {
+      <li>
+        <strong>{{ message.routingKey }}</strong> ({{ message.exchange }}): {{ message.payload }}
+      </li>
+    }
+  </ul>
+</section>

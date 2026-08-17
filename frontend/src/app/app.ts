@@ -1,11 +1,14 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
+import { ConnectComponent } from './features/connect/connect.component';
+import { SendComponent } from './features/send/send.component';
+import { MessagesComponent } from './features/messages/messages.component';
 
 @Component({
   selector: 'app-root',
-  imports: [],
+  imports: [ConnectComponent, SendComponent, MessagesComponent],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
-  protected readonly title = signal('frontend');
+  protected readonly title = 'BusTester';
 }
