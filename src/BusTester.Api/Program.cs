@@ -1,34 +1,27 @@
+using BusTester.Api.Middleware;
+using BusTester.Application.Ports;
+using BusTester.Application.Subscriptions;
+using BusTester.Application.UseCases;
+using BusTester.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<BusExceptionHandler>();
+
+// IBusPort/SubscriptionCoordinator are singletons: the connection and subscriptions are
+// in-memory, session-scoped state per design (no persistence across restarts).
+builder.Services.AddSingleton<IBusPort, RabbitMqAdapter>();
+builder.Services.AddSingleton<SubscriptionCoordinator>();
+builder.Services.AddTransient<SendMessageUseCase>();
+builder.Services.AddTransient<SubscribeUseCase>();
+builder.Services.AddTransient<UnsubscribeUseCase>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-});
+app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
