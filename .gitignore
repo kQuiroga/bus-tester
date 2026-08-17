@@ -1,2 +1,12 @@
 # Local Pi runtime state
 .atl/
+
+# .NET
+bin/
+obj/
+*.user
+
+# Node / Angular
+node_modules/
+frontend/dist/
+frontend/.angular/
