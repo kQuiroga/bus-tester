@@ -28,24 +28,24 @@ Chain strategy: stacked-to-main
 
 ### Phase 1: Foundation
 
-- [ ] 1.1 Create `BusTester.sln` + `src/BusTester.{Domain,Application,Infrastructure,Api}` csproj (net8, hex refs: Api→App+Infra, Infra→App, App→Domain).
-- [ ] 1.2 Create xUnit `tests/BusTester.{Domain,Application,Infrastructure}.Tests`, each referencing its target project; add to `.sln`.
-- [ ] 1.3 Scaffold Angular workspace in `frontend/` (standalone), configure Vitest as test runner.
-- [ ] 1.4 Verify `dotnet test` (3 empty projects) and `npm test -- --run` both green — CI-ready smoke check.
+- [x] 1.1 Create `BusTester.sln` + `src/BusTester.{Domain,Application,Infrastructure,Api}` csproj (net8, hex refs: Api→App+Infra, Infra→App, App→Domain).
+- [x] 1.2 Create xUnit `tests/BusTester.{Domain,Application,Infrastructure}.Tests`, each referencing its target project; add to `.sln`.
+- [x] 1.3 Scaffold Angular workspace in `frontend/` (standalone), configure Vitest as test runner.
+- [x] 1.4 Verify `dotnet test` (3 empty projects) and `npm test -- --run` both green — CI-ready smoke check.
 
 ### Phase 2: Domain Entities (TDD)
 
-- [ ] 2.1 RED→GREEN: `BusMessageTests.cs` (payload/exchange/routingKey required) drives `BusMessage.cs`.
-- [ ] 2.2 REFACTOR: `BusMessage.cs` — clean up, tests stay green.
-- [ ] 2.3 RED→GREEN: `BusConnectionConfigTests.cs` (host/port/credentials required) drives `BusConnectionConfig.cs`.
-- [ ] 2.4 REFACTOR: `BusConnectionConfig.cs`.
-- [ ] 2.5 RED→GREEN: `SubscriptionTests.cs` (queue name required, handle equality) drives `Subscription.cs`.
-- [ ] 2.6 REFACTOR: `Subscription.cs`.
+- [x] 2.1 RED→GREEN: `BusMessageTests.cs` (payload/exchange/routingKey required) drives `BusMessage.cs`.
+- [x] 2.2 REFACTOR: `BusMessage.cs` — clean up, tests stay green.
+- [x] 2.3 RED→GREEN: `BusConnectionConfigTests.cs` (host/port/credentials required) drives `BusConnectionConfig.cs`.
+- [x] 2.4 REFACTOR: `BusConnectionConfig.cs`.
+- [x] 2.5 RED→GREEN: `SubscriptionTests.cs` (queue name required, handle equality) drives `Subscription.cs`.
+- [x] 2.6 REFACTOR: `Subscription.cs`.
 
 ### Phase 3: IBusPort Contract
 
-- [ ] 3.1 Define `src/BusTester.Application/Ports/IBusPort.cs` (Connect/Disconnect/Send/Subscribe/UnsubscribeAsync) + `SubscriptionRequest`/`SubscriptionHandle` types per design.
-- [ ] 3.2 RED→GREEN: assembly-reference test asserting Domain/Application have no RabbitMQ.Client dependency (bus-connection: "Adapter is swappable").
+- [x] 3.1 Define `src/BusTester.Application/Ports/IBusPort.cs` (Connect/Disconnect/Send/Subscribe/UnsubscribeAsync) + `SubscriptionRequest`/`SubscriptionHandle` types per design.
+- [x] 3.2 RED→GREEN: assembly-reference test asserting Domain/Application have no RabbitMQ.Client dependency (bus-connection: "Adapter is swappable").
 
 ## PR2: Use Cases, RabbitMqAdapter, API
 

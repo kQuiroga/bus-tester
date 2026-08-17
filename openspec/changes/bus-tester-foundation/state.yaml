@@ -7,7 +7,7 @@ phases:
   specs: done
   design: done
   tasks: done
-  apply: pending
+  apply: pending # PR1 (Phase 1-3, 12/12 tasks) complete on branch bus-tester-foundation/pr1-scaffold, unpushed; PR2 (Phase 4-6) and PR3 (Phase 7-9) not started
   verify: pending
   archive: pending
 artifact_store: hybrid
