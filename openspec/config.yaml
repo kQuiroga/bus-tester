@@ -1,0 +1,32 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: Angular (frontend) + .NET 8 (backend)
+  Architecture: Hexagonal / Ports & Adapters — domain core with a broker-agnostic IBusPort, concrete adapters per message broker (RabbitMQ first, Kafka planned)
+  Testing: Strict TDD Mode enabled — RED-GREEN-REFACTOR required. .NET: xUnit. Angular: test runner TBD (Vitest recommended over Jest/Karma per exploration findings, Karma is deprecated).
+  Style: Clean/Hexagonal Architecture, atomic design (frontend components), container-presentational pattern
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+    tdd: true           # Strict TDD Mode enabled — RED-GREEN-REFACTOR required
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

@@ -1,0 +1,13 @@
+change: bus-tester-foundation
+created: 2026-08-17
+status: in-progress
+phases:
+  explore: done
+  proposal: done
+  specs: done
+  design: done
+  tasks: done
+  apply: pending
+  verify: pending
+  archive: pending
+artifact_store: hybrid
