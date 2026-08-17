@@ -8,6 +8,12 @@
     <PackageReference Include="RabbitMQ.Client" Version="7.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Needed for Hub/IHubContext<T> (SignalR): this is a plain class-library SDK, not
+         Microsoft.NET.Sdk.Web, so ASP.NET Core types must be pulled in explicitly. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
