@@ -7,7 +7,6 @@ import { MessagesComponent } from './features/messages/messages.component';
   selector: 'app-root',
   imports: [ConnectComponent, SendComponent, MessagesComponent],
   templateUrl: './app.html',
-  styleUrl: './app.css',
 })
 export class App {
   protected readonly title = 'BusTester';
