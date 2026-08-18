@@ -1,0 +1,55 @@
+status: archived
+phase_completion:
+  proposal: done
+  spec: done
+  design: done
+  tasks: done
+  apply: done
+  verify: done
+  archive: done
+
+change_name: frontend-tailwind-restyle
+archive_date: 2026-08-18
+
+capabilities_added:
+  - ui-presentation
+
+capabilities_modified: []
+
+capabilities_unaffected:
+  - bus-connection
+  - message-sending
+  - message-consumption
+
+verification_result:
+  verdict: pass_with_warnings
+  critical_findings: 0
+  warnings: 3
+  suggestions: 2
+  requirements: 5/5
+  scenarios: 9/9
+
+artifacts_archived:
+  - proposal.md
+  - specs/ui-presentation/spec.md
+  - design.md
+  - tasks.md
+  - apply-progress.md
+  - verify-report.md
+  - state.yaml
+
+specs_synced_to_main:
+  - openspec/specs/ui-presentation/spec.md (new capability)
+
+implementation_status: complete
+build_status: passed
+test_status: passed (18/18 tests, 5 spec files)
+bundle_size: 284.16 kB raw / 75.95 kB transfer
+
+notes: |
+  Retroactive SDD documentation for frontend visual restyle using Tailwind CSS v4.
+  Implementation was complete and manually verified in working tree before SDD artifact creation.
+  Verify phase confirmed all 16 tasks complete, 5/5 requirements met, 9/9 scenarios evaluated.
+  No functional changes to existing capabilities (bus-connection, message-sending, message-consumption).
+  Only presentation layer and CSS encapsulation bugfix in scope.
+  Two out-of-scope files intentionally kept uncommitted (api-config.ts, archive state.yaml for bus-tester-foundation).
