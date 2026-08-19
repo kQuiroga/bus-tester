@@ -1,10 +1,6 @@
-# message-consumption Specification
+# Delta for message-consumption
 
-## Purpose
-
-Subscribing to a queue and streaming consumed messages live to the Angular UI via SignalR.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Pause and Resume the Displayed Feed
 
@@ -46,9 +42,12 @@ The system MUST let a developer filter the displayed message feed by a search te
 - WHEN a developer enters a search term
 - THEN filtering applies to the paused (frozen) displayed list only, without resuming the feed
 
+## MODIFIED Requirements
+
 ### Requirement: Subscribe and Receive Live Messages
 
 The system MUST let a developer subscribe to a specified queue on an active connection and MUST push each consumed message to the Angular UI in near-real-time via SignalR, without persisting messages across restarts. Pause/resume and filter/search operate only on the client-displayed subset of this feed; they MUST NOT affect message delivery to, or accumulation within, `BusHubService`.
+(Previously: did not distinguish delivery/accumulation from what is displayed)
 
 #### Scenario: Live delivery
 

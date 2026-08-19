@@ -8,7 +8,12 @@ export interface ReceivedMessage {
   exchange: string;
   routingKey: string;
   payload: string;
+  /** Monotonic, assigned at receipt by this service instance — NOT part of the wire DTO. */
+  seq: number;
 }
+
+/** Shape of the message as it arrives over the wire, before this service stamps `seq`. */
+type IncomingMessage = Omit<ReceivedMessage, 'seq'>;
 
 /**
  * DI token for the underlying HubConnection so tests can substitute a fake implementation
@@ -29,12 +34,14 @@ export class BusHubService {
   private readonly connection = inject(BUS_HUB_CONNECTION);
   private readonly _messages = signal<ReceivedMessage[]>([]);
   private startPromise: Promise<void> | null = null;
+  private nextSeq = 0;
 
   readonly messages = this._messages.asReadonly();
 
   constructor() {
-    this.connection.on('MessageReceived', (message: ReceivedMessage) => {
-      this._messages.update((current) => [message, ...current]);
+    this.connection.on('MessageReceived', (message: IncomingMessage) => {
+      const received: ReceivedMessage = { ...message, seq: this.nextSeq++ };
+      this._messages.update((current) => [received, ...current]);
     });
   }
 
