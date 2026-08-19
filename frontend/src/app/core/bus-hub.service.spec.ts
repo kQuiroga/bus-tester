@@ -114,4 +114,70 @@ describe('BusHubService', () => {
 
     expect(service.messages()).toEqual([]);
   });
+
+  it('the first received message gets seq starting at the initial counter value (T1)', () => {
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":1}',
+    });
+
+    expect(service.messages()[0].seq).toBe(0);
+  });
+
+  it('seq increments per message regardless of prepend order (T2)', () => {
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":1}',
+    });
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.updated',
+      payload: '{"id":2}',
+    });
+
+    const messages = service.messages();
+
+    // Newest-first prepend: index 0 is the second emitted message, but its seq (1) is still
+    // greater than the seq of the first emitted message (0) now at index 1 — seq tracks
+    // receipt order, not array position.
+    expect(messages[0].seq).toBe(1);
+    expect(messages[1].seq).toBe(0);
+  });
+
+  it('a fresh service instance restarts its own seq counter (no shared/global state) (T3)', () => {
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":1}',
+    });
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.updated',
+      payload: '{"id":2}',
+    });
+    expect(service.messages()[0].seq).toBe(1);
+
+    TestBed.resetTestingModule();
+    const freshFakeConnection = new FakeHubConnection();
+    TestBed.configureTestingModule({
+      providers: [{ provide: BUS_HUB_CONNECTION, useValue: freshFakeConnection }],
+    });
+    const freshService = TestBed.inject(BusHubService);
+
+    freshFakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-2',
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":3}',
+    });
+
+    expect(freshService.messages()[0].seq).toBe(0);
+  });
 });
