@@ -1,6 +1,6 @@
 change: bus-tester-foundation
 created: 2026-08-17
-status: in-progress
+status: archived
 phases:
   explore: done
   proposal: done
@@ -9,5 +9,5 @@ phases:
   tasks: done
   apply: done # All 3 PRs complete, unpushed (stacked, not merged to main). PR1 (Phase 1-3, 12/12) on bus-tester-foundation/pr1-scaffold. PR2 (Phase 4-6, 16/16 + 1 post-hoc) on bus-tester-foundation/pr2-usecases-adapter off pr1-scaffold, 54/54 tests green. PR3 (Phase 7-9, 12/12) on bus-tester-foundation/pr3-signalr-ui off pr2-usecases-adapter: SignalR BusHub + IMessageBroadcaster seam, Angular connect/send/messages SPA with live SignalR feed, 17 Vitest specs; 51/51 non-Docker .NET tests green (Infrastructure.Tests needs Docker); e2e receive flow verified live against a real RabbitMQ container + dotnet run + a SignalR client script. bus-tester-foundation is functionally complete (RabbitMQ-only walking skeleton).
   verify: done # Re-verify PASS after remediation commit ac68b96 closed the 2 previously-untested restart/no-persistence scenarios with real runtime regression tests. 42/42 tasks done, 75/75 tests pass (57 .NET + 18 frontend), 0 CRITICAL, 4/4 requirements and 9/9 scenarios now runtime-verified. See openspec/changes/bus-tester-foundation/verify-report.md. Ready for archive.
-  archive: pending
+  archive: done
 artifact_store: hybrid
