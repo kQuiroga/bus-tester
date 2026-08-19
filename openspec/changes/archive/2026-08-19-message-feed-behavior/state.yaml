@@ -1,0 +1,13 @@
+change: message-feed-behavior
+created: 2026-08-19
+status: in-progress
+phases:
+  explore: done
+  proposal: done # Locked in client-side pause/resume + explicit new-arrival tracking; open questions recorded in proposal.md "Proposal question round" pending user confirmation before spec/design lock-in.
+  specs: done
+  design: done # linkedSignal-based displayState (freeze/resync/new-row diff), monotonic seq in BusHubService, JsonPrettyPipe under features/messages/; see design.md
+  tasks: done # 7 phases, RED-then-GREEN per T1-T16; single PR, Medium 400-line risk, decision needed before apply
+  apply: done # All Phase 1-6 tasks complete (T1-T16 RED-then-GREEN, 32/32 tests pass, build clean); Phase 7 is a post-archive note, not executed here
+  verify: done # PASS WITH WARNINGS - 32/32 tests + build re-run clean, 25/25 tasks, 5/5 locked decisions, connect/send boundary respected; 2 WARNING-level test-coverage gaps (search+pause, filter+highlight combos), architecturally correct but not runtime-tested; see verify-report.md
+  archive: done
+artifact_store: hybrid
