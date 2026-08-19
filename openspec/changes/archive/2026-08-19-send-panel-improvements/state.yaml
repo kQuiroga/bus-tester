@@ -1,0 +1,23 @@
+change: send-panel-improvements
+artifact_store: hybrid
+delivery_strategy: ask-on-risk
+review_budget_lines: 400
+execution_mode: auto
+phases:
+  explore:
+    status: complete
+  proposal:
+    status: complete
+  spec:
+    status: complete
+  design:
+    status: complete
+  tasks:
+    status: complete
+delivery_decision: single-pr size:exception accepted (~380-420 lines, Medium risk, chaining declined)
+  apply:
+    status: complete
+  verify:
+    status: complete
+  archive:
+    status: pending
