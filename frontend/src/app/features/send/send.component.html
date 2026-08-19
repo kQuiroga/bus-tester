@@ -8,7 +8,11 @@
         name="exchange"
         [ngModel]="exchange()"
         (ngModelChange)="exchange.set($event)"
+        (blur)="onBlur('exchange')"
       />
+      @if (touched().has('exchange') && exchangeError()) {
+        <p class="rounded-md bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error">{{ exchangeError() }}</p>
+      }
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
       Routing key
@@ -17,7 +21,11 @@
         name="routingKey"
         [ngModel]="routingKey()"
         (ngModelChange)="routingKey.set($event)"
+        (blur)="onBlur('routingKey')"
       />
+      @if (touched().has('routingKey') && routingKeyError()) {
+        <p class="rounded-md bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error">{{ routingKeyError() }}</p>
+      }
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
       Payload
@@ -26,7 +34,11 @@
         name="payload"
         [ngModel]="payload()"
         (ngModelChange)="payload.set($event)"
+        (blur)="onBlur('payload')"
       ></textarea>
+      @if (touched().has('payload') && payloadError()) {
+        <p class="rounded-md bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error">{{ payloadError() }}</p>
+      }
     </label>
     <button
       class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -41,4 +53,74 @@
   @if (errorMessage()) {
     <p class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>
   }
+
+  <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+    <h3 class="text-sm font-medium text-card-foreground">Recent sends</h3>
+    @if (history.recentSends().length === 0) {
+      <p class="text-xs text-card-foreground/60">No sends yet.</p>
+    } @else {
+      <ul class="flex flex-col gap-1">
+        @for (recent of history.recentSends(); track recent.sentAt) {
+          <li class="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs">
+            <span class="truncate">{{ recent.exchange }} / {{ recent.routingKey || '(no routing key)' }}</span>
+            <button
+              class="shrink-0 rounded-md border border-border px-2 py-1 text-primary hover:opacity-90"
+              type="button"
+              (click)="useRecent(recent)"
+            >
+              Use
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+    <h3 class="text-sm font-medium text-card-foreground">Templates</h3>
+    <div class="flex gap-2">
+      <input
+        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+        name="templateName"
+        placeholder="Template name"
+        [ngModel]="templateName()"
+        (ngModelChange)="templateName.set($event)"
+        [ngModelOptions]="{ standalone: true }"
+      />
+      <button
+        class="shrink-0 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+        type="button"
+        (click)="saveTemplate()"
+      >
+        Save as template
+      </button>
+    </div>
+    @if (history.templates().length === 0) {
+      <p class="text-xs text-card-foreground/60">No saved templates.</p>
+    } @else {
+      <ul class="flex flex-col gap-1">
+        @for (template of history.templates(); track template.name) {
+          <li class="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs">
+            <span class="truncate">{{ template.name }}</span>
+            <span class="flex shrink-0 gap-2">
+              <button
+                class="rounded-md border border-border px-2 py-1 text-primary hover:opacity-90"
+                type="button"
+                (click)="useTemplate(template)"
+              >
+                Load
+              </button>
+              <button
+                class="rounded-md border border-border px-2 py-1 text-status-error hover:opacity-90"
+                type="button"
+                (click)="deleteTemplate(template.name)"
+              >
+                Delete
+              </button>
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
 </section>
