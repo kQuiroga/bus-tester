@@ -1,33 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { BUS_HUB_CONNECTION, BusHubService } from './bus-hub.service';
-
-/**
- * Minimal stand-in for @microsoft/signalr's HubConnection — only the surface BusHubService
- * actually uses (on/start/invoke), so tests never open a real socket.
- */
-class FakeHubConnection {
-  private readonly handlers = new Map<string, (payload: unknown) => void>();
-  invoked: Array<{ method: string; args: unknown[] }> = [];
-  started = false;
-
-  on(event: string, handler: (payload: unknown) => void): void {
-    this.handlers.set(event, handler);
-  }
-
-  start(): Promise<void> {
-    this.started = true;
-    return Promise.resolve();
-  }
-
-  invoke(method: string, ...args: unknown[]): Promise<void> {
-    this.invoked.push({ method, args });
-    return Promise.resolve();
-  }
-
-  emit(event: string, payload: unknown): void {
-    this.handlers.get(event)?.(payload);
-  }
-}
+import { FakeHubConnection } from './testing/fake-hub-connection';
 
 describe('BusHubService', () => {
   let fakeConnection: FakeHubConnection;
@@ -179,5 +152,45 @@ describe('BusHubService', () => {
     });
 
     expect(freshService.messages()[0].seq).toBe(0);
+  });
+
+  it('connectionState starts as idle (connection-status spec: "State is read-only to consumers" baseline)', () => {
+    expect(service.connectionState()).toBe('idle');
+  });
+
+  it('start() sets connectionState to connecting while in flight, then connected on resolve (connection-status spec: "Initial start reflects connecting then connected")', async () => {
+    const startPromise = service.start();
+
+    expect(service.connectionState()).toBe('connecting');
+
+    await startPromise;
+
+    expect(service.connectionState()).toBe('connected');
+  });
+
+  it('a rejected start() sets connectionState to disconnected and still rethrows', async () => {
+    fakeConnection.startError = new Error('boom');
+
+    await expect(service.start()).rejects.toThrow('boom');
+    expect(service.connectionState()).toBe('disconnected');
+  });
+
+  it('triggerReconnecting() sets connectionState to reconnecting (connection-status spec: "onreconnecting sets reconnecting state")', () => {
+    fakeConnection.triggerReconnecting();
+
+    expect(service.connectionState()).toBe('reconnecting');
+  });
+
+  it('triggerReconnected() restores connectionState to connected (connection-status spec: "onreconnected restores connected state")', () => {
+    fakeConnection.triggerReconnecting();
+    fakeConnection.triggerReconnected();
+
+    expect(service.connectionState()).toBe('connected');
+  });
+
+  it('triggerClose() sets connectionState to disconnected (connection-status spec: "onclose sets disconnected state")', () => {
+    fakeConnection.triggerClose();
+
+    expect(service.connectionState()).toBe('disconnected');
   });
 });
