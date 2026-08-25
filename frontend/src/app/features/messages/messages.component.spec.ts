@@ -25,7 +25,9 @@ function createFakeBusHubService() {
     start: vi.fn().mockResolvedValue(undefined),
     joinSubscription: vi.fn().mockResolvedValue(undefined),
     leaveSubscription: vi.fn().mockResolvedValue(undefined),
-    clear: vi.fn(() => messagesSignal.set([])),
+    clearSubscription: vi.fn((id: string) =>
+      messagesSignal.update((current) => current.filter((m) => m.subscriptionId !== id)),
+    ),
   };
 }
 
@@ -122,7 +124,7 @@ describe('MessagesComponent', () => {
     req.flush(null);
 
     expect(fakeBusHubService.leaveSubscription).toHaveBeenCalledWith('sub-1');
-    expect(fakeBusHubService.clear).toHaveBeenCalled();
+    expect(fakeBusHubService.clearSubscription).toHaveBeenCalledWith('sub-1');
     expect(component.subscriptionId()).toBeNull();
   });
 

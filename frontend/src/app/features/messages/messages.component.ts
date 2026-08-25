@@ -113,7 +113,7 @@ export class MessagesComponent {
 
   private finishUnsubscribe(subscriptionId: string): void {
     this.busHub.leaveSubscription(subscriptionId);
-    this.busHub.clear();
+    this.busHub.clearSubscription(subscriptionId);
     this.subscriptionId.set(null);
   }
 }

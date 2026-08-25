@@ -75,7 +75,7 @@ describe('BusHubService', () => {
     expect(fakeConnection.invoked).toEqual([{ method: 'LeaveSubscription', args: ['sub-1'] }]);
   });
 
-  it('clear() resets the messages signal', () => {
+  it('clearSubscription(id) removes only that subscription\'s messages', () => {
     fakeConnection.emit('MessageReceived', {
       subscriptionId: 'sub-1',
       exchange: 'orders',
@@ -83,9 +83,30 @@ describe('BusHubService', () => {
       payload: '{}',
     });
 
-    service.clear();
+    service.clearSubscription('sub-1');
 
     expect(service.messages()).toEqual([]);
+  });
+
+  it('clearSubscription(id) leaves other subscriptions\' messages intact', () => {
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":1}',
+    });
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-2',
+      exchange: 'billing',
+      routingKey: 'billing.updated',
+      payload: '{"id":2}',
+    });
+
+    service.clearSubscription('sub-1');
+
+    const messages = service.messages();
+    expect(messages.length).toBe(1);
+    expect(messages[0].subscriptionId).toBe('sub-2');
   });
 
   it('the first received message gets seq starting at the initial counter value (T1)', () => {
