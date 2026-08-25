@@ -40,7 +40,7 @@ describe('SendComponent', () => {
     expect(req.request.body).toEqual({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
     req.flush(null);
 
-    expect(component.confirmation()).toBe('Message sent.');
+    expect(component.confirmation()).toBe('Mensaje enviado.');
     expect(component.errorMessage()).toBeNull();
   });
 
@@ -74,8 +74,8 @@ describe('SendComponent', () => {
 
     httpMock.expectNone((r) => r.url.endsWith('/api/messages'));
     expect(component.hasErrors()).toBe(true);
-    expect(component.exchangeError()).toBe('Exchange is required.');
-    expect(component.payloadError()).toBe('Payload is required.');
+    expect(component.exchangeError()).toBe('El exchange es obligatorio.');
+    expect(component.payloadError()).toBe('El payload es obligatorio.');
     expect(component.touched().has('exchange')).toBe(true);
     expect(component.touched().has('payload')).toBe(true);
     expect(component.touched().has('routingKey')).toBe(true);
@@ -91,7 +91,7 @@ describe('SendComponent', () => {
     component.onBlur('exchange');
 
     expect(component.touched().has('exchange')).toBe(true);
-    expect(component.exchangeError()).toBe('Exchange is required.');
+    expect(component.exchangeError()).toBe('El exchange es obligatorio.');
   });
 
   it('blocks submit when routingKey is whitespace-only', () => {
@@ -105,7 +105,7 @@ describe('SendComponent', () => {
 
     httpMock.expectNone((r) => r.url.endsWith('/api/messages'));
     expect(component.hasErrors()).toBe(true);
-    expect(component.routingKeyError()).toBe('Routing key cannot be blank.');
+    expect(component.routingKeyError()).toBe('La clave de enrutamiento no puede estar en blanco.');
   });
 
   it('accepts an empty routingKey (optional field) and submits successfully', () => {
@@ -121,7 +121,7 @@ describe('SendComponent', () => {
     const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages'));
     req.flush(null);
 
-    expect(component.confirmation()).toBe('Message sent.');
+    expect(component.confirmation()).toBe('Mensaje enviado.');
   });
 
   it('records the send to history only after a successful send', () => {

@@ -1,5 +1,5 @@
 <section class="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-  <h2 class="text-lg font-medium text-card-foreground">Send message</h2>
+  <h2 class="text-lg font-medium text-card-foreground">Enviar mensaje</h2>
   <form class="mt-3 flex flex-col gap-3" (ngSubmit)="send()">
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
       Exchange
@@ -15,7 +15,7 @@
       }
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
-      Routing key
+      Clave de enrutamiento
       <input
         class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         name="routingKey"
@@ -44,7 +44,7 @@
       class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       type="submit"
     >
-      Send
+      Enviar
     </button>
   </form>
   @if (confirmation()) {
@@ -55,20 +55,20 @@
   }
 
   <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-    <h3 class="text-sm font-medium text-card-foreground">Recent sends</h3>
+    <h3 class="text-sm font-medium text-card-foreground">Envíos recientes</h3>
     @if (history.recentSends().length === 0) {
-      <p class="text-xs text-card-foreground/60">No sends yet.</p>
+      <p class="text-xs text-card-foreground/60">Aún no hay envíos.</p>
     } @else {
       <ul class="flex flex-col gap-1">
         @for (recent of history.recentSends(); track recent.sentAt) {
           <li class="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs">
-            <span class="truncate">{{ recent.exchange }} / {{ recent.routingKey || '(no routing key)' }}</span>
+            <span class="truncate">{{ recent.exchange }} / {{ recent.routingKey || '(sin clave de enrutamiento)' }}</span>
             <button
               class="shrink-0 rounded-md border border-border px-2 py-1 text-primary hover:opacity-90"
               type="button"
               (click)="useRecent(recent)"
             >
-              Use
+              Cargar
             </button>
           </li>
         }
@@ -77,12 +77,12 @@
   </div>
 
   <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-    <h3 class="text-sm font-medium text-card-foreground">Templates</h3>
+    <h3 class="text-sm font-medium text-card-foreground">Plantillas</h3>
     <div class="flex gap-2">
       <input
         class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
         name="templateName"
-        placeholder="Template name"
+        placeholder="Nombre de la plantilla"
         [ngModel]="templateName()"
         (ngModelChange)="templateName.set($event)"
         [ngModelOptions]="{ standalone: true }"
@@ -92,11 +92,11 @@
         type="button"
         (click)="saveTemplate()"
       >
-        Save as template
+        Guardar plantilla
       </button>
     </div>
     @if (history.templates().length === 0) {
-      <p class="text-xs text-card-foreground/60">No saved templates.</p>
+      <p class="text-xs text-card-foreground/60">No hay plantillas guardadas.</p>
     } @else {
       <ul class="flex flex-col gap-1">
         @for (template of history.templates(); track template.name) {
@@ -108,14 +108,14 @@
                 type="button"
                 (click)="useTemplate(template)"
               >
-                Load
+                Cargar
               </button>
               <button
                 class="rounded-md border border-border px-2 py-1 text-status-error hover:opacity-90"
                 type="button"
                 (click)="deleteTemplate(template.name)"
               >
-                Delete
+                Eliminar
               </button>
             </span>
           </li>
