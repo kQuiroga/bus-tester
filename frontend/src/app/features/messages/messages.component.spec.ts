@@ -61,7 +61,7 @@ describe('MessagesComponent', () => {
     return component;
   }
 
-  it('subscribeToQueue() posts the queue name and joins the SignalR group on success', () => {
+  it('subscribeToQueue() posts the queue name, adds a chip and joins the SignalR group on success', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
     component.queueName.set('orders-queue');
@@ -72,7 +72,7 @@ describe('MessagesComponent', () => {
     expect(req.request.body).toEqual({ queueName: 'orders-queue' });
     req.flush({ id: 'sub-1' });
 
-    expect(component.subscriptionId()).toBe('sub-1');
+    expect(component.subscriptions()).toEqual([{ id: 'sub-1', queueName: 'orders-queue' }]);
     expect(fakeBusHubService.joinSubscription).toHaveBeenCalledWith('sub-1');
   });
 
@@ -90,8 +90,130 @@ describe('MessagesComponent', () => {
     );
 
     expect(component.errorMessage()).toContain("Could not subscribe to queue 'missing-queue'");
-    expect(component.subscriptionId()).toBeNull();
+    expect(component.subscriptions()).toEqual([]);
     expect(fakeBusHubService.joinSubscription).not.toHaveBeenCalled();
+  });
+
+  it('two concurrent subscriptions each render a chip and receive only their own messages (2.1)', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+
+    component.queueName.set('shipping-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-2' });
+
+    expect(component.subscriptions()).toEqual([
+      { id: 'sub-1', queueName: 'orders-queue' },
+      { id: 'sub-2', queueName: 'shipping-queue' },
+    ]);
+
+    fakeBusHubService.messagesSignal.set([
+      msg(0, { subscriptionId: 'sub-1' }),
+      msg(1, { subscriptionId: 'sub-2' }),
+    ]);
+
+    expect(component.visibleMessages()).toEqual([
+      msg(0, { subscriptionId: 'sub-1' }),
+      msg(1, { subscriptionId: 'sub-2' }),
+    ]);
+  });
+
+  it("chipCounts() reflects each subscription's own message count only (2.2)", () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+
+    component.queueName.set('shipping-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-2' });
+
+    fakeBusHubService.messagesSignal.set([
+      msg(0, { subscriptionId: 'sub-1' }),
+      msg(1, { subscriptionId: 'sub-1' }),
+      msg(2, { subscriptionId: 'sub-2' }),
+    ]);
+
+    expect(component.chipCounts()).toEqual([
+      { id: 'sub-1', queueName: 'orders-queue', count: 2 },
+      { id: 'sub-2', queueName: 'shipping-queue', count: 1 },
+    ]);
+  });
+
+  it('subscribeToQueue() is a no-op when queueName already has an active subscription (3.1)', () => {
+    const component = createSubscribedComponent();
+    component.queueName.set('orders-queue');
+
+    expect(component.isDuplicateQueue()).toBe(true);
+
+    component.subscribeToQueue();
+
+    httpMock.expectNone((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions'));
+    expect(component.subscriptions()).toEqual([{ id: 'sub-1', queueName: 'orders-queue' }]);
+  });
+
+  it('a rejected joinSubscription surfaces the failure via errorMessage without an unhandled rejection (4.1)', async () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    fakeBusHubService.joinSubscription.mockRejectedValueOnce({ error: { detail: 'group join rejected' } });
+
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(component.errorMessage()).toBe('group join rejected');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('group join rejected');
+  });
+
+  it('a rejected leaveSubscription surfaces the failure via errorMessage without an unhandled rejection (4.2)', async () => {
+    const component = createSubscribedComponent();
+    fakeBusHubService.leaveSubscription.mockRejectedValueOnce({ error: { detail: 'group leave rejected' } });
+
+    component.unsubscribe('sub-1');
+    const req = httpMock.expectOne((r) => r.method === 'DELETE' && r.url.endsWith('/api/subscriptions/sub-1'));
+    req.flush(null);
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(component.errorMessage()).toBe('group leave rejected');
+  });
+
+  it('unsubscribe(id) removes only that chip and its messages, leaving sibling subscriptions intact (5.1)', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+
+    component.queueName.set('shipping-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-2' });
+
+    fakeBusHubService.messagesSignal.set([
+      msg(0, { subscriptionId: 'sub-1' }),
+      msg(1, { subscriptionId: 'sub-2' }),
+    ]);
+
+    component.unsubscribe('sub-1');
+    const req = httpMock.expectOne((r) => r.method === 'DELETE' && r.url.endsWith('/api/subscriptions/sub-1'));
+    req.flush(null);
+
+    expect(fakeBusHubService.leaveSubscription).toHaveBeenCalledWith('sub-1');
+    expect(fakeBusHubService.clearSubscription).toHaveBeenCalledWith('sub-1');
+    expect(component.subscriptions()).toEqual([{ id: 'sub-2', queueName: 'shipping-queue' }]);
+    expect(component.visibleMessages()).toEqual([msg(1, { subscriptionId: 'sub-2' })]);
   });
 
   it('visibleMessages() only shows hub messages for the active subscription', () => {
@@ -111,21 +233,21 @@ describe('MessagesComponent', () => {
     ]);
   });
 
-  it('unsubscribe() deletes the subscription, leaves the hub group and clears messages', () => {
+  it('unsubscribe(id) deletes the subscription, leaves the hub group and clears messages', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
     component.queueName.set('orders-queue');
     component.subscribeToQueue();
     httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
 
-    component.unsubscribe();
+    component.unsubscribe('sub-1');
 
     const req = httpMock.expectOne((r) => r.method === 'DELETE' && r.url.endsWith('/api/subscriptions/sub-1'));
     req.flush(null);
 
     expect(fakeBusHubService.leaveSubscription).toHaveBeenCalledWith('sub-1');
     expect(fakeBusHubService.clearSubscription).toHaveBeenCalledWith('sub-1');
-    expect(component.subscriptionId()).toBeNull();
+    expect(component.subscriptions()).toEqual([]);
   });
 
   it('togglePause() freezes displayedMessages()/filteredMessages() until resume (T5)', () => {
