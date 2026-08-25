@@ -15,6 +15,13 @@ interface SubscriptionResponse {
   id: string;
 }
 
+/** An active subscribe-form entry, rendered as its own chip (ui-presentation spec: "Subscription
+ *  Chip Row Renders Active Subscriptions With Live Counters"). */
+interface Subscription {
+  id: string;
+  queueName: string;
+}
+
 /**
  * Subscribe-to-queue form + live incoming-message feed, pushed over SignalR
  * (message-consumption spec: "Live delivery" / "Invalid queue").
@@ -30,14 +37,31 @@ export class MessagesComponent {
   private readonly busHub = inject(BusHubService);
 
   readonly queueName = signal('');
-  readonly subscriptionId = signal<string | null>(null);
+  readonly subscriptions = signal<Subscription[]>([]);
   readonly errorMessage = signal<string | null>(null);
   readonly searchTerm = signal('');
   readonly paused = signal(false);
 
+  /** Blocks re-subscribing to a queue that already has an active chip (message-consumption
+   *  spec: "Duplicate queueName is blocked"). */
+  readonly isDuplicateQueue = computed(() =>
+    this.subscriptions().some((s) => s.queueName === this.queueName()),
+  );
+
+  /** Per-chip live message count, derived from the same shared `busHub.messages()` signal —
+   *  no separate BusHubService read API needed. */
+  readonly chipCounts = computed(() => {
+    const msgs = this.busHub.messages();
+    return this.subscriptions().map((s) => ({
+      id: s.id,
+      queueName: s.queueName,
+      count: msgs.filter((m) => m.subscriptionId === s.id).length,
+    }));
+  });
+
   readonly visibleMessages = computed(() => {
-    const activeId = this.subscriptionId();
-    return activeId === null ? [] : this.busHub.messages().filter((m) => m.subscriptionId === activeId);
+    const activeIds = new Set(this.subscriptions().map((s) => s.id));
+    return this.busHub.messages().filter((m) => activeIds.has(m.subscriptionId));
   });
 
   /** Freezes rows while paused, resyncs instantly on resume, and diffs which `seq`s are new
@@ -83,15 +107,28 @@ export class MessagesComponent {
   }
 
   subscribeToQueue(): void {
+    // Defense-in-depth alongside the template's [disabled] binding: subscribeToQueue() can be
+    // called directly (as tests do), so the guard must also live here (message-consumption
+    // spec: "Duplicate queueName is blocked").
+    if (this.isDuplicateQueue()) {
+      return;
+    }
+
     this.errorMessage.set(null);
     // Fire-and-forget: idempotent on the real service, harmless no-op against the fake used in
     // tests. Establishes the SignalR connection lazily on first subscribe rather than at app
     // boot, so component-creation tests never attempt a real network call.
     this.busHub.start().catch(() => {});
-    this.api.post<SubscriptionResponse>('/api/subscriptions', { queueName: this.queueName() }).subscribe({
+    const queueName = this.queueName();
+    this.api.post<SubscriptionResponse>('/api/subscriptions', { queueName }).subscribe({
       next: (response) => {
-        this.subscriptionId.set(response.id);
-        this.busHub.joinSubscription(response.id);
+        this.subscriptions.update((current) => [...current, { id: response.id, queueName }]);
+        // Unlike start(), a rejected join here leaves this chip rendered as subscribed while
+        // silently receiving nothing — surface it instead of swallowing (message-consumption
+        // spec: "Subscribe and Unsubscribe Failures Are Handled Without Unhandled Rejections").
+        this.busHub.joinSubscription(response.id).catch((err: unknown) => {
+          this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not join the subscription group.'));
+        });
       },
       error: (err: unknown) => {
         this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not subscribe to the queue.'));
@@ -99,21 +136,18 @@ export class MessagesComponent {
     });
   }
 
-  unsubscribe(): void {
-    const activeId = this.subscriptionId();
-    if (activeId === null) {
-      return;
-    }
-
-    this.api.delete(`/api/subscriptions/${activeId}`).subscribe({
-      next: () => this.finishUnsubscribe(activeId),
-      error: () => this.finishUnsubscribe(activeId),
+  unsubscribe(subscriptionId: string): void {
+    this.api.delete(`/api/subscriptions/${subscriptionId}`).subscribe({
+      next: () => this.finishUnsubscribe(subscriptionId),
+      error: () => this.finishUnsubscribe(subscriptionId),
     });
   }
 
   private finishUnsubscribe(subscriptionId: string): void {
-    this.busHub.leaveSubscription(subscriptionId);
+    this.busHub.leaveSubscription(subscriptionId).catch((err: unknown) => {
+      this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not leave the subscription group.'));
+    });
     this.busHub.clearSubscription(subscriptionId);
-    this.subscriptionId.set(null);
+    this.subscriptions.update((current) => current.filter((s) => s.id !== subscriptionId));
   }
 }
