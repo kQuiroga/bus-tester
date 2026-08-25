@@ -8,7 +8,7 @@
         name="host"
         [ngModel]="host()"
         (ngModelChange)="host.set($event)"
-        [disabled]="connected()"
+        [disabled]="connected() || pending()"
       />
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
@@ -19,7 +19,7 @@
         type="number"
         [ngModel]="port()"
         (ngModelChange)="port.set($event)"
-        [disabled]="connected()"
+        [disabled]="connected() || pending()"
       />
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
@@ -29,7 +29,7 @@
         name="username"
         [ngModel]="username()"
         (ngModelChange)="username.set($event)"
-        [disabled]="connected()"
+        [disabled]="connected() || pending()"
       />
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
@@ -40,13 +40,13 @@
         type="password"
         [ngModel]="password()"
         (ngModelChange)="password.set($event)"
-        [disabled]="connected()"
+        [disabled]="connected() || pending()"
       />
     </label>
     <button
       class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       type="submit"
-      [disabled]="connected()"
+      [disabled]="connected() || pending()"
     >
       Connect
     </button>
@@ -54,15 +54,26 @@
       class="rounded-md border border-border px-4 py-2 text-sm font-medium text-card-foreground hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       type="button"
       (click)="disconnect()"
-      [disabled]="!connected()"
+      [disabled]="!connected() || pending()"
     >
       Disconnect
     </button>
   </form>
-  @if (connected()) {
-    <p class="rounded-md bg-status-ok-bg px-3 py-2 text-sm font-medium text-status-ok">Connected</p>
-  }
-  @if (errorMessage()) {
-    <p class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>
+  @if (connected() || pending() || errorMessage() || hubStatusLabel()) {
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      @if (pending()) {
+        <p data-testid="broker-status" class="rounded-md bg-status-warn-bg px-3 py-2 text-sm font-medium text-status-warn">
+          {{ connected() ? 'Disconnecting…' : 'Connecting…' }}
+        </p>
+      } @else if (connected()) {
+        <p data-testid="broker-status" class="rounded-md bg-status-ok-bg px-3 py-2 text-sm font-medium text-status-ok">Connected (last known)</p>
+      }
+      @if (errorMessage()) {
+        <p data-testid="broker-error" class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>
+      }
+      @if (hubStatusLabel()) {
+        <p data-testid="hub-status" [class]="hubStatusClasses()">{{ hubStatusLabel() }}</p>
+      }
+    </div>
   }
 </section>

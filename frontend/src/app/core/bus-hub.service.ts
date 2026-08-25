@@ -15,6 +15,10 @@ export interface ReceivedMessage {
 /** Shape of the message as it arrives over the wire, before this service stamps `seq`. */
 type IncomingMessage = Omit<ReceivedMessage, 'seq'>;
 
+/** Lifecycle state of the SignalR hub connection (connection-status spec: "Hub Connection State
+ *  Is Exposed Read-Only"). */
+export type HubConnectionState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+
 /**
  * DI token for the underlying HubConnection so tests can substitute a fake implementation
  * without opening a real socket.
@@ -33,21 +37,37 @@ export const BUS_HUB_CONNECTION = new InjectionToken<HubConnection>('BUS_HUB_CON
 export class BusHubService {
   private readonly connection = inject(BUS_HUB_CONNECTION);
   private readonly _messages = signal<ReceivedMessage[]>([]);
+  private readonly _connectionState = signal<HubConnectionState>('idle');
   private startPromise: Promise<void> | null = null;
   private nextSeq = 0;
 
   readonly messages = this._messages.asReadonly();
+  readonly connectionState = this._connectionState.asReadonly();
 
   constructor() {
     this.connection.on('MessageReceived', (message: IncomingMessage) => {
       const received: ReceivedMessage = { ...message, seq: this.nextSeq++ };
       this._messages.update((current) => [received, ...current]);
     });
+    this.connection.onreconnecting(() => this._connectionState.set('reconnecting'));
+    this.connection.onreconnected(() => this._connectionState.set('connected'));
+    this.connection.onclose(() => this._connectionState.set('disconnected'));
   }
 
   /** Idempotent: repeated calls return the same in-flight/completed start, never re-invoke it. */
   start(): Promise<void> {
-    this.startPromise ??= this.connection.start();
+    if (!this.startPromise) {
+      this._connectionState.set('connecting');
+      this.startPromise = this.connection.start().then(
+        () => {
+          this._connectionState.set('connected');
+        },
+        (err: unknown) => {
+          this._connectionState.set('disconnected');
+          throw err;
+        },
+      );
+    }
     return this.startPromise;
   }
 
