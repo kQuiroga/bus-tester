@@ -79,7 +79,10 @@ export class BusHubService {
     return this.connection.invoke('LeaveSubscription', subscriptionId);
   }
 
-  clear(): void {
-    this._messages.set([]);
+  /** Removes only this subscription's messages from state, leaving all other active
+   *  subscriptions' messages intact (message-consumption spec: "Unsubscribing one chip
+   *  removes only that chip's messages, others remain intact"). */
+  clearSubscription(subscriptionId: string): void {
+    this._messages.update((current) => current.filter((m) => m.subscriptionId !== subscriptionId));
   }
 }
