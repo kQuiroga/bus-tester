@@ -1,8 +1,8 @@
 <section class="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-  <h2 class="text-lg font-medium text-card-foreground">Connection</h2>
+  <h2 class="text-lg font-medium text-card-foreground">Conexión</h2>
   <form class="mt-3 flex flex-col gap-3" (ngSubmit)="connect()">
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
-      Host
+      Host del broker
       <input
         class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         name="host"
@@ -12,7 +12,7 @@
       />
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
-      Port
+      Puerto
       <input
         class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         name="port"
@@ -23,7 +23,7 @@
       />
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
-      Username
+      Usuario
       <input
         class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         name="username"
@@ -33,7 +33,7 @@
       />
     </label>
     <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
-      Password
+      Contraseña
       <input
         class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         name="password"
@@ -48,7 +48,7 @@
       type="submit"
       [disabled]="connected() || pending()"
     >
-      Connect
+      Conectar
     </button>
     <button
       class="rounded-md border border-border px-4 py-2 text-sm font-medium text-card-foreground hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -56,17 +56,17 @@
       (click)="disconnect()"
       [disabled]="!connected() || pending()"
     >
-      Disconnect
+      Desconectar
     </button>
   </form>
   @if (connected() || pending() || errorMessage() || hubStatusLabel()) {
     <div class="mt-3 flex flex-wrap items-center gap-2">
       @if (pending()) {
         <p data-testid="broker-status" class="rounded-md bg-status-warn-bg px-3 py-2 text-sm font-medium text-status-warn">
-          {{ connected() ? 'Disconnecting…' : 'Connecting…' }}
+          {{ connected() ? 'Desconectando…' : 'Conectando…' }}
         </p>
       } @else if (connected()) {
-        <p data-testid="broker-status" class="rounded-md bg-status-ok-bg px-3 py-2 text-sm font-medium text-status-ok">Connected (last known)</p>
+        <p data-testid="broker-status" class="rounded-md bg-status-ok-bg px-3 py-2 text-sm font-medium text-status-ok">Conectado (último conocido)</p>
       }
       @if (errorMessage()) {
         <p data-testid="broker-error" class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>

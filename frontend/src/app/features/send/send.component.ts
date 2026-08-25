@@ -29,10 +29,10 @@ export class SendComponent {
   readonly touched = signal<Set<SendField>>(new Set());
   readonly templateName = signal('');
 
-  readonly exchangeError = computed(() => (this.exchange().trim() === '' ? 'Exchange is required.' : null));
-  readonly payloadError = computed(() => (this.payload().trim() === '' ? 'Payload is required.' : null));
+  readonly exchangeError = computed(() => (this.exchange().trim() === '' ? 'El exchange es obligatorio.' : null));
+  readonly payloadError = computed(() => (this.payload().trim() === '' ? 'El payload es obligatorio.' : null));
   readonly routingKeyError = computed(() =>
-    this.routingKey() !== '' && this.routingKey().trim() === '' ? 'Routing key cannot be blank.' : null,
+    this.routingKey() !== '' && this.routingKey().trim() === '' ? 'La clave de enrutamiento no puede estar en blanco.' : null,
   );
   readonly hasErrors = computed(
     () => this.exchangeError() !== null || this.payloadError() !== null || this.routingKeyError() !== null,
@@ -57,11 +57,11 @@ export class SendComponent {
       .post('/api/messages', { exchange, routingKey, payload })
       .subscribe({
         next: () => {
-          this.confirmation.set('Message sent.');
+          this.confirmation.set('Mensaje enviado.');
           this.history.recordSend({ exchange, routingKey, payload });
         },
         error: (err: unknown) => {
-          this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not send the message.'));
+          this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'));
         },
       });
   }

@@ -11,10 +11,10 @@ const STATUS_ERROR_CLASSES = 'rounded-md bg-status-error-bg px-3 py-2 text-sm fo
  *  hidden while connectionState() is 'idle'"). */
 const HUB_STATUS_LABELS: Record<HubConnectionState, string | null> = {
   idle: null,
-  connecting: 'Hub: Connecting…',
-  connected: 'Hub: Connected',
-  reconnecting: 'Hub: Reconnecting…',
-  disconnected: 'Hub: Disconnected',
+  connecting: 'Hub: Conectando…',
+  connected: 'Hub: Conectado',
+  reconnecting: 'Hub: Reconectando…',
+  disconnected: 'Hub: Desconectado',
 };
 
 const HUB_STATUS_CLASSES: Record<HubConnectionState, string> = {
@@ -74,7 +74,7 @@ export class ConnectComponent {
         },
         error: (err: unknown) => {
           this.connected.set(false);
-          this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not connect to the broker.'));
+          this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo conectar con el broker.'));
           this.pending.set(false);
         },
       });

@@ -169,7 +169,7 @@ describe('ConnectComponent', () => {
     fixture.detectChanges();
 
     const hubStatus = compiled.querySelector('[data-testid="hub-status"]');
-    expect(hubStatus?.textContent).toContain('Disconnected');
+    expect(hubStatus?.textContent).toContain('Desconectado');
     // Broker (connected()) is still true — hub status reflects hub state, not broker state.
     expect(component.connected()).toBe(true);
   });
@@ -191,7 +191,7 @@ describe('ConnectComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const brokerStatus = compiled.querySelector('[data-testid="broker-status"]');
     const hubStatus = compiled.querySelector('[data-testid="hub-status"]');
-    expect(hubStatus?.textContent).toContain('Reconnecting');
+    expect(hubStatus?.textContent).toContain('Reconectando');
     expect(brokerStatus).not.toBeNull();
     expect(hubStatus?.parentElement).toBe(brokerStatus?.parentElement);
   });
@@ -210,7 +210,7 @@ describe('ConnectComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const brokerStatus = compiled.querySelector('[data-testid="broker-status"]');
-    expect(brokerStatus?.textContent?.toLowerCase()).toContain('last known');
+    expect(brokerStatus?.textContent).toContain('último conocido');
   });
 
   it('renders the broker pending status with the warn token class (ui-presentation spec: "Pending/reconnecting status uses the warn token")', () => {

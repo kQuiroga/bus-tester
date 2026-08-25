@@ -127,11 +127,11 @@ export class MessagesComponent {
         // silently receiving nothing — surface it instead of swallowing (message-consumption
         // spec: "Subscribe and Unsubscribe Failures Are Handled Without Unhandled Rejections").
         this.busHub.joinSubscription(response.id).catch((err: unknown) => {
-          this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not join the subscription group.'));
+          this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'));
         });
       },
       error: (err: unknown) => {
-        this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not subscribe to the queue.'));
+        this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo suscribir a la cola.'));
       },
     });
   }
@@ -145,7 +145,7 @@ export class MessagesComponent {
 
   private finishUnsubscribe(subscriptionId: string): void {
     this.busHub.leaveSubscription(subscriptionId).catch((err: unknown) => {
-      this.errorMessage.set(ApiClientService.errorDetail(err, 'Could not leave the subscription group.'));
+      this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo salir del grupo de suscripción.'));
     });
     this.busHub.clearSubscription(subscriptionId);
     this.subscriptions.update((current) => current.filter((s) => s.id !== subscriptionId));
