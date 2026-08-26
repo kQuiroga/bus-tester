@@ -80,6 +80,6 @@ a prior PR's changes.
 
 ## Phase 6: Cross-Cutting Verification
 
-- [ ] 6.1 Run full backend suite: `dotnet test BusTester.sln` (all 4 test projects, Docker required for `BusTester.Infrastructure.Tests`).
-- [ ] 6.2 Run full frontend suite: `npm test` (`ng test`) in `frontend/`.
-- [ ] 6.3 Confirm plain send and manual-subscription flows are unaffected (spec: "Not requesting a reply is unaffected").
+- [x] 6.1 Run full backend suite: `dotnet test BusTester.sln` (all 4 test projects, Docker required for `BusTester.Infrastructure.Tests`).
+- [x] 6.2 Run full frontend suite: `npm test` (`ng test`) in `frontend/`.
+- [x] 6.3 Confirm plain send and manual-subscription flows are unaffected (spec: "Not requesting a reply is unaffected").
