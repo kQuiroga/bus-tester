@@ -96,4 +96,53 @@ public class MessagesControllerTests
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         Assert.Empty(factory.BusPort.SentMessages);
     }
+
+    [Fact]
+    public async Task SendWithReply_WithValidRequest_Returns200_WithSubscriptionIdAndCorrelationId()
+    {
+        await using var factory = new BusTesterApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/messages/with-reply",
+            new { exchange = "orders", routingKey = "orders.created", payload = "{\"id\":1}" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<SendWithReplyResponse>();
+        Assert.NotEqual(Guid.Empty, body!.SubscriptionId);
+        Assert.False(string.IsNullOrWhiteSpace(body.CorrelationId));
+        var sent = Assert.Single(factory.BusPort.SentMessages);
+        Assert.Equal(factory.BusPort.NextTemporaryQueueName, sent.ReplyTo);
+        Assert.Equal(body.CorrelationId, sent.CorrelationId);
+        Assert.Equal(1, factory.BusPort.DeclareTemporaryReplyQueueCallCount);
+    }
+
+    [Fact]
+    public async Task SendWithReply_WithBlankCorrelationId_GeneratesOne_AndSupplied_IsPreserved()
+    {
+        await using var factory = new BusTesterApiFactory();
+        using var client = factory.CreateClient();
+
+        var blankResponse = await client.PostAsJsonAsync(
+            "/api/messages/with-reply",
+            new { exchange = "orders", routingKey = "orders.created", payload = "{\"id\":1}" });
+        var blankBody = await blankResponse.Content.ReadFromJsonAsync<SendWithReplyResponse>();
+
+        var suppliedResponse = await client.PostAsJsonAsync(
+            "/api/messages/with-reply",
+            new
+            {
+                exchange = "orders",
+                routingKey = "orders.created",
+                payload = "{\"id\":2}",
+                correlationId = "corr-explicit",
+            });
+        var suppliedBody = await suppliedResponse.Content.ReadFromJsonAsync<SendWithReplyResponse>();
+
+        Assert.False(string.IsNullOrWhiteSpace(blankBody!.CorrelationId));
+        Assert.NotEqual("corr-explicit", blankBody.CorrelationId);
+        Assert.Equal("corr-explicit", suppliedBody!.CorrelationId);
+    }
 }
+
+public sealed record SendWithReplyResponse(Guid SubscriptionId, string CorrelationId);

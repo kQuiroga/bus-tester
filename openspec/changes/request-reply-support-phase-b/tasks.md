@@ -60,9 +60,9 @@ a prior PR's changes.
 
 ## Phase 3: PR 3 — API Endpoint
 
-- [ ] 3.1 RED: Add a case in `tests/BusTester.Api.Tests/Controllers/MessagesControllerTests.cs` — `POST /api/messages/with-reply` returns 200 with `{subscriptionId, correlationId}`.
-- [ ] 3.2 RED: same file — blank vs. supplied `correlationId` is reflected correctly in the response.
-- [ ] 3.3 GREEN: Add `SendWithReply` action + `SendMessageWithReplyRequest`/`SendWithReplyResponse` records to `src/BusTester.Api/Controllers/MessagesController.cs`, wired to `SendMessageWithReplyUseCase` via DI.
+- [x] 3.1 RED: Add a case in `tests/BusTester.Api.Tests/Controllers/MessagesControllerTests.cs` — `POST /api/messages/with-reply` returns 200 with `{subscriptionId, correlationId}`.
+- [x] 3.2 RED: same file — blank vs. supplied `correlationId` is reflected correctly in the response.
+- [x] 3.3 GREEN: Add `SendWithReply` action + `SendMessageWithReplyRequest`/`SendWithReplyResponse` records to `src/BusTester.Api/Controllers/MessagesController.cs`, wired to `SendMessageWithReplyUseCase` via DI.
 
 ## Phase 4: PR 4 — Frontend Core State
 
