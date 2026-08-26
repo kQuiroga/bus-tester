@@ -23,6 +23,12 @@ public sealed class StubBusPort : IBusPort
 
     public Exception? SubscribeException { get; set; }
 
+    public int DeclareTemporaryReplyQueueCallCount { get; private set; }
+
+    public string NextTemporaryQueueName { get; set; } = "amq.gen-stub-reply-queue";
+
+    public Exception? DeclareTemporaryReplyQueueException { get; set; }
+
     public Task ConnectAsync(BusConnectionConfig config, CancellationToken ct = default)
     {
         if (ConnectException is not null)
@@ -63,6 +69,19 @@ public sealed class StubBusPort : IBusPort
 
         SubscribedRequests.Add(request);
         return Task.FromResult(new SubscriptionHandle(Guid.NewGuid()));
+    }
+
+    public Task<(SubscriptionHandle Handle, string QueueName)> DeclareTemporaryReplyQueueAndSubscribeAsync(
+        Func<BusMessage, CancellationToken, Task> onMessage,
+        CancellationToken ct = default)
+    {
+        if (DeclareTemporaryReplyQueueException is not null)
+        {
+            throw DeclareTemporaryReplyQueueException;
+        }
+
+        DeclareTemporaryReplyQueueCallCount++;
+        return Task.FromResult((new SubscriptionHandle(Guid.NewGuid()), NextTemporaryQueueName));
     }
 
     public Task UnsubscribeAsync(SubscriptionHandle handle, CancellationToken ct = default)
