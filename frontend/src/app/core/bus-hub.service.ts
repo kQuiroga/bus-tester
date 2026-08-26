@@ -8,6 +8,10 @@ export interface ReceivedMessage {
   exchange: string;
   routingKey: string;
   payload: string;
+  /** Present only when the publisher set AMQP `ReplyTo` on this delivery (request-reply spec). */
+  replyTo?: string;
+  /** Present only when the publisher set AMQP `CorrelationId` on this delivery (request-reply spec). */
+  correlationId?: string;
   /** Monotonic, assigned at receipt by this service instance — NOT part of the wire DTO. */
   seq: number;
 }

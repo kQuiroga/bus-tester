@@ -175,6 +175,36 @@ describe('BusHubService', () => {
     expect(freshService.messages()[0].seq).toBe(0);
   });
 
+  it('exposes replyTo and correlationId unchanged when present on the incoming message (message-consumption spec: "Received message carries both ReplyTo and CorrelationId")', () => {
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":1}',
+      replyTo: 'amq.gen-abc123',
+      correlationId: 'corr-1',
+    });
+
+    const messages = service.messages();
+
+    expect(messages[0].replyTo).toBe('amq.gen-abc123');
+    expect(messages[0].correlationId).toBe('corr-1');
+  });
+
+  it('leaves replyTo and correlationId undefined when absent from the incoming message (message-consumption spec: "Received message carries neither field")', () => {
+    fakeConnection.emit('MessageReceived', {
+      subscriptionId: 'sub-1',
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":1}',
+    });
+
+    const messages = service.messages();
+
+    expect(messages[0].replyTo).toBeUndefined();
+    expect(messages[0].correlationId).toBeUndefined();
+  });
+
   it('connectionState starts as idle (connection-status spec: "State is read-only to consumers" baseline)', () => {
     expect(service.connectionState()).toBe('idle');
   });
