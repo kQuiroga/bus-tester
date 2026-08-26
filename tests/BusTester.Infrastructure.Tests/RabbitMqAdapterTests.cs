@@ -3,6 +3,7 @@ using BusTester.Application.Ports;
 using BusTester.Domain;
 using BusTester.Domain.Exceptions;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 using Xunit;
 
 namespace BusTester.Infrastructure.Tests;
@@ -159,10 +160,75 @@ public class RabbitMqAdapterTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SubscribeAsync_DeliveredMessageWithOnlyCorrelationId_SurfacesCorrelationIdAndLeavesReplyToNull()
+    {
+        var (exchange, queue) = await DeclareTopologyAsync();
+        var received = new TaskCompletionSource<BusMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await _adapter.SubscribeAsync(
+            new SubscriptionRequest(queue),
+            (message, _) =>
+            {
+                received.TrySetResult(message);
+                return Task.CompletedTask;
+            });
+
+        await _adapter.SendAsync(new BusMessage(
+            exchange,
+            queue,
+            "{\"id\":4}",
+            correlationId: "corr-only-456"));
+
+        var completed = await Task.WhenAny(received.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(received.Task, completed);
+        var message = await received.Task;
+        Assert.Equal("corr-only-456", message.CorrelationId);
+        Assert.Null(message.ReplyTo);
+    }
+
+    [Fact]
     public async Task SubscribeAsync_WhenQueueDoesNotExist_ThrowsBusSubscriptionException()
     {
         await Assert.ThrowsAsync<BusSubscriptionException>(
             () => _adapter.SubscribeAsync(new SubscriptionRequest("missing-queue"), (_, _) => Task.CompletedTask));
+    }
+
+    [Fact]
+    public async Task DeclareTemporaryReplyQueueAndSubscribeAsync_DeclaresBrokerGeneratedQueue_AndDeliversPublishedMessage()
+    {
+        var received = new TaskCompletionSource<BusMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var (_, queueName) = await _adapter.DeclareTemporaryReplyQueueAndSubscribeAsync(
+            (message, _) =>
+            {
+                received.TrySetResult(message);
+                return Task.CompletedTask;
+            });
+
+        Assert.False(string.IsNullOrWhiteSpace(queueName));
+
+        await _setupChannel.BasicPublishAsync(
+            exchange: string.Empty,
+            routingKey: queueName,
+            body: Encoding.UTF8.GetBytes("{\"reply\":true}"));
+
+        var completed = await Task.WhenAny(received.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(received.Task, completed);
+        var message = await received.Task;
+        Assert.Equal("{\"reply\":true}", message.Payload);
+    }
+
+    [Fact]
+    public async Task DeclareTemporaryReplyQueueAndSubscribeAsync_QueueDisappears_AfterOwningChannelCloses()
+    {
+        var (handle, queueName) = await _adapter.DeclareTemporaryReplyQueueAndSubscribeAsync(
+            (_, _) => Task.CompletedTask);
+
+        await _adapter.UnsubscribeAsync(handle);
+
+        await using var checkChannel = await _setupConnection.CreateChannelAsync();
+        await Assert.ThrowsAsync<OperationInterruptedException>(
+            () => checkChannel.QueueDeclarePassiveAsync(queueName));
     }
 
     private async Task<(string Exchange, string Queue)> DeclareTopologyAsync()

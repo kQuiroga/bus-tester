@@ -106,28 +106,80 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
         try
         {
             channel = await connection.CreateChannelAsync(cancellationToken: ct);
-            var consumer = new AsyncEventingBasicConsumer(channel);
-            consumer.ReceivedAsync += (_, args) =>
-            {
-                var payload = Encoding.UTF8.GetString(args.Body.Span);
-                var exchange = args.Exchange.Length == 0 ? "(default)" : args.Exchange;
-                return onMessage(
-                    new BusMessage(
-                        exchange,
-                        args.RoutingKey,
-                        payload,
-                        args.BasicProperties.ReplyTo,
-                        args.BasicProperties.CorrelationId),
-                    CancellationToken.None);
-            };
-
-            await channel.BasicConsumeAsync(request.QueueName, autoAck: true, consumer, ct);
+            await WireConsumerAsync(channel, request.QueueName, onMessage, ct);
         }
         catch (OperationInterruptedException ex)
         {
             throw new BusSubscriptionException($"Could not subscribe to queue '{request.QueueName}'.", ex);
         }
 
+        return await RegisterSubscriptionAsync(channel, ct);
+    }
+
+    public async Task<(SubscriptionHandle Handle, string QueueName)> DeclareTemporaryReplyQueueAndSubscribeAsync(
+        Func<BusMessage, CancellationToken, Task> onMessage,
+        CancellationToken ct = default)
+    {
+        var connection = RequireConnection();
+        IChannel channel;
+        string queueName;
+
+        try
+        {
+            channel = await connection.CreateChannelAsync(cancellationToken: ct);
+            var declareOk = await channel.QueueDeclareAsync(
+                queue: string.Empty,
+                durable: false,
+                exclusive: true,
+                autoDelete: true,
+                arguments: null,
+                cancellationToken: ct);
+            queueName = declareOk.QueueName;
+
+            await WireConsumerAsync(channel, queueName, onMessage, ct);
+        }
+        catch (OperationInterruptedException ex)
+        {
+            throw new BusSubscriptionException("Could not declare/subscribe to a temporary reply queue.", ex);
+        }
+
+        var handle = await RegisterSubscriptionAsync(channel, ct);
+        return (handle, queueName);
+    }
+
+    /// <summary>
+    /// Registers an <see cref="AsyncEventingBasicConsumer"/> on <paramref name="channel"/> for
+    /// <paramref name="queueName"/>, invoking <paramref name="onMessage"/> for each delivery.
+    /// Shared by <see cref="SubscribeAsync"/> and
+    /// <see cref="DeclareTemporaryReplyQueueAndSubscribeAsync"/> so both consumption paths wire
+    /// their consumer identically.
+    /// </summary>
+    private static Task WireConsumerAsync(
+        IChannel channel,
+        string queueName,
+        Func<BusMessage, CancellationToken, Task> onMessage,
+        CancellationToken ct)
+    {
+        var consumer = new AsyncEventingBasicConsumer(channel);
+        consumer.ReceivedAsync += (_, args) =>
+        {
+            var payload = Encoding.UTF8.GetString(args.Body.Span);
+            var exchange = args.Exchange.Length == 0 ? "(default)" : args.Exchange;
+            return onMessage(
+                new BusMessage(
+                    exchange,
+                    args.RoutingKey,
+                    payload,
+                    args.BasicProperties.ReplyTo,
+                    args.BasicProperties.CorrelationId),
+                CancellationToken.None);
+        };
+
+        return channel.BasicConsumeAsync(queueName, autoAck: true, consumer, ct);
+    }
+
+    private async Task<SubscriptionHandle> RegisterSubscriptionAsync(IChannel channel, CancellationToken ct)
+    {
         var handle = new SubscriptionHandle(Guid.NewGuid());
         await _subscriptionsLock.WaitAsync(ct);
         try

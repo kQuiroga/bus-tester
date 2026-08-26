@@ -20,6 +20,12 @@ public sealed class FakeBusPort : IBusPort
 
     public Func<BusMessage, CancellationToken, Task>? LastOnMessage { get; private set; }
 
+    public int DeclareTemporaryReplyQueueCallCount { get; private set; }
+
+    public string NextTemporaryQueueName { get; set; } = "amq.gen-fake-reply-queue";
+
+    public Exception? DeclareTemporaryReplyQueueException { get; set; }
+
     public Task ConnectAsync(BusConnectionConfig config, CancellationToken ct = default) => Task.CompletedTask;
 
     public Task DisconnectAsync(CancellationToken ct = default) => Task.CompletedTask;
@@ -48,6 +54,20 @@ public sealed class FakeBusPort : IBusPort
         SubscribedRequests.Add(request);
         LastOnMessage = onMessage;
         return Task.FromResult(new SubscriptionHandle(Guid.NewGuid()));
+    }
+
+    public Task<(SubscriptionHandle Handle, string QueueName)> DeclareTemporaryReplyQueueAndSubscribeAsync(
+        Func<BusMessage, CancellationToken, Task> onMessage,
+        CancellationToken ct = default)
+    {
+        if (DeclareTemporaryReplyQueueException is not null)
+        {
+            throw DeclareTemporaryReplyQueueException;
+        }
+
+        DeclareTemporaryReplyQueueCallCount++;
+        LastOnMessage = onMessage;
+        return Task.FromResult((new SubscriptionHandle(Guid.NewGuid()), NextTemporaryQueueName));
     }
 
     public Task UnsubscribeAsync(SubscriptionHandle handle, CancellationToken ct = default) => Task.CompletedTask;

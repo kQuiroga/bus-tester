@@ -27,6 +27,17 @@ public interface IBusPort
         CancellationToken ct = default);
 
     /// <summary>
+    /// Declares a temporary queue scoped to and cleaned up with this one subscriber (RabbitMQ:
+    /// exclusive + auto-delete with a broker-generated name) and subscribes to it in a single
+    /// call. Cleanup relies solely on the broker's own semantics once the owning connection/
+    /// channel closes — callers MUST NOT run additional proactive unsubscribe logic for this
+    /// queue beyond the normal <see cref="UnsubscribeAsync"/> teardown path.
+    /// </summary>
+    Task<(SubscriptionHandle Handle, string QueueName)> DeclareTemporaryReplyQueueAndSubscribeAsync(
+        Func<BusMessage, CancellationToken, Task> onMessage,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Cancels the adapter's internal loop/consumer for <paramref name="handle"/>, regardless of
     /// whether it originated from a push or poll consumption model.
     /// </summary>
