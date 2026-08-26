@@ -41,6 +41,41 @@
   @if (errorMessage()) {
     <p class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>
   }
+
+  @if (replyPanel().length > 0) {
+    <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+      <h3 class="text-sm font-medium text-card-foreground">Respuestas</h3>
+      <ul class="flex flex-col gap-2">
+        @for (entry of replyPanel(); track entry.subscriptionId) {
+          <li class="rounded-md border border-border bg-background px-3 py-2 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono text-card-foreground/80">{{ entry.correlationId }}</span>
+              <button
+                type="button"
+                class="text-card-foreground/60 hover:text-status-error focus:outline-none"
+                [attr.aria-label]="'Cancelar suscripción a respuesta ' + entry.correlationId"
+                (click)="unsubscribeReply(entry.subscriptionId)"
+              >
+                &times;
+              </button>
+            </div>
+            @if (entry.replies.length === 0) {
+              <p class="mt-1 text-card-foreground/60">Aún no hay respuesta.</p>
+            } @else {
+              <ul class="mt-1 flex flex-col gap-1">
+                @for (reply of entry.replies; track reply.seq) {
+                  <li class="font-mono">
+                    <pre class="whitespace-pre-wrap">{{ reply.payload | jsonPretty }}</pre>
+                  </li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
   <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
     <input
       class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"

@@ -1,9 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api-client.service';
+import { BusHubService } from '../../core/bus-hub.service';
+import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { RecentSend, SendHistoryService, SendTemplate } from './send-history.service';
 
 type SendField = 'exchange' | 'routingKey' | 'payload';
+
+/** Response body of `POST /api/messages/with-reply` (design.md: Api Interfaces / Contracts). */
+interface SendWithReplyResponse {
+  subscriptionId: string;
+  correlationId: string;
+}
 
 /**
  * Send-message form (exchange, routing key, payload) publishing on the active connection
@@ -19,6 +27,8 @@ type SendField = 'exchange' | 'routingKey' | 'payload';
 })
 export class SendComponent {
   private readonly api = inject(ApiClientService);
+  private readonly busHub = inject(BusHubService);
+  private readonly replySubscriptions = inject(ReplySubscriptionService);
   readonly history = inject(SendHistoryService);
 
   readonly exchange = signal('');
@@ -28,6 +38,8 @@ export class SendComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly touched = signal<Set<SendField>>(new Set());
   readonly templateName = signal('');
+  /** "Expect a reply" toggle (request-reply spec: "Request a Reply via Auto-Created Temp Queue"). */
+  readonly expectReply = signal(false);
 
   readonly exchangeError = computed(() => (this.exchange().trim() === '' ? 'El exchange es obligatorio.' : null));
   readonly payloadError = computed(() => (this.payload().trim() === '' ? 'El payload es obligatorio.' : null));
@@ -53,12 +65,42 @@ export class SendComponent {
     const exchange = this.exchange();
     const routingKey = this.routingKey();
     const payload = this.payload();
+
+    if (this.expectReply()) {
+      this.sendWithReply(exchange, routingKey, payload);
+      return;
+    }
+
     this.api
       .post('/api/messages', { exchange, routingKey, payload })
       .subscribe({
         next: () => {
           this.confirmation.set('Mensaje enviado.');
           this.history.recordSend({ exchange, routingKey, payload });
+        },
+        error: (err: unknown) => {
+          this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'));
+        },
+      });
+  }
+
+  /** Publishes via the send-with-reply endpoint: auto-creates a temp reply queue server-side,
+   *  then registers the pending reply and joins its SignalR group so MessagesComponent's reply
+   *  panel can pick it up (design.md Data Flow). */
+  private sendWithReply(exchange: string, routingKey: string, payload: string): void {
+    this.busHub.start().catch(() => {});
+    this.api
+      .post<SendWithReplyResponse>('/api/messages/with-reply', { exchange, routingKey, payload })
+      .subscribe({
+        next: (response) => {
+          this.confirmation.set('Mensaje enviado, esperando respuesta.');
+          this.replySubscriptions.add({
+            subscriptionId: response.subscriptionId,
+            correlationId: response.correlationId,
+          });
+          this.busHub.joinSubscription(response.subscriptionId).catch((err: unknown) => {
+            this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'));
+          });
         },
         error: (err: unknown) => {
           this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'));

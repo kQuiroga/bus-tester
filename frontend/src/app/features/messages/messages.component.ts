@@ -2,7 +2,17 @@ import { Component, computed, inject, linkedSignal, signal } from '@angular/core
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
+import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { JsonPrettyPipe } from './json-pretty.pipe';
+
+/** One row of the reply panel: a pending send-with-reply subscription plus every message
+ *  delivered on it so far, matched by `correlationId` (request-reply spec: "Reply Panel
+ *  Filters Messages by CorrelationId"; "Multiple Replies Are Delivered Unguarded"). */
+interface ReplyPanelEntry {
+  subscriptionId: string;
+  correlationId: string;
+  replies: ReceivedMessage[];
+}
 
 /** Displayed rows plus which `seq`s are genuinely new since the last unpaused render, per
  *  ui-presentation: "New-Message Highlight Animation". */
@@ -35,6 +45,7 @@ interface Subscription {
 export class MessagesComponent {
   private readonly api = inject(ApiClientService);
   private readonly busHub = inject(BusHubService);
+  private readonly replySubscriptions = inject(ReplySubscriptionService);
 
   readonly queueName = signal('');
   readonly subscriptions = signal<Subscription[]>([]);
@@ -98,6 +109,17 @@ export class MessagesComponent {
     );
   });
 
+  /** Separate reply panel, kept out of `SubscriptionCoordinator`'s chip list — no `kind`
+   *  discriminator (design.md decision: "No kind discriminator; separate ReplySubscriptionService"). */
+  readonly replyPanel = computed<ReplyPanelEntry[]>(() => {
+    const msgs = this.busHub.messages();
+    return this.replySubscriptions.pending().map((p) => ({
+      subscriptionId: p.subscriptionId,
+      correlationId: p.correlationId,
+      replies: msgs.filter((m) => m.correlationId === p.correlationId),
+    }));
+  });
+
   togglePause(): void {
     this.paused.update((p) => !p);
   }
@@ -149,5 +171,23 @@ export class MessagesComponent {
     });
     this.busHub.clearSubscription(subscriptionId);
     this.subscriptions.update((current) => current.filter((s) => s.id !== subscriptionId));
+  }
+
+  /** Tears down a reply-panel entry. Reuses the existing `DELETE /api/subscriptions/{id}`
+   *  endpoint verbatim (design.md: "reused verbatim for tearing down reply subscriptions —
+   *  no new unsubscribe endpoint"). */
+  unsubscribeReply(subscriptionId: string): void {
+    this.api.delete(`/api/subscriptions/${subscriptionId}`).subscribe({
+      next: () => this.finishUnsubscribeReply(subscriptionId),
+      error: () => this.finishUnsubscribeReply(subscriptionId),
+    });
+  }
+
+  private finishUnsubscribeReply(subscriptionId: string): void {
+    this.busHub.leaveSubscription(subscriptionId).catch((err: unknown) => {
+      this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo salir del grupo de suscripción.'));
+    });
+    this.busHub.clearSubscription(subscriptionId);
+    this.replySubscriptions.remove(subscriptionId);
   }
 }
