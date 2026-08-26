@@ -226,6 +226,7 @@ describe('ConnectComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const brokerStatus = compiled.querySelector('[data-testid="broker-status"]');
+    expect(brokerStatus?.getAttribute('data-slot')).toBe('badge');
     expect(brokerStatus?.className).toContain('text-status-warn');
     expect(brokerStatus?.className).toContain('bg-status-warn-bg');
 
@@ -242,8 +243,53 @@ describe('ConnectComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const hubStatus = compiled.querySelector('[data-testid="hub-status"]');
+    expect(hubStatus?.getAttribute('data-slot')).toBe('badge');
     expect(hubStatus?.className).toContain('text-status-warn');
     expect(hubStatus?.className).toContain('bg-status-warn-bg');
+  });
+
+  it('renders the four connection fields via hlmLabel + hlmInput and both actions via hlmBtn', () => {
+    const fixture = TestBed.createComponent(ConnectComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelectorAll('label[data-slot="label"]').length).toBe(4);
+    expect(compiled.querySelectorAll('input[data-slot="input"]').length).toBe(4);
+    expect(compiled.querySelector('button[type="submit"][data-slot="button"]')).not.toBeNull();
+    expect(compiled.querySelector('button[type="button"][data-slot="button"]')).not.toBeNull();
+  });
+
+  it('renders Desconectar with the secondary (non-destructive) hlmBtn variant, not destructive', () => {
+    const fixture = TestBed.createComponent(ConnectComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const disconnectButton = compiled.querySelector('button[type="button"]') as HTMLButtonElement;
+
+    expect(disconnectButton.className).toContain('bg-secondary');
+    expect(disconnectButton.className).not.toContain('bg-destructive');
+  });
+
+  it('renders the broker error message via hlmBadge, preserving the data-testid and error status tokens', () => {
+    const fixture = TestBed.createComponent(ConnectComponent);
+    const component = fixture.componentInstance;
+    component.host.set('unreachable-host');
+    component.port.set(5672);
+    component.username.set('guest');
+    component.password.set('guest');
+
+    component.connect();
+    const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/connections'));
+    req.flush(
+      { title: 'Broker connection failed', detail: 'Could not connect to RabbitMQ at unreachable-host:5672.' },
+      { status: 503, statusText: 'Service Unavailable' },
+    );
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const brokerError = compiled.querySelector('[data-testid="broker-error"]');
+    expect(brokerError?.getAttribute('data-slot')).toBe('badge');
+    expect(brokerError?.className).toContain('bg-status-error-bg');
+    expect(brokerError?.className).toContain('text-status-error');
   });
 
   it('never calls BusHubService.start() — hub connection ownership stays with MessagesComponent (connection-status spec: "ConnectComponent never starts the hub")', () => {
