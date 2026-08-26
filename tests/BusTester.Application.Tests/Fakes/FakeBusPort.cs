@@ -26,12 +26,22 @@ public sealed class FakeBusPort : IBusPort
 
     public Exception? DeclareTemporaryReplyQueueException { get; set; }
 
+    public List<SubscriptionHandle> UnsubscribedHandles { get; } = [];
+
+    /// <summary>
+    /// Records the order in which port methods were invoked (e.g. "Declare", "Send",
+    /// "Unsubscribe"), so tests can assert call ordering (subscribe-before-send, cleanup-on-failure).
+    /// </summary>
+    public List<string> CallOrder { get; } = [];
+
     public Task ConnectAsync(BusConnectionConfig config, CancellationToken ct = default) => Task.CompletedTask;
 
     public Task DisconnectAsync(CancellationToken ct = default) => Task.CompletedTask;
 
     public Task SendAsync(BusMessage message, CancellationToken ct = default)
     {
+        CallOrder.Add("Send");
+
         if (SendException is not null)
         {
             throw SendException;
@@ -46,6 +56,8 @@ public sealed class FakeBusPort : IBusPort
         Func<BusMessage, CancellationToken, Task> onMessage,
         CancellationToken ct = default)
     {
+        CallOrder.Add("Subscribe");
+
         if (SubscribeException is not null)
         {
             throw SubscribeException;
@@ -60,6 +72,8 @@ public sealed class FakeBusPort : IBusPort
         Func<BusMessage, CancellationToken, Task> onMessage,
         CancellationToken ct = default)
     {
+        CallOrder.Add("Declare");
+
         if (DeclareTemporaryReplyQueueException is not null)
         {
             throw DeclareTemporaryReplyQueueException;
@@ -70,5 +84,10 @@ public sealed class FakeBusPort : IBusPort
         return Task.FromResult((new SubscriptionHandle(Guid.NewGuid()), NextTemporaryQueueName));
     }
 
-    public Task UnsubscribeAsync(SubscriptionHandle handle, CancellationToken ct = default) => Task.CompletedTask;
+    public Task UnsubscribeAsync(SubscriptionHandle handle, CancellationToken ct = default)
+    {
+        CallOrder.Add("Unsubscribe");
+        UnsubscribedHandles.Add(handle);
+        return Task.CompletedTask;
+    }
 }
