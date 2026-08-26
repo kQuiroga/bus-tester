@@ -66,10 +66,10 @@ a prior PR's changes.
 
 ## Phase 4: PR 4 — Frontend Core State
 
-- [ ] 4.1 RED: Extend `frontend/src/app/core/bus-hub.service.spec.ts` — an incoming message with `replyTo`/`correlationId` is exposed unchanged on `ReceivedMessage`.
-- [ ] 4.2 GREEN: Add `replyTo?: string`, `correlationId?: string` to `ReceivedMessage`/`IncomingMessage` in `frontend/src/app/core/bus-hub.service.ts`.
-- [ ] 4.3 RED: Create `frontend/src/app/core/reply-subscription.service.spec.ts` — `add()`/`remove()` update the `pending()` signal.
-- [ ] 4.4 GREEN: Create `frontend/src/app/core/reply-subscription.service.ts` (`ReplySubscriptionService`, root-provided signal service, mirrors `SendHistoryService` pattern).
+- [x] 4.1 RED: Extend `frontend/src/app/core/bus-hub.service.spec.ts` — an incoming message with `replyTo`/`correlationId` is exposed unchanged on `ReceivedMessage`.
+- [x] 4.2 GREEN: Add `replyTo?: string`, `correlationId?: string` to `ReceivedMessage`/`IncomingMessage` in `frontend/src/app/core/bus-hub.service.ts`.
+- [x] 4.3 RED: Create `frontend/src/app/core/reply-subscription.service.spec.ts` — `add()`/`remove()` update the `pending()` signal.
+- [x] 4.4 GREEN: Create `frontend/src/app/core/reply-subscription.service.ts` (`ReplySubscriptionService`, root-provided signal service, mirrors `SendHistoryService` pattern).
 
 ## Phase 5: PR 5 — Frontend UI Wiring
 
