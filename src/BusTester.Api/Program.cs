@@ -24,6 +24,7 @@ builder.Services.AddSingleton<IBusPort, RabbitMqAdapter>();
 builder.Services.AddSingleton<IMessageBroadcaster, SignalRMessageBroadcaster>();
 builder.Services.AddSingleton<SubscriptionCoordinator>();
 builder.Services.AddTransient<SendMessageUseCase>();
+builder.Services.AddTransient<SendMessageWithReplyUseCase>();
 builder.Services.AddTransient<SubscribeUseCase>();
 builder.Services.AddTransient<UnsubscribeUseCase>();
 

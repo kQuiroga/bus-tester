@@ -9,10 +9,14 @@ namespace BusTester.Api.Controllers;
 public sealed class MessagesController : ControllerBase
 {
     private readonly SendMessageUseCase _sendMessageUseCase;
+    private readonly SendMessageWithReplyUseCase _sendMessageWithReplyUseCase;
 
-    public MessagesController(SendMessageUseCase sendMessageUseCase)
+    public MessagesController(
+        SendMessageUseCase sendMessageUseCase,
+        SendMessageWithReplyUseCase sendMessageWithReplyUseCase)
     {
         _sendMessageUseCase = sendMessageUseCase;
+        _sendMessageWithReplyUseCase = sendMessageWithReplyUseCase;
     }
 
     [HttpPost]
@@ -27,6 +31,20 @@ public sealed class MessagesController : ControllerBase
         await _sendMessageUseCase.HandleAsync(command, ct);
         return Ok();
     }
+
+    [HttpPost("with-reply")]
+    public async Task<ActionResult<SendWithReplyResponse>> SendWithReply(
+        [FromBody] SendMessageWithReplyRequest request,
+        CancellationToken ct)
+    {
+        var command = new SendMessageWithReplyCommand(
+            request.Exchange,
+            request.RoutingKey,
+            request.Payload,
+            request.CorrelationId);
+        var result = await _sendMessageWithReplyUseCase.HandleAsync(command, ct);
+        return Ok(new SendWithReplyResponse(result.SubscriptionId.Value, result.CorrelationId));
+    }
 }
 
 public sealed record SendMessageRequest(
@@ -35,3 +53,11 @@ public sealed record SendMessageRequest(
     string Payload,
     string? ReplyTo = null,
     string? CorrelationId = null);
+
+public sealed record SendMessageWithReplyRequest(
+    string Exchange,
+    string RoutingKey,
+    string Payload,
+    string? CorrelationId = null);
+
+public sealed record SendWithReplyResponse(Guid SubscriptionId, string CorrelationId);
