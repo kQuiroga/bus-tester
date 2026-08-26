@@ -73,10 +73,10 @@ a prior PR's changes.
 
 ## Phase 5: PR 5 — Frontend UI Wiring
 
-- [ ] 5.1 RED: Extend `frontend/src/app/features/send/send.component.spec.ts` — toggling "expect a reply" posts to `/api/messages/with-reply` and calls `replySubscriptions.add(...)`.
-- [ ] 5.2 GREEN: Add the toggle + with-reply POST branch to `send.component.ts`; markup in `send.component.html`.
-- [ ] 5.3 RED: Extend `frontend/src/app/features/messages/messages.component.spec.ts` — reply panel shows only messages whose `correlationId` is pending; shows "no reply yet" when none match.
-- [ ] 5.4 GREEN: Add a reply-panel computed signal (filters `busHub.messages()` by pending `correlationId`s) + markup in `messages.component.ts/.html`; unsubscribe removes the pending entry.
+- [x] 5.1 RED: Extend `frontend/src/app/features/send/send.component.spec.ts` — toggling "expect a reply" posts to `/api/messages/with-reply` and calls `replySubscriptions.add(...)`.
+- [x] 5.2 GREEN: Add the toggle + with-reply POST branch to `send.component.ts`; markup in `send.component.html`.
+- [x] 5.3 RED: Extend `frontend/src/app/features/messages/messages.component.spec.ts` — reply panel shows only messages whose `correlationId` is pending; shows "no reply yet" when none match.
+- [x] 5.4 GREEN: Add a reply-panel computed signal (filters `busHub.messages()` by pending `correlationId`s) + markup in `messages.component.ts/.html`; unsubscribe removes the pending entry.
 
 ## Phase 6: Cross-Cutting Verification
 

@@ -4,6 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { vi } from 'vitest';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
+import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { MessagesComponent } from './messages.component';
 
 function msg(seq: number, overrides: Partial<ReceivedMessage> = {}): ReceivedMessage {
@@ -318,6 +319,69 @@ describe('MessagesComponent', () => {
 
     expect(component.isNewRow(msg(1))).toBe(true);
     expect(component.isNewRow(msg(0))).toBe(false);
+  });
+
+  it('replyPanel() shows "no reply yet" (empty replies) for a pending reply with no matching message', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    const replySubscriptions = TestBed.inject(ReplySubscriptionService);
+    replySubscriptions.add({ subscriptionId: 'reply-sub-1', correlationId: 'corr-1' });
+
+    expect(component.replyPanel()).toEqual([
+      { subscriptionId: 'reply-sub-1', correlationId: 'corr-1', replies: [] },
+    ]);
+  });
+
+  it('replyPanel() shows only messages whose correlationId matches the pending subscription', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    const replySubscriptions = TestBed.inject(ReplySubscriptionService);
+    replySubscriptions.add({ subscriptionId: 'reply-sub-1', correlationId: 'corr-1' });
+
+    fakeBusHubService.messagesSignal.set([
+      msg(0, { subscriptionId: 'reply-sub-1', correlationId: 'corr-1' }),
+      msg(1, { subscriptionId: 'sub-other', correlationId: 'corr-other' }),
+    ]);
+
+    expect(component.replyPanel()).toEqual([
+      {
+        subscriptionId: 'reply-sub-1',
+        correlationId: 'corr-1',
+        replies: [msg(0, { subscriptionId: 'reply-sub-1', correlationId: 'corr-1' })],
+      },
+    ]);
+  });
+
+  it('replyPanel() delivers multiple matching replies for the same correlationId, unguarded', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    const replySubscriptions = TestBed.inject(ReplySubscriptionService);
+    replySubscriptions.add({ subscriptionId: 'reply-sub-1', correlationId: 'corr-1' });
+
+    fakeBusHubService.messagesSignal.set([
+      msg(1, { subscriptionId: 'reply-sub-1', correlationId: 'corr-1' }),
+      msg(0, { subscriptionId: 'reply-sub-1', correlationId: 'corr-1' }),
+    ]);
+
+    expect(component.replyPanel()[0].replies).toEqual([
+      msg(1, { subscriptionId: 'reply-sub-1', correlationId: 'corr-1' }),
+      msg(0, { subscriptionId: 'reply-sub-1', correlationId: 'corr-1' }),
+    ]);
+  });
+
+  it('unsubscribeReply(id) deletes the subscription, leaves the hub group and removes the pending reply entry', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    const replySubscriptions = TestBed.inject(ReplySubscriptionService);
+    replySubscriptions.add({ subscriptionId: 'reply-sub-1', correlationId: 'corr-1' });
+
+    component.unsubscribeReply('reply-sub-1');
+    const req = httpMock.expectOne((r) => r.method === 'DELETE' && r.url.endsWith('/api/subscriptions/reply-sub-1'));
+    req.flush(null);
+
+    expect(fakeBusHubService.leaveSubscription).toHaveBeenCalledWith('reply-sub-1');
+    expect(replySubscriptions.pending()).toEqual([]);
+    expect(component.replyPanel()).toEqual([]);
   });
 
   it('searchTerm filters by case-insensitive substring on raw payload, routingKey, exchange (T10)', () => {
