@@ -20,9 +20,21 @@ public sealed class SignalRMessageBroadcaster : IMessageBroadcaster
     public Task BroadcastAsync(SubscriptionHandle handle, BusMessage message, CancellationToken ct = default) =>
         _hubContext.Clients.Group(BusHub.GroupName(handle.Value)).SendAsync(
             "MessageReceived",
-            new MessageReceivedDto(handle.Value, message.Exchange, message.RoutingKey, message.Payload),
+            new MessageReceivedDto(
+                handle.Value,
+                message.Exchange,
+                message.RoutingKey,
+                message.Payload,
+                message.ReplyTo,
+                message.CorrelationId),
             ct);
 }
 
 /// <summary>Shape pushed to the Angular client over SignalR.</summary>
-public sealed record MessageReceivedDto(Guid SubscriptionId, string Exchange, string RoutingKey, string Payload);
+public sealed record MessageReceivedDto(
+    Guid SubscriptionId,
+    string Exchange,
+    string RoutingKey,
+    string Payload,
+    string? ReplyTo = null,
+    string? CorrelationId = null);

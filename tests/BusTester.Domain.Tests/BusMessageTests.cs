@@ -41,4 +41,53 @@ public class BusMessageTests
     {
         Assert.Throws<ArgumentException>(() => new BusMessage("orders", "orders.created", payload!));
     }
+
+    [Fact]
+    public void Create_WithReplyToAndCorrelationId_SetsBothProperties()
+    {
+        var message = new BusMessage(
+            exchange: "orders",
+            routingKey: "orders.created",
+            payload: "{\"id\":1}",
+            replyTo: "orders.reply",
+            correlationId: "corr-123");
+
+        Assert.Equal("orders.reply", message.ReplyTo);
+        Assert.Equal("corr-123", message.CorrelationId);
+    }
+
+    [Fact]
+    public void Create_WithOnlyCorrelationId_LeavesReplyToNull()
+    {
+        var message = new BusMessage(
+            exchange: "orders",
+            routingKey: "orders.created",
+            payload: "{\"id\":1}",
+            correlationId: "corr-456");
+
+        Assert.Null(message.ReplyTo);
+        Assert.Equal("corr-456", message.CorrelationId);
+    }
+
+    [Fact]
+    public void Create_WithOnlyReplyTo_LeavesCorrelationIdNull()
+    {
+        var message = new BusMessage(
+            exchange: "orders",
+            routingKey: "orders.created",
+            payload: "{\"id\":1}",
+            replyTo: "orders.reply");
+
+        Assert.Equal("orders.reply", message.ReplyTo);
+        Assert.Null(message.CorrelationId);
+    }
+
+    [Fact]
+    public void Create_WithoutReplyToOrCorrelationId_DefaultsBothToNull()
+    {
+        var message = new BusMessage(exchange: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
+
+        Assert.Null(message.ReplyTo);
+        Assert.Null(message.CorrelationId);
+    }
 }

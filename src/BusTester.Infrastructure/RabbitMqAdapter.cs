@@ -68,7 +68,26 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
             await channel.ExchangeDeclarePassiveAsync(message.Exchange, ct);
 
             var body = Encoding.UTF8.GetBytes(message.Payload);
-            await channel.BasicPublishAsync(message.Exchange, message.RoutingKey, body, ct);
+
+            if (message.ReplyTo is not null || message.CorrelationId is not null)
+            {
+                var properties = new BasicProperties
+                {
+                    ReplyTo = message.ReplyTo,
+                    CorrelationId = message.CorrelationId,
+                };
+                await channel.BasicPublishAsync(
+                    message.Exchange,
+                    message.RoutingKey,
+                    mandatory: false,
+                    properties,
+                    body,
+                    ct);
+            }
+            else
+            {
+                await channel.BasicPublishAsync(message.Exchange, message.RoutingKey, body, ct);
+            }
         }
         catch (OperationInterruptedException ex)
         {
@@ -92,7 +111,14 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
             {
                 var payload = Encoding.UTF8.GetString(args.Body.Span);
                 var exchange = args.Exchange.Length == 0 ? "(default)" : args.Exchange;
-                return onMessage(new BusMessage(exchange, args.RoutingKey, payload), CancellationToken.None);
+                return onMessage(
+                    new BusMessage(
+                        exchange,
+                        args.RoutingKey,
+                        payload,
+                        args.BasicProperties.ReplyTo,
+                        args.BasicProperties.CorrelationId),
+                    CancellationToken.None);
             };
 
             await channel.BasicConsumeAsync(request.QueueName, autoAck: true, consumer, ct);
