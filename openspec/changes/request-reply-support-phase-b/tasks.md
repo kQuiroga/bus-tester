@@ -50,13 +50,13 @@ a prior PR's changes.
 
 ## Phase 2: PR 2 — Send-With-Reply Use Case
 
-- [ ] 2.1 RED: Add `tests/BusTester.Application.Tests/UseCases/SendMessageWithReplyUseCaseTests.cs` — CorrelationId generated server-side when blank.
-- [ ] 2.2 RED: same file — caller-supplied CorrelationId is preserved unchanged.
-- [ ] 2.3 RED: same file — ReplyTo is set to the declared queue name; subscribe happens before send.
-- [ ] 2.4 RED: same file — a `SendAsync` failure triggers `UnsubscribeAsync` + `Unregister` on the just-created handle before rethrowing.
-- [ ] 2.5 Create `src/BusTester.Application/UseCases/SendMessageWithReplyCommand.cs` (`Exchange`, `RoutingKey`, `Payload`, `CorrelationId?`).
-- [ ] 2.6 GREEN: Create `src/BusTester.Application/UseCases/SendMessageWithReplyUseCase.cs` implementing design's Data Flow steps 1–4; registers with `SubscriptionCoordinator`.
-- [ ] 2.7 REFACTOR: confirm no duplication regression vs. `SubscribeUseCase`/`SendMessageUseCase`.
+- [x] 2.1 RED: Add `tests/BusTester.Application.Tests/UseCases/SendMessageWithReplyUseCaseTests.cs` — CorrelationId generated server-side when blank.
+- [x] 2.2 RED: same file — caller-supplied CorrelationId is preserved unchanged.
+- [x] 2.3 RED: same file — ReplyTo is set to the declared queue name; subscribe happens before send.
+- [x] 2.4 RED: same file — a `SendAsync` failure triggers `UnsubscribeAsync` + `Unregister` on the just-created handle before rethrowing.
+- [x] 2.5 Create `src/BusTester.Application/UseCases/SendMessageWithReplyCommand.cs` (`Exchange`, `RoutingKey`, `Payload`, `CorrelationId?`).
+- [x] 2.6 GREEN: Create `src/BusTester.Application/UseCases/SendMessageWithReplyUseCase.cs` implementing design's Data Flow steps 1–4; registers with `SubscriptionCoordinator`.
+- [x] 2.7 REFACTOR: confirm no duplication regression vs. `SubscribeUseCase`/`SendMessageUseCase`.
 
 ## Phase 3: PR 3 — API Endpoint
 
