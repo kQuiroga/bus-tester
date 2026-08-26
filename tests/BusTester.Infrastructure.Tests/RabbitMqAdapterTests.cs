@@ -160,6 +160,33 @@ public class RabbitMqAdapterTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SubscribeAsync_DeliveredMessageWithOnlyCorrelationId_SurfacesCorrelationIdAndLeavesReplyToNull()
+    {
+        var (exchange, queue) = await DeclareTopologyAsync();
+        var received = new TaskCompletionSource<BusMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await _adapter.SubscribeAsync(
+            new SubscriptionRequest(queue),
+            (message, _) =>
+            {
+                received.TrySetResult(message);
+                return Task.CompletedTask;
+            });
+
+        await _adapter.SendAsync(new BusMessage(
+            exchange,
+            queue,
+            "{\"id\":4}",
+            correlationId: "corr-only-456"));
+
+        var completed = await Task.WhenAny(received.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(received.Task, completed);
+        var message = await received.Task;
+        Assert.Equal("corr-only-456", message.CorrelationId);
+        Assert.Null(message.ReplyTo);
+    }
+
+    [Fact]
     public async Task SubscribeAsync_WhenQueueDoesNotExist_ThrowsBusSubscriptionException()
     {
         await Assert.ThrowsAsync<BusSubscriptionException>(
