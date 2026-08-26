@@ -1,4 +1,4 @@
-import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
@@ -40,6 +40,7 @@ interface Subscription {
   selector: 'app-messages',
   standalone: true,
   imports: [FormsModule, JsonPrettyPipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './messages.component.html',
 })
 export class MessagesComponent {

@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { vi } from 'vitest';
 import { BusHubService } from '../../core/bus-hub.service';
@@ -32,7 +32,7 @@ describe('SendComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SendComponent],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: BusHubService, useValue: fakeBusHubService },
       ],

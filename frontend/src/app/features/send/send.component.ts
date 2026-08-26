@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService } from '../../core/bus-hub.service';
@@ -23,6 +23,7 @@ interface SendWithReplyResponse {
   selector: 'app-send',
   standalone: true,
   imports: [FormsModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './send.component.html',
 })
 export class SendComponent {
