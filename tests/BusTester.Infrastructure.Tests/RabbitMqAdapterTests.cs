@@ -69,6 +69,35 @@ public class RabbitMqAdapterTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendAsync_WithReplyToAndCorrelationId_PublishesThemAsBasicProperties()
+    {
+        var (exchange, queue) = await DeclareTopologyAsync();
+
+        await _adapter.SendAsync(new BusMessage(
+            exchange,
+            queue,
+            "{\"id\":1}",
+            replyTo: "orders.reply",
+            correlationId: "corr-123"));
+
+        var properties = await WaitForBasicPropertiesAsync(queue);
+        Assert.Equal("orders.reply", properties.ReplyTo);
+        Assert.Equal("corr-123", properties.CorrelationId);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithoutReplyToOrCorrelationId_LeavesBasicPropertiesUnset()
+    {
+        var (exchange, queue) = await DeclareTopologyAsync();
+
+        await _adapter.SendAsync(new BusMessage(exchange, queue, "{\"id\":1}"));
+
+        var properties = await WaitForBasicPropertiesAsync(queue);
+        Assert.Null(properties.ReplyTo);
+        Assert.Null(properties.CorrelationId);
+    }
+
+    [Fact]
     public async Task SendAsync_WhenExchangeDoesNotExist_ThrowsBusPublishException_AndConnectionStaysUsable()
     {
         await Assert.ThrowsAsync<BusPublishException>(
@@ -102,6 +131,34 @@ public class RabbitMqAdapterTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SubscribeAsync_DeliveredMessageWithReplyToAndCorrelationId_SurfacesThemOnBusMessage()
+    {
+        var (exchange, queue) = await DeclareTopologyAsync();
+        var received = new TaskCompletionSource<BusMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await _adapter.SubscribeAsync(
+            new SubscriptionRequest(queue),
+            (message, _) =>
+            {
+                received.TrySetResult(message);
+                return Task.CompletedTask;
+            });
+
+        await _adapter.SendAsync(new BusMessage(
+            exchange,
+            queue,
+            "{\"id\":3}",
+            replyTo: "orders.reply",
+            correlationId: "corr-789"));
+
+        var completed = await Task.WhenAny(received.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(received.Task, completed);
+        var message = await received.Task;
+        Assert.Equal("orders.reply", message.ReplyTo);
+        Assert.Equal("corr-789", message.CorrelationId);
+    }
+
+    [Fact]
     public async Task SubscribeAsync_WhenQueueDoesNotExist_ThrowsBusSubscriptionException()
     {
         await Assert.ThrowsAsync<BusSubscriptionException>(
@@ -126,6 +183,23 @@ public class RabbitMqAdapterTests : IAsyncLifetime
             if (result is not null)
             {
                 return Encoding.UTF8.GetString(result.Body.Span);
+            }
+
+            await Task.Delay(100);
+        }
+
+        throw new TimeoutException($"No message received on queue '{queue}' within timeout.");
+    }
+
+    private async Task<IReadOnlyBasicProperties> WaitForBasicPropertiesAsync(string queue)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (DateTime.UtcNow < deadline)
+        {
+            var result = await _setupChannel.BasicGetAsync(queue, autoAck: true);
+            if (result is not null)
+            {
+                return result.BasicProperties;
             }
 
             await Task.Delay(100);

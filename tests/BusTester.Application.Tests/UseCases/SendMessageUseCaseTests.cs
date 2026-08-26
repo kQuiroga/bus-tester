@@ -39,6 +39,25 @@ public class SendMessageUseCaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WithReplyToAndCorrelationId_PublishesThemViaBusPort()
+    {
+        var fakeBusPort = new FakeBusPort();
+        var useCase = new SendMessageUseCase(fakeBusPort);
+        var command = new SendMessageCommand(
+            "orders",
+            "orders.created",
+            "{\"id\":1}",
+            ReplyTo: "orders.reply",
+            CorrelationId: "corr-123");
+
+        await useCase.HandleAsync(command);
+
+        var published = Assert.Single(fakeBusPort.SentMessages);
+        Assert.Equal("orders.reply", published.ReplyTo);
+        Assert.Equal("corr-123", published.CorrelationId);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenNoActiveConnection_ThrowsBusConnectionException()
     {
         var fakeBusPort = new FakeBusPort { SendException = new BusConnectionException("No active connection.") };

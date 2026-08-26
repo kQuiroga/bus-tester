@@ -5,8 +5,15 @@ public sealed class BusMessage
     public string Exchange { get; }
     public string RoutingKey { get; }
     public string Payload { get; }
+    public string? ReplyTo { get; }
+    public string? CorrelationId { get; }
 
-    public BusMessage(string exchange, string routingKey, string payload)
+    public BusMessage(
+        string exchange,
+        string routingKey,
+        string payload,
+        string? replyTo = null,
+        string? correlationId = null)
     {
         if (string.IsNullOrWhiteSpace(exchange))
         {
@@ -26,5 +33,7 @@ public sealed class BusMessage
         Exchange = exchange;
         RoutingKey = routingKey;
         Payload = payload;
+        ReplyTo = replyTo;
+        CorrelationId = correlationId;
     }
 }

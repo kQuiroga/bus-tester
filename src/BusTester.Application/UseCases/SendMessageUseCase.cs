@@ -19,7 +19,12 @@ public sealed class SendMessageUseCase
 
     public async Task HandleAsync(SendMessageCommand command, CancellationToken ct = default)
     {
-        var message = new BusMessage(command.Exchange, command.RoutingKey, command.Payload);
+        var message = new BusMessage(
+            command.Exchange,
+            command.RoutingKey,
+            command.Payload,
+            command.ReplyTo,
+            command.CorrelationId);
         await _busPort.SendAsync(message, ct);
     }
 }

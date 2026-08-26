@@ -18,10 +18,20 @@ public sealed class MessagesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Send([FromBody] SendMessageRequest request, CancellationToken ct)
     {
-        var command = new SendMessageCommand(request.Exchange, request.RoutingKey, request.Payload);
+        var command = new SendMessageCommand(
+            request.Exchange,
+            request.RoutingKey,
+            request.Payload,
+            request.ReplyTo,
+            request.CorrelationId);
         await _sendMessageUseCase.HandleAsync(command, ct);
         return Ok();
     }
 }
 
-public sealed record SendMessageRequest(string Exchange, string RoutingKey, string Payload);
+public sealed record SendMessageRequest(
+    string Exchange,
+    string RoutingKey,
+    string Payload,
+    string? ReplyTo = null,
+    string? CorrelationId = null);

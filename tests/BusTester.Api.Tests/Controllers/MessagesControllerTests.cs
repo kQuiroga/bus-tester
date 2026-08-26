@@ -26,6 +26,29 @@ public class MessagesControllerTests
     }
 
     [Fact]
+    public async Task Send_WithReplyToAndCorrelationId_Returns200_AndBusPortReceivesBothValues()
+    {
+        await using var factory = new BusTesterApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/messages",
+            new
+            {
+                exchange = "orders",
+                routingKey = "orders.created",
+                payload = "{\"id\":1}",
+                replyTo = "orders.reply",
+                correlationId = "corr-123",
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var sent = Assert.Single(factory.BusPort.SentMessages);
+        Assert.Equal("orders.reply", sent.ReplyTo);
+        Assert.Equal("corr-123", sent.CorrelationId);
+    }
+
+    [Fact]
     public async Task Send_WithNoActiveConnection_Returns503_AsProblemJson()
     {
         await using var factory = new BusTesterApiFactory();
