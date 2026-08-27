@@ -145,4 +145,59 @@ describe('styles.css design tokens', () => {
       normalize(resolveToken('--color-card-foreground', 'dark')),
     );
   });
+
+  /**
+   * Pins the tokens that already existed before this change's additive
+   * gap-fill (PR3), so a future edit that accidentally touches one of them
+   * fails loudly here instead of only being caught by manual diff review
+   * (verify-report finding: spec scenario "Existing tokens are unchanged"
+   * previously had no dedicated runtime test, only a static git-diff check).
+   */
+  const preExistingCases: Array<{ token: string; light: string; dark: string }> = [
+    { token: '--color-background', light: 'oklch(98% 0.003 247.86)', dark: 'oklch(20.8% 0.042 265.755)' },
+    { token: '--color-foreground', light: 'oklch(21% 0.034 264.665)', dark: 'oklch(96% 0.005 264.53)' },
+    { token: '--color-card', light: 'oklch(100% 0 0)', dark: 'oklch(25.5% 0.037 264.665)' },
+    {
+      token: '--color-card-foreground',
+      light: 'oklch(21% 0.034 264.665)',
+      dark: 'oklch(96% 0.005 264.53)',
+    },
+    { token: '--color-border', light: 'oklch(90% 0.013 255.5)', dark: 'oklch(35% 0.03 264.665)' },
+    { token: '--color-primary', light: 'oklch(54.6% 0.215 262.9)', dark: 'oklch(62.3% 0.188 259.8)' },
+    {
+      token: '--color-primary-foreground',
+      light: 'oklch(98% 0.003 247.86)',
+      dark: 'oklch(98% 0.003 247.86)',
+    },
+    { token: '--color-ring', light: 'oklch(62.3% 0.188 259.8)', dark: 'oklch(70.7% 0.165 259.5)' },
+    { token: '--color-status-ok', light: 'oklch(44.8% 0.119 151.3)', dark: 'oklch(84.1% 0.166 153.3)' },
+    { token: '--color-status-ok-bg', light: 'oklch(97.3% 0.038 156.5)', dark: 'oklch(28% 0.05 153.3)' },
+    { token: '--color-status-error', light: 'oklch(39.6% 0.141 25.7)', dark: 'oklch(80.8% 0.145 24.5)' },
+    {
+      token: '--color-status-error-bg',
+      light: 'oklch(97.1% 0.013 17.4)',
+      dark: 'oklch(28% 0.075 24.5)',
+    },
+    { token: '--color-status-warn', light: 'oklch(47% 0.13 70)', dark: 'oklch(85% 0.15 85)' },
+    { token: '--color-status-warn-bg', light: 'oklch(97% 0.06 85)', dark: 'oklch(30% 0.06 70)' },
+  ];
+
+  it.each(preExistingCases)('pre-existing token $token is unchanged in light mode', ({ token, light }) => {
+    expect(normalize(resolveToken(token, 'light'))).toBe(normalize(light));
+  });
+
+  it.each(preExistingCases)('pre-existing token $token is unchanged in dark mode', ({ token, dark }) => {
+    expect(normalize(resolveToken(token, 'dark'))).toBe(normalize(dark));
+  });
+
+  const preExistingRadii: Array<{ token: string; value: string }> = [
+    { token: '--radius-sm', value: '0.25rem' },
+    { token: '--radius-md', value: '0.375rem' },
+    { token: '--radius-lg', value: '0.5rem' },
+    { token: '--radius-xl', value: '0.75rem' },
+  ];
+
+  it.each(preExistingRadii)('pre-existing token $token is unchanged', ({ token, value }) => {
+    expect(normalize(resolveToken(token, 'light'))).toBe(normalize(value));
+  });
 });
