@@ -1,11 +1,16 @@
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmBadge } from '@spartan-ng/helm/badge';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, HubConnectionState } from '../../core/bus-hub.service';
 
-const STATUS_OK_CLASSES = 'rounded-md bg-status-ok-bg px-3 py-2 text-sm font-medium text-status-ok';
-const STATUS_WARN_CLASSES = 'rounded-md bg-status-warn-bg px-3 py-2 text-sm font-medium text-status-warn';
-const STATUS_ERROR_CLASSES = 'rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error';
+/** Color-only status tokens — shape/padding/typography now come from `hlmBadge` itself. */
+const STATUS_OK_CLASSES = 'bg-status-ok-bg text-status-ok';
+const STATUS_WARN_CLASSES = 'bg-status-warn-bg text-status-warn';
+const STATUS_ERROR_CLASSES = 'bg-status-error-bg text-status-error';
 
 /** Label per hub `connectionState`, `null` while `idle` (connection-status design: "Hub status
  *  hidden while connectionState() is 'idle'"). */
@@ -35,7 +40,7 @@ const HUB_STATUS_CLASSES: Record<HubConnectionState, string> = {
 @Component({
   selector: 'app-connect',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, HlmButton, HlmInput, HlmLabel, HlmBadge],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './connect.component.html',
 })

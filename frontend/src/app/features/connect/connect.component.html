@@ -1,20 +1,20 @@
 <section class="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
   <h2 class="text-lg font-medium text-card-foreground">Conexión</h2>
   <form class="mt-3 flex flex-col gap-3" (ngSubmit)="connect()">
-    <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
       Host del broker
       <input
-        class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        hlmInput
         name="host"
         [ngModel]="host()"
         (ngModelChange)="host.set($event)"
         [disabled]="connected() || pending()"
       />
     </label>
-    <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
       Puerto
       <input
-        class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        hlmInput
         name="port"
         type="number"
         [ngModel]="port()"
@@ -22,20 +22,20 @@
         [disabled]="connected() || pending()"
       />
     </label>
-    <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
       Usuario
       <input
-        class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        hlmInput
         name="username"
         [ngModel]="username()"
         (ngModelChange)="username.set($event)"
         [disabled]="connected() || pending()"
       />
     </label>
-    <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
       Contraseña
       <input
-        class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        hlmInput
         name="password"
         type="password"
         [ngModel]="password()"
@@ -43,36 +43,25 @@
         [disabled]="connected() || pending()"
       />
     </label>
-    <button
-      class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-      type="submit"
-      [disabled]="connected() || pending()"
-    >
-      Conectar
-    </button>
-    <button
-      class="rounded-md border border-border px-4 py-2 text-sm font-medium text-card-foreground hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-      type="button"
-      (click)="disconnect()"
-      [disabled]="!connected() || pending()"
-    >
+    <button hlmBtn type="submit" [disabled]="connected() || pending()">Conectar</button>
+    <button hlmBtn variant="secondary" type="button" (click)="disconnect()" [disabled]="!connected() || pending()">
       Desconectar
     </button>
   </form>
   @if (connected() || pending() || errorMessage() || hubStatusLabel()) {
     <div class="mt-3 flex flex-wrap items-center gap-2">
       @if (pending()) {
-        <p data-testid="broker-status" class="rounded-md bg-status-warn-bg px-3 py-2 text-sm font-medium text-status-warn">
+        <p hlmBadge variant="outline" data-testid="broker-status" class="bg-status-warn-bg text-status-warn">
           {{ connected() ? 'Desconectando…' : 'Conectando…' }}
         </p>
       } @else if (connected()) {
-        <p data-testid="broker-status" class="rounded-md bg-status-ok-bg px-3 py-2 text-sm font-medium text-status-ok">Conectado (último conocido)</p>
+        <p hlmBadge variant="outline" data-testid="broker-status" class="bg-status-ok-bg text-status-ok">Conectado (último conocido)</p>
       }
       @if (errorMessage()) {
-        <p data-testid="broker-error" class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>
+        <p hlmBadge variant="outline" data-testid="broker-error" class="bg-status-error-bg text-status-error">{{ errorMessage() }}</p>
       }
       @if (hubStatusLabel()) {
-        <p data-testid="hub-status" [class]="hubStatusClasses()">{{ hubStatusLabel() }}</p>
+        <p hlmBadge variant="outline" data-testid="hub-status" [class]="hubStatusClasses()">{{ hubStatusLabel() }}</p>
       }
     </div>
   }
