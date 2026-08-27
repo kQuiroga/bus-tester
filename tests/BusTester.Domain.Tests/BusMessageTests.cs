@@ -90,4 +90,33 @@ public class BusMessageTests
         Assert.Null(message.ReplyTo);
         Assert.Null(message.CorrelationId);
     }
+
+    [Fact]
+    public void Create_WithoutHeaders_DefaultsToEmptyNonNullDictionary()
+    {
+        var message = new BusMessage(exchange: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
+
+        Assert.NotNull(message.Headers);
+        Assert.Empty(message.Headers);
+    }
+
+    [Fact]
+    public void Create_WithExplicitHeaders_StoresThemAsIs()
+    {
+        var headers = new Dictionary<string, string>
+        {
+            ["NServiceBus.ContentType"] = "application/json",
+            ["X-Custom"] = "abc",
+        };
+
+        var message = new BusMessage(
+            exchange: "orders",
+            routingKey: "orders.created",
+            payload: "{\"id\":1}",
+            headers: headers);
+
+        Assert.Equal(2, message.Headers.Count);
+        Assert.Equal("application/json", message.Headers["NServiceBus.ContentType"]);
+        Assert.Equal("abc", message.Headers["X-Custom"]);
+    }
 }
