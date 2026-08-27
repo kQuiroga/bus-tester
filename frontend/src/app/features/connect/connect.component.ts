@@ -1,5 +1,7 @@
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideCircleCheck, lucideCircleX, lucideLoaderCircle } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmLabel } from '@spartan-ng/helm/label';
@@ -40,7 +42,8 @@ const HUB_STATUS_CLASSES: Record<HubConnectionState, string> = {
 @Component({
   selector: 'app-connect',
   standalone: true,
-  imports: [FormsModule, HlmButton, HlmInput, HlmLabel, HlmBadge],
+  imports: [FormsModule, HlmButton, HlmInput, HlmLabel, HlmBadge, NgIcon],
+  providers: [provideIcons({ lucideCircleCheck, lucideCircleX, lucideLoaderCircle })],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './connect.component.html',
 })
