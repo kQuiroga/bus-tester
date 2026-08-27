@@ -24,7 +24,8 @@ public sealed class SendMessageUseCase
             command.RoutingKey,
             command.Payload,
             command.ReplyTo,
-            command.CorrelationId);
+            command.CorrelationId,
+            command.Headers);
         await _busPort.SendAsync(message, ct);
     }
 }

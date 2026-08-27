@@ -46,7 +46,7 @@ public sealed class SendMessageWithReplyUseCase
             ? Guid.NewGuid().ToString()
             : command.CorrelationId;
 
-        var message = new BusMessage(command.Exchange, command.RoutingKey, command.Payload, queueName, correlationId);
+        var message = new BusMessage(command.Exchange, command.RoutingKey, command.Payload, queueName, correlationId, command.Headers);
 
         try
         {
