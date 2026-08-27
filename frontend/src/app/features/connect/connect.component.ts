@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, HubConnectionState } from '../../core/bus-hub.service';
@@ -36,6 +36,7 @@ const HUB_STATUS_CLASSES: Record<HubConnectionState, string> = {
   selector: 'app-connect',
   standalone: true,
   imports: [FormsModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './connect.component.html',
 })
 export class ConnectComponent {

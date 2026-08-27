@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { BUS_HUB_CONNECTION } from '../../core/bus-hub.service';
 import { FakeHubConnection } from '../../core/testing/fake-hub-connection';
@@ -14,7 +14,7 @@ describe('ConnectComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ConnectComponent],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: BUS_HUB_CONNECTION, useValue: fakeHubConnection },
       ],
