@@ -430,4 +430,59 @@ describe('MessagesComponent', () => {
     expect(component.isNewRow(orderMsg)).toBe(true);
     expect(component.isNewRow(shippingMsg)).toBe(true);
   });
+
+  it('renders the queue form and search/pause controls as hlm-* primitives', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const queueInput = root.querySelector('input[name="queueName"]');
+    expect(queueInput?.getAttribute('data-slot')).toBe('input');
+
+    const queueLabel = root.querySelector('label');
+    expect(queueLabel?.getAttribute('data-slot')).toBe('label');
+
+    const subscribeButton = Array.from(root.querySelectorAll('button')).find(
+      (b) => b.textContent?.trim() === 'Suscribirse',
+    );
+    expect(subscribeButton?.getAttribute('data-slot')).toBe('button');
+
+    const searchInput = root.querySelector('input[type="search"]');
+    expect(searchInput?.getAttribute('data-slot')).toBe('input');
+
+    const pauseButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Pausar');
+    expect(pauseButton?.getAttribute('data-slot')).toBe('button');
+  });
+
+  it('renders active subscription chips as hlmBadge pills, preserving the unsubscribe glyph', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const chip = root.querySelector('span[data-slot="badge"]');
+    expect(chip?.getAttribute('data-variant')).toBe('outline');
+    expect(chip?.textContent).toContain('orders-queue');
+
+    const unsubscribeButton = Array.from(root.querySelectorAll('button')).find((b) =>
+      b.getAttribute('aria-label')?.startsWith('Cancelar suscripción a orders-queue'),
+    );
+    expect(unsubscribeButton?.getAttribute('data-slot')).toBe('button');
+    expect(unsubscribeButton?.textContent).toContain('×');
+  });
+
+  it('the pause/resume button keeps its hlm-primitive marker after toggling to Reanudar (T13)', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    component.togglePause();
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const resumeButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Reanudar');
+    expect(resumeButton?.getAttribute('data-slot')).toBe('button');
+  });
 });

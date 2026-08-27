@@ -1,5 +1,9 @@
 import { Component, computed, inject, linkedSignal, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmBadge } from '@spartan-ng/helm/badge';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
@@ -39,7 +43,7 @@ interface Subscription {
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [FormsModule, JsonPrettyPipe],
+  imports: [FormsModule, JsonPrettyPipe, HlmButton, HlmInput, HlmLabel, HlmBadge],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './messages.component.html',
 })
