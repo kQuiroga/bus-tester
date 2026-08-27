@@ -1,68 +1,57 @@
 <section class="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
   <h2 class="text-lg font-medium text-card-foreground">Enviar mensaje</h2>
   <form class="mt-3 flex flex-col gap-3" (ngSubmit)="send()">
-    <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
+    <label hlmLabel class="flex flex-col items-start gap-1">
       Exchange
       <input
-        class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        hlmInput
         name="exchange"
         [ngModel]="exchange()"
         (ngModelChange)="exchange.set($event)"
         (blur)="onBlur('exchange')"
       />
       @if (touched().has('exchange') && exchangeError()) {
-        <p class="rounded-md bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error">{{ exchangeError() }}</p>
+        <p class="text-xs font-medium text-destructive">{{ exchangeError() }}</p>
       }
     </label>
-    <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
+    <label hlmLabel class="flex flex-col items-start gap-1">
       Clave de enrutamiento
       <input
-        class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        hlmInput
         name="routingKey"
         [ngModel]="routingKey()"
         (ngModelChange)="routingKey.set($event)"
         (blur)="onBlur('routingKey')"
       />
       @if (touched().has('routingKey') && routingKeyError()) {
-        <p class="rounded-md bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error">{{ routingKeyError() }}</p>
+        <p class="text-xs font-medium text-destructive">{{ routingKeyError() }}</p>
       }
     </label>
-    <label class="flex flex-col gap-1 text-sm font-medium text-card-foreground/80">
+    <label hlmLabel class="flex flex-col items-start gap-1">
       Payload
       <textarea
-        class="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        hlmTextarea
         name="payload"
         [ngModel]="payload()"
         (ngModelChange)="payload.set($event)"
         (blur)="onBlur('payload')"
       ></textarea>
       @if (touched().has('payload') && payloadError()) {
-        <p class="rounded-md bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error">{{ payloadError() }}</p>
+        <p class="text-xs font-medium text-destructive">{{ payloadError() }}</p>
       }
     </label>
-    <label class="flex items-center gap-2 text-sm font-medium text-card-foreground/80">
-      <input
-        type="checkbox"
+    <div class="flex items-center gap-2">
+      <hlm-checkbox
+        inputId="expect-reply-checkbox"
         name="expectReply"
         [ngModel]="expectReply()"
         (ngModelChange)="expectReply.set($event)"
         [ngModelOptions]="{ standalone: true }"
       />
-      Esperar respuesta
-    </label>
-    <button
-      class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-      type="submit"
-    >
-      Enviar
-    </button>
+      <label hlmLabel for="expect-reply-checkbox">Esperar respuesta</label>
+    </div>
+    <button hlmBtn type="submit">Enviar</button>
   </form>
-  @if (confirmation()) {
-    <p class="rounded-md bg-status-ok-bg px-3 py-2 text-sm font-medium text-status-ok">{{ confirmation() }}</p>
-  }
-  @if (errorMessage()) {
-    <p class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>
-  }
 
   <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4">
     <h3 class="text-sm font-medium text-card-foreground">Envíos recientes</h3>
@@ -73,13 +62,7 @@
         @for (recent of history.recentSends(); track recent.sentAt) {
           <li class="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs">
             <span class="truncate">{{ recent.exchange }} / {{ recent.routingKey || '(sin clave de enrutamiento)' }}</span>
-            <button
-              class="shrink-0 rounded-md border border-border px-2 py-1 text-primary hover:opacity-90"
-              type="button"
-              (click)="useRecent(recent)"
-            >
-              Cargar
-            </button>
+            <button hlmBtn variant="ghost" size="sm" type="button" (click)="useRecent(recent)">Cargar</button>
           </li>
         }
       </ul>
@@ -90,20 +73,15 @@
     <h3 class="text-sm font-medium text-card-foreground">Plantillas</h3>
     <div class="flex gap-2">
       <input
-        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+        hlmInput
+        class="flex-1"
         name="templateName"
         placeholder="Nombre de la plantilla"
         [ngModel]="templateName()"
         (ngModelChange)="templateName.set($event)"
         [ngModelOptions]="{ standalone: true }"
       />
-      <button
-        class="shrink-0 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-        type="button"
-        (click)="saveTemplate()"
-      >
-        Guardar plantilla
-      </button>
+      <button hlmBtn type="button" (click)="saveTemplate()">Guardar plantilla</button>
     </div>
     @if (history.templates().length === 0) {
       <p class="text-xs text-card-foreground/60">No hay plantillas guardadas.</p>
@@ -113,18 +91,8 @@
           <li class="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs">
             <span class="truncate">{{ template.name }}</span>
             <span class="flex shrink-0 gap-2">
-              <button
-                class="rounded-md border border-border px-2 py-1 text-primary hover:opacity-90"
-                type="button"
-                (click)="useTemplate(template)"
-              >
-                Cargar
-              </button>
-              <button
-                class="rounded-md border border-border px-2 py-1 text-status-error hover:opacity-90"
-                type="button"
-                (click)="deleteTemplate(template.name)"
-              >
+              <button hlmBtn variant="ghost" size="sm" type="button" (click)="useTemplate(template)">Cargar</button>
+              <button hlmBtn variant="ghost" size="sm" type="button" class="text-destructive" (click)="deleteTemplate(template.name)">
                 Eliminar
               </button>
             </span>

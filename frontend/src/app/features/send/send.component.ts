@@ -1,5 +1,11 @@
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { toast } from '@spartan-ng/brain/sonner';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmTextarea } from '@spartan-ng/helm/textarea';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
@@ -13,16 +19,22 @@ interface SendWithReplyResponse {
   correlationId: string;
 }
 
+/** Toast styling: reuse the existing "ok"/"error" status color tokens (ui-presentation spec:
+ *  "Send Feedback Delivered via Transient Toast"). */
+const TOAST_OK_CLASS = 'bg-status-ok-bg text-status-ok';
+const TOAST_ERROR_CLASS = 'bg-status-error-bg text-status-error';
+
 /**
  * Send-message form (exchange, routing key, payload) publishing on the active connection
  * (message-sending spec: "Successful publish" / "Invalid exchange or no connection";
  * ui-presentation spec: "Send Panel Validates Exchange and Payload as Required",
- * "Send Panel Validates Routing Key as Optional-If-Present", "Submit Is Gated on Form Validity").
+ * "Send Panel Validates Routing Key as Optional-If-Present", "Submit Is Gated on Form Validity",
+ * "Send Feedback Delivered via Transient Toast").
  */
 @Component({
   selector: 'app-send',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, HlmButton, HlmCheckbox, HlmInput, HlmLabel, HlmTextarea],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './send.component.html',
 })
@@ -35,8 +47,6 @@ export class SendComponent {
   readonly exchange = signal('');
   readonly routingKey = signal('');
   readonly payload = signal('');
-  readonly confirmation = signal<string | null>(null);
-  readonly errorMessage = signal<string | null>(null);
   readonly touched = signal<Set<SendField>>(new Set());
   readonly templateName = signal('');
   /** "Expect a reply" toggle (request-reply spec: "Request a Reply via Auto-Created Temp Queue"). */
@@ -61,8 +71,6 @@ export class SendComponent {
       return;
     }
 
-    this.confirmation.set(null);
-    this.errorMessage.set(null);
     const exchange = this.exchange();
     const routingKey = this.routingKey();
     const payload = this.payload();
@@ -76,11 +84,11 @@ export class SendComponent {
       .post('/api/messages', { exchange, routingKey, payload })
       .subscribe({
         next: () => {
-          this.confirmation.set('Mensaje enviado.');
+          toast.success('Mensaje enviado.', { class: TOAST_OK_CLASS });
           this.history.recordSend({ exchange, routingKey, payload });
         },
         error: (err: unknown) => {
-          this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'));
+          toast.error(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'), { class: TOAST_ERROR_CLASS });
         },
       });
   }
@@ -94,17 +102,17 @@ export class SendComponent {
       .post<SendWithReplyResponse>('/api/messages/with-reply', { exchange, routingKey, payload })
       .subscribe({
         next: (response) => {
-          this.confirmation.set('Mensaje enviado, esperando respuesta.');
+          toast.success('Mensaje enviado, esperando respuesta.', { class: TOAST_OK_CLASS });
           this.replySubscriptions.add({
             subscriptionId: response.subscriptionId,
             correlationId: response.correlationId,
           });
           this.busHub.joinSubscription(response.subscriptionId).catch((err: unknown) => {
-            this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'));
+            toast.error(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'), { class: TOAST_ERROR_CLASS });
           });
         },
         error: (err: unknown) => {
-          this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'));
+          toast.error(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'), { class: TOAST_ERROR_CLASS });
         },
       });
   }

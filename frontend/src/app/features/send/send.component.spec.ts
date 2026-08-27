@@ -1,8 +1,17 @@
+import { vi } from 'vitest';
+
+vi.mock('@spartan-ng/brain/sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { vi } from 'vitest';
+import { toast } from '@spartan-ng/brain/sonner';
 import { BusHubService } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { SendComponent } from './send.component';
@@ -28,6 +37,7 @@ describe('SendComponent', () => {
   beforeEach(async () => {
     localStorage.removeItem(RECENT_SENDS_KEY);
     localStorage.removeItem(TEMPLATES_KEY);
+    vi.clearAllMocks();
     fakeBusHubService = createFakeBusHubService();
     await TestBed.configureTestingModule({
       imports: [SendComponent],
@@ -59,8 +69,8 @@ describe('SendComponent', () => {
     expect(req.request.body).toEqual({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
     req.flush(null);
 
-    expect(component.confirmation()).toBe('Mensaje enviado.');
-    expect(component.errorMessage()).toBeNull();
+    expect(toast.success).toHaveBeenCalledWith('Mensaje enviado.', { class: 'bg-status-ok-bg text-status-ok' });
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('shows the broker error for an invalid exchange and leaves the form usable', () => {
@@ -78,8 +88,10 @@ describe('SendComponent', () => {
       { status: 400, statusText: 'Bad Request' },
     );
 
-    expect(component.errorMessage()).toContain("Could not publish to exchange 'missing-exchange'");
-    expect(component.confirmation()).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith("Could not publish to exchange 'missing-exchange'.", {
+      class: 'bg-status-error-bg text-status-error',
+    });
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it('blocks submit and touches all fields when exchange and payload are blank', () => {
@@ -140,7 +152,7 @@ describe('SendComponent', () => {
     const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages'));
     req.flush(null);
 
-    expect(component.confirmation()).toBe('Mensaje enviado.');
+    expect(toast.success).toHaveBeenCalledWith('Mensaje enviado.', { class: 'bg-status-ok-bg text-status-ok' });
   });
 
   it('records the send to history only after a successful send', () => {
@@ -242,8 +254,10 @@ describe('SendComponent', () => {
     expect(req.request.body).toEqual({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
     req.flush({ subscriptionId: 'sub-1', correlationId: 'corr-1' });
 
-    expect(component.confirmation()).toBe('Mensaje enviado, esperando respuesta.');
-    expect(component.errorMessage()).toBeNull();
+    expect(toast.success).toHaveBeenCalledWith('Mensaje enviado, esperando respuesta.', {
+      class: 'bg-status-ok-bg text-status-ok',
+    });
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('a successful with-reply send registers the pending reply and joins the SignalR group', () => {
@@ -285,8 +299,10 @@ describe('SendComponent', () => {
         { status: 400, statusText: 'Bad Request' },
       );
 
-    expect(component.errorMessage()).toContain("Could not publish to exchange 'missing-exchange'");
-    expect(component.confirmation()).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith("Could not publish to exchange 'missing-exchange'.", {
+      class: 'bg-status-error-bg text-status-error',
+    });
+    expect(toast.success).not.toHaveBeenCalled();
     expect(addSpy).not.toHaveBeenCalled();
   });
 
@@ -299,5 +315,47 @@ describe('SendComponent', () => {
     component.deleteTemplate('my-template');
 
     expect(history.templates()).toEqual([]);
+  });
+
+  it('renders exchange/routingKey/templateName inputs, payload textarea, and expectReply checkbox via hlm primitives', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    expect(root.querySelectorAll('label[data-slot="label"]').length).toBe(4);
+    expect(root.querySelectorAll('input[data-slot="input"]').length).toBe(3);
+    expect(root.querySelectorAll('textarea[data-slot="textarea"]').length).toBe(1);
+    expect(root.querySelector('hlm-checkbox[data-slot="checkbox"]')).not.toBeNull();
+  });
+
+  it('renders the Enviar and Guardar plantilla buttons via hlmBtn (default variant, data-slot="button")', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const buttons = Array.from(root.querySelectorAll('button[data-slot="button"]'));
+    expect(buttons.length).toBe(2);
+    for (const button of buttons) {
+      expect(button.className).toContain('bg-primary');
+    }
+  });
+
+  it('renders recent-send and template row actions as hlmBtn variant="ghost" size="sm"', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    const history = TestBed.inject(SendHistoryService);
+    history.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    history.saveTemplate({ name: 'my-template', exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const buttons = Array.from(root.querySelectorAll('button[data-slot="button"]'));
+    // Enviar + Guardar plantilla (default) + Cargar (recent) + Cargar (template) + Eliminar (template)
+    expect(buttons.length).toBe(5);
+    const rowActionButtons = buttons.filter((button) => button.textContent?.trim() === 'Cargar' || button.textContent?.trim() === 'Eliminar');
+    expect(rowActionButtons.length).toBe(3);
+    for (const button of rowActionButtons) {
+      expect(button.className).toContain('h-8');
+      expect(button.className).not.toContain('bg-primary');
+    }
   });
 });
