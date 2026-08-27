@@ -33,6 +33,15 @@
       ],
       "@spartan-ng/helm/card": [
         "./libs/ui/card/src/index.ts"
+      ],
+      "@spartan-ng/helm/sonner": [
+        "./libs/ui/sonner/src/index.ts"
+      ],
+      "@spartan-ng/helm/input-group": [
+        "./libs/ui/input-group/src/index.ts"
+      ],
+      "@spartan-ng/helm/textarea": [
+        "./libs/ui/textarea/src/index.ts"
       ]
     }
   },
