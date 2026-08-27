@@ -99,6 +99,35 @@ public class RabbitMqAdapterTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendAsync_WithHeaders_SetsThemOnBasicProperties()
+    {
+        var (exchange, queue) = await DeclareTopologyAsync();
+        var headers = new Dictionary<string, string>
+        {
+            ["NServiceBus.ContentType"] = "application/json",
+            ["X-Custom"] = "abc",
+        };
+
+        await _adapter.SendAsync(new BusMessage(exchange, queue, "{\"id\":1}", headers: headers));
+
+        var properties = await WaitForBasicPropertiesAsync(queue);
+        Assert.NotNull(properties.Headers);
+        Assert.Equal("application/json", Encoding.UTF8.GetString((byte[])properties.Headers!["NServiceBus.ContentType"]!));
+        Assert.Equal("abc", Encoding.UTF8.GetString((byte[])properties.Headers!["X-Custom"]!));
+    }
+
+    [Fact]
+    public async Task SendAsync_WithoutHeaders_LeavesBasicPropertiesHeadersUnset()
+    {
+        var (exchange, queue) = await DeclareTopologyAsync();
+
+        await _adapter.SendAsync(new BusMessage(exchange, queue, "{\"id\":1}"));
+
+        var properties = await WaitForBasicPropertiesAsync(queue);
+        Assert.Null(properties.Headers);
+    }
+
+    [Fact]
     public async Task SendAsync_WhenExchangeDoesNotExist_ThrowsBusPublishException_AndConnectionStaysUsable()
     {
         await Assert.ThrowsAsync<BusPublishException>(

@@ -69,13 +69,21 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
 
             var body = Encoding.UTF8.GetBytes(message.Payload);
 
-            if (message.ReplyTo is not null || message.CorrelationId is not null)
+            if (message.ReplyTo is not null || message.CorrelationId is not null || message.Headers.Count > 0)
             {
                 var properties = new BasicProperties
                 {
                     ReplyTo = message.ReplyTo,
                     CorrelationId = message.CorrelationId,
                 };
+
+                if (message.Headers.Count > 0)
+                {
+                    properties.Headers = message.Headers.ToDictionary(
+                        kv => kv.Key,
+                        kv => (object?)kv.Value);
+                }
+
                 await channel.BasicPublishAsync(
                     message.Exchange,
                     message.RoutingKey,

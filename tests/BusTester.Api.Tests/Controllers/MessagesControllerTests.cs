@@ -49,6 +49,50 @@ public class MessagesControllerTests
     }
 
     [Fact]
+    public async Task Send_WithHeaders_Returns200_AndBusPortReceivesThem()
+    {
+        await using var factory = new BusTesterApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/messages",
+            new
+            {
+                exchange = "orders",
+                routingKey = "orders.created",
+                payload = "{\"id\":1}",
+                headers = new Dictionary<string, string> { ["NServiceBus.ContentType"] = "application/json", ["X-Custom"] = "abc" },
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var sent = Assert.Single(factory.BusPort.SentMessages);
+        Assert.Equal(2, sent.Headers.Count);
+        Assert.Equal("application/json", sent.Headers["NServiceBus.ContentType"]);
+        Assert.Equal("abc", sent.Headers["X-Custom"]);
+    }
+
+    [Fact]
+    public async Task SendWithReply_WithHeaders_Returns200_AndBusPortReceivesThem()
+    {
+        await using var factory = new BusTesterApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/messages/with-reply",
+            new
+            {
+                exchange = "orders",
+                routingKey = "orders.created",
+                payload = "{\"id\":1}",
+                headers = new Dictionary<string, string> { ["X-Custom"] = "abc" },
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var sent = Assert.Single(factory.BusPort.SentMessages);
+        Assert.Equal("abc", sent.Headers["X-Custom"]);
+    }
+
+    [Fact]
     public async Task Send_WithNoActiveConnection_Returns503_AsProblemJson()
     {
         await using var factory = new BusTesterApiFactory();
