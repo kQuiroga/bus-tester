@@ -52,16 +52,36 @@
     <div class="mt-3 flex flex-wrap items-center gap-2">
       @if (pending()) {
         <p hlmBadge variant="outline" data-testid="broker-status" class="bg-status-warn-bg text-status-warn">
+          <ng-icon name="lucideLoaderCircle" />
           {{ connected() ? 'Desconectando…' : 'Conectando…' }}
         </p>
       } @else if (connected()) {
-        <p hlmBadge variant="outline" data-testid="broker-status" class="bg-status-ok-bg text-status-ok">Conectado (último conocido)</p>
+        <p hlmBadge variant="outline" data-testid="broker-status" class="bg-status-ok-bg text-status-ok">
+          <ng-icon name="lucideCircleCheck" />
+          Conectado (último conocido)
+        </p>
       }
       @if (errorMessage()) {
-        <p hlmBadge variant="outline" data-testid="broker-error" class="bg-status-error-bg text-status-error">{{ errorMessage() }}</p>
+        <p hlmBadge variant="outline" data-testid="broker-error" class="bg-status-error-bg text-status-error">
+          <ng-icon name="lucideCircleX" />
+          {{ errorMessage() }}
+        </p>
       }
       @if (hubStatusLabel()) {
-        <p hlmBadge variant="outline" data-testid="hub-status" [class]="hubStatusClasses()">{{ hubStatusLabel() }}</p>
+        <p hlmBadge variant="outline" data-testid="hub-status" [class]="hubStatusClasses()">
+          @switch (hubConnectionState()) {
+            @case ('connected') {
+              <ng-icon name="lucideCircleCheck" />
+            }
+            @case ('disconnected') {
+              <ng-icon name="lucideCircleX" />
+            }
+            @default {
+              <ng-icon name="lucideLoaderCircle" />
+            }
+          }
+          {{ hubStatusLabel() }}
+        </p>
       }
     </div>
   }

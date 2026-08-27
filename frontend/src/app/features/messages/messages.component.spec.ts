@@ -454,7 +454,7 @@ describe('MessagesComponent', () => {
     expect(pauseButton?.getAttribute('data-slot')).toBe('button');
   });
 
-  it('renders active subscription chips as hlmBadge pills, preserving the unsubscribe glyph', () => {
+  it('renders active subscription chips as hlmBadge pills, with an icon-only unsubscribe button (lucideX)', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
     component.queueName.set('orders-queue');
@@ -472,17 +472,51 @@ describe('MessagesComponent', () => {
       b.getAttribute('aria-label')?.startsWith('Cancelar suscripción a orders-queue'),
     );
     expect(unsubscribeButton?.getAttribute('data-slot')).toBe('button');
-    expect(unsubscribeButton?.textContent).toContain('×');
+    expect(unsubscribeButton?.querySelector('ng-icon[name="lucideX"]')).not.toBeNull();
+    expect(unsubscribeButton?.textContent).not.toContain('×');
   });
 
-  it('the pause/resume button keeps its hlm-primitive marker after toggling to Reanudar (T13)', () => {
+  it('renders the reply-panel unsubscribe button as icon-only (lucideX)', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    const replySubscriptions = TestBed.inject(ReplySubscriptionService);
+    replySubscriptions.add({ subscriptionId: 'reply-sub-1', correlationId: 'corr-1' });
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const unsubscribeButton = Array.from(root.querySelectorAll('button')).find((b) =>
+      b.getAttribute('aria-label')?.startsWith('Cancelar suscripción a respuesta'),
+    );
+    expect(unsubscribeButton?.querySelector('ng-icon[name="lucideX"]')).not.toBeNull();
+  });
+
+  it('renders a leading search icon (lucideSearch) alongside the message search input', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const searchInput = root.querySelector('input[type="search"]');
+    expect(searchInput?.parentElement?.querySelector('ng-icon[name="lucideSearch"]')).not.toBeNull();
+  });
+
+  it('the pause button renders the lucidePause icon while running', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const pauseButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.includes('Pausar'));
+    expect(pauseButton?.querySelector('ng-icon[name="lucidePause"]')).not.toBeNull();
+  });
+
+  it('the pause/resume button keeps its hlm-primitive marker and swaps to the lucidePlay icon after toggling to Reanudar (T13)', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
     component.togglePause();
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
 
-    const resumeButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Reanudar');
+    const resumeButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim().includes('Reanudar'));
     expect(resumeButton?.getAttribute('data-slot')).toBe('button');
+    expect(resumeButton?.querySelector('ng-icon[name="lucidePlay"]')).not.toBeNull();
   });
 });

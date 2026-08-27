@@ -351,11 +351,30 @@ describe('SendComponent', () => {
     const buttons = Array.from(root.querySelectorAll('button[data-slot="button"]'));
     // Enviar + Guardar plantilla (default) + Cargar (recent) + Cargar (template) + Eliminar (template)
     expect(buttons.length).toBe(5);
-    const rowActionButtons = buttons.filter((button) => button.textContent?.trim() === 'Cargar' || button.textContent?.trim() === 'Eliminar');
+    const rowActionButtons = buttons.filter((button) => button.textContent?.trim().includes('Cargar') || button.textContent?.trim().includes('Eliminar'));
     expect(rowActionButtons.length).toBe(3);
     for (const button of rowActionButtons) {
       expect(button.className).toContain('h-8');
       expect(button.className).not.toContain('bg-primary');
     }
+  });
+
+  it('renders lucideDownload on every "Cargar" row action and lucideTrash2 on "Eliminar"', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    const history = TestBed.inject(SendHistoryService);
+    history.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    history.saveTemplate({ name: 'my-template', exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const buttons = Array.from(root.querySelectorAll('button[data-slot="button"]'));
+    const cargarButtons = buttons.filter((button) => button.textContent?.trim().includes('Cargar'));
+    expect(cargarButtons.length).toBe(2);
+    for (const button of cargarButtons) {
+      expect(button.querySelector('ng-icon[name="lucideDownload"]')).not.toBeNull();
+    }
+
+    const eliminarButton = buttons.find((button) => button.textContent?.trim().includes('Eliminar'));
+    expect(eliminarButton?.querySelector('ng-icon[name="lucideTrash2"]')).not.toBeNull();
   });
 });

@@ -292,6 +292,61 @@ describe('ConnectComponent', () => {
     expect(brokerError?.className).toContain('text-status-error');
   });
 
+  it('renders a status icon inside the broker-status badge, swapping from pending to ok', () => {
+    const fixture = TestBed.createComponent(ConnectComponent);
+    const component = fixture.componentInstance;
+    component.host.set('localhost');
+    component.port.set(5672);
+    component.username.set('guest');
+    component.password.set('guest');
+
+    component.connect();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const brokerStatusPending = compiled.querySelector('[data-testid="broker-status"]');
+    expect(brokerStatusPending?.querySelector('ng-icon[name="lucideLoaderCircle"]')).not.toBeNull();
+
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/connections')).flush(null);
+    fixture.detectChanges();
+    const brokerStatusOk = compiled.querySelector('[data-testid="broker-status"]');
+    expect(brokerStatusOk?.querySelector('ng-icon[name="lucideCircleCheck"]')).not.toBeNull();
+  });
+
+  it('renders the lucideCircleX icon inside the broker-error badge', () => {
+    const fixture = TestBed.createComponent(ConnectComponent);
+    const component = fixture.componentInstance;
+    component.host.set('unreachable-host');
+    component.port.set(5672);
+    component.username.set('guest');
+    component.password.set('guest');
+
+    component.connect();
+    httpMock
+      .expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/connections'))
+      .flush({ title: 'Broker connection failed', detail: 'Could not connect.' }, { status: 503, statusText: 'Service Unavailable' });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const brokerError = compiled.querySelector('[data-testid="broker-error"]');
+    expect(brokerError?.querySelector('ng-icon[name="lucideCircleX"]')).not.toBeNull();
+  });
+
+  it('renders the hub-status icon reflecting reconnecting (pending) vs disconnected (error) state', () => {
+    const fixture = TestBed.createComponent(ConnectComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    fakeHubConnection.triggerReconnecting();
+    fixture.detectChanges();
+    let hubStatus = compiled.querySelector('[data-testid="hub-status"]');
+    expect(hubStatus?.querySelector('ng-icon[name="lucideLoaderCircle"]')).not.toBeNull();
+
+    fakeHubConnection.triggerClose();
+    fixture.detectChanges();
+    hubStatus = compiled.querySelector('[data-testid="hub-status"]');
+    expect(hubStatus?.querySelector('ng-icon[name="lucideCircleX"]')).not.toBeNull();
+  });
+
   it('never calls BusHubService.start() — hub connection ownership stays with MessagesComponent (connection-status spec: "ConnectComponent never starts the hub")', () => {
     // Characterization/approval test: ConnectComponent injects BusHubService only to read
     // connectionState(), never to start/stop the underlying connection. Renders standalone (no
