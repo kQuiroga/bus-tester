@@ -4,20 +4,25 @@ const RECENT_SENDS_KEY = 'send-panel.recent-sends';
 const TEMPLATES_KEY = 'send-panel.templates';
 const RECENT_SENDS_CAP = 20;
 
-/** A previously-sent message, newest-first in {@link SendHistoryService.recentSends}. */
+/** A previously-sent message, newest-first in {@link SendHistoryService.recentSends}.
+ *  `headers` is optional so pre-existing persisted entries without it restore cleanly
+ *  (send-custom-headers spec: "Entries Without Headers Remain Unaffected"). */
 export interface RecentSend {
   exchange: string;
   routingKey: string;
   payload: string;
   sentAt: string;
+  headers?: Record<string, string>;
 }
 
-/** A named, reusable send-form snapshot. */
+/** A named, reusable send-form snapshot. `headers` is optional for the same reason as
+ *  {@link RecentSend.headers}. */
 export interface SendTemplate {
   name: string;
   exchange: string;
   routingKey: string;
   payload: string;
+  headers?: Record<string, string>;
 }
 
 /** Parses a `localStorage` JSON entry, falling back to `[]` for missing, malformed, or non-array data. */
