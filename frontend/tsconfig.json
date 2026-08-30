@@ -34,6 +34,9 @@
       "@spartan-ng/helm/card": [
         "./libs/ui/card/src/index.ts"
       ],
+      "@spartan-ng/helm/dialog": [
+        "./libs/ui/dialog/src/index.ts"
+      ],
       "@spartan-ng/helm/sonner": [
         "./libs/ui/sonner/src/index.ts"
       ],
