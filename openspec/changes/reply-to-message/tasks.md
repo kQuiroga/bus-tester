@@ -30,8 +30,8 @@ All phases strict-TDD sliced: RED (failing test) → GREEN (impl). Run the suite
 
 - [x] 1.1 RED `BusMessageTests`: `Create_WithEmptyExchange_Succeeds` (exact `""` → `Exchange==""`); move `[InlineData("")]` off `Create_WithMissingExchange...` so `null`/`"   "` still throw.
 - [x] 1.2 GREEN `src/BusTester.Domain/BusMessage.cs`: replace exchange `IsNullOrWhiteSpace` guard with reject-null + reject-whitespace-only, allow exact `""`.
-- [ ] 1.3 RED `tests/BusTester.Infrastructure.Tests/DefaultExchangeTests.cs` (Collection `RabbitMqCollection`): (a) `ExchangeDeclarePassiveAsync("")` throws `OperationInterruptedException` with `ACCESS_REFUSED`; (b) `_adapter.SendAsync` `Exchange=""`, `RoutingKey`=declared queue, `CorrelationId` set → `BasicGetAsync` returns body with matching `CorrelationId`.
-- [ ] 1.4 GREEN `RabbitMqAdapter.SendAsync`: guard the passive declare with `if (message.Exchange.Length != 0)`.
+- [x] 1.3 RED `tests/BusTester.Infrastructure.Tests/DefaultExchangeTests.cs` (Collection `RabbitMqCollection`): (a) `ExchangeDeclarePassiveAsync("")` throws `OperationInterruptedException` with `ACCESS_REFUSED`; (b) `_adapter.SendAsync` `Exchange=""`, `RoutingKey`=declared queue, `CorrelationId` set → `BasicGetAsync` returns body with matching `CorrelationId`.
+- [x] 1.4 GREEN `RabbitMqAdapter.SendAsync`: guard the passive declare with `if (message.Exchange.Length != 0)`.
 
 ## Phase 2: ReplyDraftService bridge (PR 2)
 
