@@ -94,6 +94,10 @@ describe('styles.css design tokens — single fixed Graphite theme', () => {
       { token: '--color-muted-foreground', source: '--color-ink-muted' },
       { token: '--color-border', source: '--color-line' },
       { token: '--color-input', source: '--color-line' },
+      // Focus ring consumes the accent token, never a broker color directly, so
+      // it stays neutral while disconnected (ui-presentation: "with no broker
+      // connected, a neutral default accent MUST apply").
+      { token: '--color-ring', source: '--color-accent' },
     ];
 
     it.each(semanticAliases)('$token is declared as var($source)', ({ token, source }) => {

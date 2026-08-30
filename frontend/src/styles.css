@@ -47,7 +47,7 @@
 
   --color-border: var(--color-line);
   --color-input: var(--color-line);
-  --color-ring: var(--color-broker-rabbitmq);
+  --color-ring: var(--color-accent);
 
   --color-primary: var(--color-ink);
   --color-primary-foreground: var(--color-ground);
