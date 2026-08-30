@@ -35,8 +35,8 @@ All phases strict-TDD sliced: RED (failing test) → GREEN (impl). Run the suite
 
 ## Phase 2: ReplyDraftService bridge (PR 2)
 
-- [ ] 2.1 RED `frontend/src/app/core/reply-draft.service.spec.ts`: `request(target)` sets `draft()` and increments `seq` per call (same target twice → seq 1,2); `clear()` nulls it.
-- [ ] 2.2 GREEN create `frontend/src/app/core/reply-draft.service.ts` per design Interfaces (`ReplyTarget`, `_draft` signal `{target,seq}|null`, `request`, `clear`, `providedIn:'root'`).
+- [x] 2.1 RED `frontend/src/app/core/reply-draft.service.spec.ts`: `request(target)` sets `draft()` and increments `seq` per call (same target twice → seq 1,2); `clear()` nulls it.
+- [x] 2.2 GREEN create `frontend/src/app/core/reply-draft.service.ts` per design Interfaces (`ReplyTarget`, `_draft` signal `{target,seq}|null`, `request`, `clear`, `providedIn:'root'`).
 
 ## Phase 3: MessagesComponent Responder action (PR 2)
 
