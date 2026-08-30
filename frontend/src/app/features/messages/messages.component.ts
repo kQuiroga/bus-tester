@@ -118,13 +118,17 @@ export class MessagesComponent {
   });
 
   /** Separate reply panel, kept out of `SubscriptionCoordinator`'s chip list — no `kind`
-   *  discriminator (design.md decision: "No kind discriminator; separate ReplySubscriptionService"). */
+   *  discriminator (design.md decision: "No kind discriminator; separate ReplySubscriptionService").
+   *  Matches on both `subscriptionId` and `correlationId` — `correlationId` alone would let a
+   *  message with the same correlationId delivered on an unrelated active subscription (e.g. the
+   *  sender's own request, echoed back because they're also subscribed to the queue they
+   *  published to) be mistaken for a genuine reply. */
   readonly replyPanel = computed<ReplyPanelEntry[]>(() => {
     const msgs = this.busHub.messages();
     return this.replySubscriptions.pending().map((p) => ({
       subscriptionId: p.subscriptionId,
       correlationId: p.correlationId,
-      replies: msgs.filter((m) => m.correlationId === p.correlationId),
+      replies: msgs.filter((m) => m.subscriptionId === p.subscriptionId && m.correlationId === p.correlationId),
     }));
   });
 
