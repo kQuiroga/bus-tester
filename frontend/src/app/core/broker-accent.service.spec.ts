@@ -17,13 +17,21 @@ describe('BrokerAccentService', () => {
     doc.documentElement.removeAttribute('data-broker');
   });
 
-  it('defaults the broker signal to RabbitMQ (design D10 — nothing sets Kafka yet)', () => {
-    expect(service.broker()).toBe('rabbitmq');
+  it('starts with no connected broker (decision #167 — neutral accent until a real connection)', () => {
+    expect(service.broker()).toBeNull();
   });
 
-  it('writes the default broker onto <html data-broker> once effects flush', () => {
+  it('leaves <html> without a data-broker attribute while no broker is connected', () => {
     TestBed.tick();
 
+    expect(doc.documentElement.hasAttribute('data-broker')).toBe(false);
+  });
+
+  it('reflects setBroker("rabbitmq") onto <html data-broker>', () => {
+    service.setBroker('rabbitmq');
+    TestBed.tick();
+
+    expect(service.broker()).toBe('rabbitmq');
     expect(doc.documentElement.dataset['broker']).toBe('rabbitmq');
   });
 
@@ -35,14 +43,16 @@ describe('BrokerAccentService', () => {
     expect(doc.documentElement.dataset['broker']).toBe('kafka');
   });
 
-  it('switches the attribute back when the broker changes again', () => {
+  it('removes data-broker again when the broker is cleared back to null', () => {
     service.setBroker('kafka');
     TestBed.tick();
     expect(doc.documentElement.dataset['broker']).toBe('kafka');
 
-    service.setBroker('rabbitmq');
+    service.setBroker(null);
     TestBed.tick();
-    expect(doc.documentElement.dataset['broker']).toBe('rabbitmq');
+
+    expect(service.broker()).toBeNull();
+    expect(doc.documentElement.hasAttribute('data-broker')).toBe(false);
   });
 
   it('is a root-provided singleton', () => {

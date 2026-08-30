@@ -128,19 +128,31 @@ describe('styles.css design tokens — single fixed Graphite theme', () => {
     );
   });
 
-  describe('Accent color follows the connected broker (design D2)', () => {
+  describe('Accent color follows the connected broker (design D2, decision #167)', () => {
     it('declares the static broker accent colors', () => {
       expect(/--color-broker-rabbitmq\s*:\s*#e0a34a/i.test(css)).toBe(true);
       expect(/--color-broker-kafka\s*:\s*#3d8ef0/i.test(css)).toBe(true);
     });
 
-    it('--color-accent is an indirection that defaults to the RabbitMQ amber', () => {
+    it('--color-accent is an indirection that defaults to a neutral, non-broker accent', () => {
       expect(
-        /--color-accent\s*:\s*var\(\s*--broker-accent\s*,\s*var\(\s*--color-broker-rabbitmq\s*\)\s*\)/.test(css),
+        /--color-accent\s*:\s*var\(\s*--broker-accent\s*,\s*var\(\s*--color-accent-neutral\s*\)\s*\)/.test(css),
       ).toBe(true);
       // With no [data-broker] override active, --broker-accent is unset, so the
-      // fallback chain lands on the RabbitMQ amber.
-      expect(normalize(resolveToken('--color-broker-rabbitmq'))).toBe(normalize('#e0a34a'));
+      // fallback chain lands on the neutral accent — never a broker color
+      // (ui-presentation: "with no broker connected, a neutral default accent MUST apply").
+      const neutral = normalize(resolveToken('--color-accent-neutral'));
+      expect(neutral).toMatch(/^#[0-9a-f]{3,8}$/i);
+      expect(neutral).not.toBe(normalize('#e0a34a'));
+      expect(neutral).not.toBe(normalize('#3d8ef0'));
+    });
+
+    it('maps --broker-accent to the RabbitMQ amber under [data-broker=\'rabbitmq\']', () => {
+      expect(
+        /\[data-broker=['"]rabbitmq['"]\]\s*\{\s*--broker-accent\s*:\s*var\(\s*--color-broker-rabbitmq\s*\)\s*;?\s*\}/.test(
+          css,
+        ),
+      ).toBe(true);
     });
 
     it('maps --broker-accent to the Kafka blue under [data-broker=\'kafka\']', () => {

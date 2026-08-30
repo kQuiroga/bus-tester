@@ -17,12 +17,13 @@ Consequence: `frontend/src/styles.tokens.spec.ts` must be rewritten — its `ext
 
 ### D2: Broker accent via `data-broker` on `<html>`, not a class or Angular style binding
 
-`@theme` declares static `--color-broker-rabbitmq: #e0a34a` / `--color-broker-kafka: #3d8ef0` and an indirection `--color-accent: var(--broker-accent, var(--color-broker-rabbitmq))`. `styles.css` maps `[data-broker='kafka'] { --broker-accent: var(--color-broker-kafka) }`.
+`@theme` declares static `--color-broker-rabbitmq: #e0a34a` / `--color-broker-kafka: #3d8ef0`, a neutral fallback `--color-accent-neutral` (a muted grey from the Graphite ramp), and an indirection `--color-accent: var(--broker-accent, var(--color-accent-neutral))`. `styles.css` maps one rule per broker — `[data-broker='rabbitmq'] { --broker-accent: var(--color-broker-rabbitmq) }` and `[data-broker='kafka'] { --broker-accent: var(--color-broker-kafka) }`. While nothing is connected `<html>` carries no `data-broker` attribute, so `--broker-accent` is unset and the accent resolves to the neutral token — never a broker color (decision #167; ui-presentation: "with no broker connected, a neutral default accent MUST apply").
 
 | Option | Tradeoff |
 |---|---|
 | `[style.--broker-accent]` on `app-root` | CDK overlays (dialog, sheet) render outside `app-root`, so the popup and drawer would lose the accent |
-| **Chosen**: `BrokerAccentService` sets `documentElement.dataset['broker']` via `effect()` + `DOCUMENT` | Covers overlays, asserted with one DOM attribute test, no theme switcher |
+| Fall back to RabbitMQ amber when disconnected | Dishonest — implies a live RabbitMQ connection that does not exist yet; contradicts the ui-presentation spec (decision #167) |
+| **Chosen**: `BrokerAccentService` sets `documentElement.dataset['broker']` via `effect()` + `DOCUMENT`, removing the attribute when the broker is `null` | Covers overlays, asserted with one DOM attribute test, no theme switcher, neutral until a real connection |
 
 Opacity modifiers (`bg-accent/20` → `color-mix`) still resolve through the indirection at runtime.
 
@@ -87,7 +88,7 @@ Follow-up for `sdd-tasks`: add a `MODIFIED Requirements` entry for "Send Panel V
 
 ### D10: "Cambiar broker" reuses the existing connect flow — no Kafka wiring
 
-The connected-state pill action reopens the same dialog in its credentials form and runs the existing `disconnect()` then `connect()` against `/api/connections`. It is a re-target of the same RabbitMQ flow, not broker selection. The `broker-selector-slot` (D3) stays inert and non-focusable; `BrokerAccentService.broker` stays `'rabbitmq'` because nothing sets it to `'kafka'` yet. The seam exists so the Kafka track (#143) only has to set that signal.
+The connected-state pill action reopens the same dialog in its credentials form and runs the existing `disconnect()` then `connect()` against `/api/connections`. It is a re-target of the same RabbitMQ flow, not broker selection. The `broker-selector-slot` (D3) stays inert and non-focusable; `BrokerAccentService.broker` stays `null` (neutral accent) because no connection flow sets it yet — slice 2 wires a successful connect to `setBroker('rabbitmq')` and disconnect back to `setBroker(null)` (decision #167). The seam exists so the Kafka track (#143) only has to set that signal to `'kafka'`.
 
 ## Data Flow
 

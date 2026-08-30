@@ -48,6 +48,7 @@ Strict TDD: every slice runs RED → GREEN → REFACTOR against `npm test -- --w
 - [x] 1.5 GREEN: create `frontend/src/app/core/broker-accent.service.ts` (`BrokerKind` signal → `documentElement.dataset['broker']` via `DOCUMENT` + `effect()`); provide in root; stays `'rabbitmq'`.
 - [x] 1.6 GREEN: `frontend/src/app/app.{ts,html}` — shell/header on surface tokens, dialog/sheet host outlets; full suite green.
 - [x] 1.7 REFACTOR: dedupe token names, no hardcoded radii/colors in touched files; suite green.
+- [x] C1 CORRECTION (decision #167, commit 840e319): disconnected accent is NEUTRAL, not RabbitMQ amber. `broker` signal becomes `BrokerKind | null` (initial `null`); `effect()` removes `data-broker` when `null`. `styles.css` adds `--color-accent-neutral: #9a9a9a`, `--color-accent` falls back to it, explicit `[data-broker='rabbitmq']` + `[data-broker='kafka']` maps. `styles.tokens.spec.ts` + `broker-accent.service.spec.ts` adjusted RED-first. `design.md` D2 + D10 amended. Suite: 11 files / 189 tests green.
 
 ## Phase 2 — Slice 2: Connect popup + status pill + reserved slot (deps: S1)
 

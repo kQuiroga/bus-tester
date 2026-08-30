@@ -17,12 +17,16 @@
   --color-ink: #ededed;
   --color-ink-muted: #9a9a9a;
 
-  /* Static broker accent colors + the indirection that selects one (design D2).
-   * `--broker-accent` is set on `[data-broker='kafka']` below; unset otherwise,
-   * so the fallback chain lands on the RabbitMQ amber. */
+  /* Static broker accent colors + the indirection that selects one (design D2,
+   * decision #167). `--broker-accent` is set per broker on `[data-broker='…']`
+   * below; while nothing is connected it stays unset, so the fallback chain
+   * lands on the neutral (non-broker) accent — a muted grey from the Graphite
+   * ramp. ui-presentation: "with no broker connected, a neutral default accent
+   * MUST apply." */
   --color-broker-rabbitmq: #e0a34a;
   --color-broker-kafka: #3d8ef0;
-  --color-accent: var(--broker-accent, var(--color-broker-rabbitmq));
+  --color-accent-neutral: #9a9a9a;
+  --color-accent: var(--broker-accent, var(--color-accent-neutral));
   --color-accent-foreground: var(--color-ground);
 
   /* ---- Semantic surface tokens mapped onto the Graphite palette ---- */
@@ -104,7 +108,13 @@
 }
 
 /* Broker accent override — `BrokerAccentService` writes `data-broker` onto
-   `<html>` (design D2). RabbitMQ needs no rule: it is the fallback. */
+   `<html>` only once a broker is connected (design D2, decision #167). With no
+   attribute present, `--broker-accent` stays unset and `--color-accent` falls
+   back to `--color-accent-neutral`. */
+[data-broker='rabbitmq'] {
+  --broker-accent: var(--color-broker-rabbitmq);
+}
+
 [data-broker='kafka'] {
   --broker-accent: var(--color-broker-kafka);
 }

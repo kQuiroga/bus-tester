@@ -8,24 +8,32 @@ export type BrokerKind = 'rabbitmq' | 'kafka';
  * indirection (`--broker-accent` → `--color-accent`) resolves for the whole
  * document, including CDK overlays that render outside `app-root` (design D2).
  *
- * Root-provided and mirrors {@link ReplyDraftService}'s signal shape. Nothing
- * sets `'kafka'` yet — the Kafka track (#143) only has to call {@link setBroker}.
+ * Root-provided and mirrors {@link ReplyDraftService}'s signal shape. The broker
+ * starts as `null` — with nothing connected the accent stays neutral, never a
+ * broker color (decision #167). No connection flow sets it yet; slice 2 wires
+ * the real connect flow to {@link setBroker}.
  */
 @Injectable({ providedIn: 'root' })
 export class BrokerAccentService {
   private readonly document = inject(DOCUMENT);
-  private readonly _broker = signal<BrokerKind>('rabbitmq');
+  private readonly _broker = signal<BrokerKind | null>(null);
 
-  /** The broker currently driving the accent color. */
+  /** The broker currently driving the accent color, or `null` when disconnected. */
   readonly broker = this._broker.asReadonly();
 
   constructor() {
     effect(() => {
-      this.document.documentElement.dataset['broker'] = this._broker();
+      const broker = this._broker();
+      const root = this.document.documentElement;
+      if (broker === null) {
+        delete root.dataset['broker'];
+      } else {
+        root.dataset['broker'] = broker;
+      }
     });
   }
 
-  setBroker(broker: BrokerKind): void {
+  setBroker(broker: BrokerKind | null): void {
     this._broker.set(broker);
   }
 }
