@@ -35,8 +35,8 @@ _Spec: bus-connection — "Establish and Maintain Connection" (MODIFIED)._
 - [x] 1.3 GREEN `src/BusTester.Domain/BusConnectionConfig.cs`: add `IReadOnlyList<BrokerServer> Servers` (≥1), `string? Username`, `string? Password`, both-or-neither rule; keep 4-arg ctor + 4 guards; `Host`/`Port` project `Servers[0]`.
 - [x] 1.4 RED Infrastructure #34 regression: connect → subscribe → connect again; assert prior `IConnection` + subscription channels `IsOpen == false`, no orphan, new connection sends/subscribes.
 - [x] 1.5 GREEN `src/BusTester.Infrastructure/RabbitMqAdapter.cs`: private `TeardownAsync(ct)` closes+disposes subscription channels + `_connection` and nulls them; `ConnectAsync` calls it first; `DisconnectAsync`/`DisposeAsync` delegate; read `Servers[0]`, set `factory.UserName`/`Password` only when non-null.
-- [ ] 1.6 RED+GREEN `src/BusTester.Api/Controllers/ConnectionsController.cs`: `POST /api/connections` accepts `{ servers:[{host,port}], username?, password? }` AND today's `{ host, port, username, password }` body unchanged (no new required field).
-- [ ] 1.7 REFACTOR: dedupe teardown paths; `dotnet test`.
+- [x] 1.6 RED+GREEN `src/BusTester.Api/Controllers/ConnectionsController.cs`: `POST /api/connections` accepts `{ servers:[{host,port}], username?, password? }` AND today's `{ host, port, username, password }` body unchanged (no new required field).
+- [x] 1.7 REFACTOR: dedupe teardown paths; `dotnet test`.
 
 ## Phase 2: Message neutralization + wire seam (PR 2)
 _Spec: message-sending — "Broker-Neutral Send Message Superset"; message-consumption — "Broker-Neutral Received Message Superset"._
