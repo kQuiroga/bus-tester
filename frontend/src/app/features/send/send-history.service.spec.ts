@@ -88,6 +88,37 @@ describe('SendHistoryService', () => {
     expect(TestBed.inject(SendHistoryService).templates()).toEqual([]);
   });
 
+  it('recordSend persists an optional headers map, readable back from recentSends', () => {
+    service.recordSend({
+      exchange: 'orders',
+      routingKey: 'orders.created',
+      payload: '{"id":1}',
+      headers: { 'NServiceBus.ContentType': 'application/json' },
+    });
+
+    expect(service.recentSends()[0].headers).toEqual({ 'NServiceBus.ContentType': 'application/json' });
+  });
+
+  it('saveTemplate persists an optional headers map, readable back from templates', () => {
+    service.saveTemplate({
+      name: 'my-template',
+      exchange: 'orders',
+      routingKey: 'a',
+      payload: 'p',
+      headers: { 'X-Custom': 'abc' },
+    });
+
+    expect(service.templates()[0].headers).toEqual({ 'X-Custom': 'abc' });
+  });
+
+  it('recordSend/saveTemplate entries without a headers field stay undefined, no error thrown', () => {
+    expect(() => service.recordSend({ exchange: 'orders', routingKey: 'a', payload: 'p' })).not.toThrow();
+    expect(() => service.saveTemplate({ name: 't', exchange: 'orders', routingKey: 'a', payload: 'p' })).not.toThrow();
+
+    expect(service.recentSends()[0].headers).toBeUndefined();
+    expect(service.templates()[0].headers).toBeUndefined();
+  });
+
   it('recent sends and templates survive a reload (fresh service instance reads from localStorage)', () => {
     service.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
     service.saveTemplate({ name: 'my-template', exchange: 'orders', routingKey: 'a', payload: 'p' });

@@ -66,7 +66,7 @@ describe('SendComponent', () => {
     component.send();
 
     const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages'));
-    expect(req.request.body).toEqual({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    expect(req.request.body).toEqual({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}', headers: {} });
     req.flush(null);
 
     expect(toast.success).toHaveBeenCalledWith('Mensaje enviado.', { class: 'bg-status-ok-bg text-status-ok' });
@@ -171,6 +171,7 @@ describe('SendComponent', () => {
       exchange: 'orders',
       routingKey: 'orders.created',
       payload: '{"id":1}',
+      headers: {},
     });
   });
 
@@ -222,7 +223,7 @@ describe('SendComponent', () => {
     component.saveTemplate();
 
     expect(history.templates()).toEqual([
-      { name: 'my-template', exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' },
+      { name: 'my-template', exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}', headers: {} },
     ]);
   });
 
@@ -251,7 +252,7 @@ describe('SendComponent', () => {
     component.send();
 
     const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages/with-reply'));
-    expect(req.request.body).toEqual({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    expect(req.request.body).toEqual({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}', headers: {} });
     req.flush({ subscriptionId: 'sub-1', correlationId: 'corr-1' });
 
     expect(toast.success).toHaveBeenCalledWith('Mensaje enviado, esperando respuesta.', {
@@ -322,7 +323,7 @@ describe('SendComponent', () => {
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
 
-    expect(root.querySelectorAll('label[data-slot="label"]').length).toBe(4);
+    expect(root.querySelectorAll('label[data-slot="label"]').length).toBe(5);
     expect(root.querySelectorAll('input[data-slot="input"]').length).toBe(3);
     expect(root.querySelectorAll('textarea[data-slot="textarea"]').length).toBe(1);
     expect(root.querySelector('hlm-checkbox[data-slot="checkbox"]')).not.toBeNull();
@@ -376,5 +377,188 @@ describe('SendComponent', () => {
 
     const eliminarButton = buttons.find((button) => button.textContent?.trim().includes('Eliminar'));
     expect(eliminarButton?.querySelector('ng-icon[name="lucideTrash2"]')).not.toBeNull();
+  });
+
+  describe('custom headers', () => {
+    it('hides Comunes and Adicionales sections until "Agregar headers personalizados" is checked', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      fixture.detectChanges();
+      const root: HTMLElement = fixture.nativeElement;
+
+      expect(root.querySelector('[data-testid="headers-comunes-section"]')).toBeNull();
+      expect(root.querySelector('[data-testid="headers-adicionales-section"]')).toBeNull();
+
+      fixture.componentInstance.headersEnabled.set(true);
+      fixture.detectChanges();
+
+      expect(root.querySelector('[data-testid="headers-comunes-section"]')).not.toBeNull();
+      expect(root.querySelector('[data-testid="headers-adicionales-section"]')).not.toBeNull();
+    });
+
+    it('resolvedHeaders() is empty when headersEnabled is false, even if fields hold values', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      component.headerContentType.set('application/json');
+
+      expect(component.resolvedHeaders()).toEqual({});
+    });
+
+    it('resolvedHeaders() maps filled Comunes fields to their NServiceBus header names', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      component.headersEnabled.set(true);
+      component.headerTipoMensaje.set('Orders.OrderCreated, Orders');
+      component.headerContentType.set('application/json');
+      component.headerIntencion.set('Send');
+      component.headerMessageId.set('msg-1');
+      component.headerCorrelationId.set('corr-1');
+
+      expect(component.resolvedHeaders()).toEqual({
+        'NServiceBus.EnclosedMessageTypes': 'Orders.OrderCreated, Orders',
+        'NServiceBus.ContentType': 'application/json',
+        'NServiceBus.MessageIntent': 'Send',
+        'NServiceBus.MessageId': 'msg-1',
+        'NServiceBus.CorrelationId': 'corr-1',
+      });
+    });
+
+    it('resolvedHeaders() omits an empty Comunes field entirely', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      component.headersEnabled.set(true);
+      component.headerContentType.set('application/json');
+
+      const headers = component.resolvedHeaders();
+
+      expect(headers).toEqual({ 'NServiceBus.ContentType': 'application/json' });
+      expect('NServiceBus.MessageId' in headers).toBe(false);
+    });
+
+    it('resolvedHeaders() includes a complete Adicionales row', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      component.headersEnabled.set(true);
+      component.additionalHeaders.set([{ key: 'X-Custom', value: 'abc' }]);
+
+      expect(component.resolvedHeaders()).toEqual({ 'X-Custom': 'abc' });
+    });
+
+    it('resolvedHeaders() silently ignores an Adicionales row missing a key or value', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      component.headersEnabled.set(true);
+      component.additionalHeaders.set([
+        { key: '', value: 'abc' },
+        { key: 'X-Custom', value: '' },
+        { key: 'X-Complete', value: 'ok' },
+      ]);
+
+      expect(component.resolvedHeaders()).toEqual({ 'X-Complete': 'ok' });
+    });
+
+    it('resolvedHeaders() resolves a Comunes/Adicionales key collision with the Comunes value', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      component.headersEnabled.set(true);
+      component.headerContentType.set('application/json');
+      component.additionalHeaders.set([{ key: 'NServiceBus.ContentType', value: 'text/plain' }]);
+
+      expect(component.resolvedHeaders()).toEqual({ 'NServiceBus.ContentType': 'application/json' });
+    });
+
+    it('addHeaderRow()/removeHeaderRow() add and remove Adicionales rows', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      component.addHeaderRow();
+      component.addHeaderRow();
+      expect(component.additionalHeaders().length).toBe(2);
+
+      component.removeHeaderRow(0);
+      expect(component.additionalHeaders().length).toBe(1);
+    });
+
+    it('generateCorrelationId() fills headerCorrelationId with a generated GUID', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      expect(component.headerCorrelationId()).toBe('');
+
+      component.generateCorrelationId();
+
+      expect(component.headerCorrelationId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    });
+
+    it('sends resolvedHeaders() as the "headers" field of the POST /api/messages body', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      component.exchange.set('orders');
+      component.routingKey.set('orders.created');
+      component.payload.set('{"id":1}');
+      component.headersEnabled.set(true);
+      component.headerContentType.set('application/json');
+
+      component.send();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages'));
+      expect(req.request.body).toEqual({
+        exchange: 'orders',
+        routingKey: 'orders.created',
+        payload: '{"id":1}',
+        headers: { 'NServiceBus.ContentType': 'application/json' },
+      });
+      req.flush(null);
+    });
+
+    it('useRecent(entry) restores headers: Comunes fields by exact key, leftovers as Adicionales rows, and enables the section', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      component.useRecent({
+        exchange: 'orders',
+        routingKey: 'orders.updated',
+        payload: '{"id":2}',
+        sentAt: '2026-01-01T00:00:00.000Z',
+        headers: { 'NServiceBus.ContentType': 'application/json', 'X-Custom': 'abc' },
+      });
+
+      expect(component.headersEnabled()).toBe(true);
+      expect(component.headerContentType()).toBe('application/json');
+      expect(component.additionalHeaders()).toEqual([{ key: 'X-Custom', value: 'abc' }]);
+    });
+
+    it('useTemplate(t) restores headers the same way as useRecent', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      component.useTemplate({
+        name: 'my-template',
+        exchange: 'orders',
+        routingKey: 'orders.updated',
+        payload: '{"id":2}',
+        headers: { 'NServiceBus.CorrelationId': 'corr-1' },
+      });
+
+      expect(component.headersEnabled()).toBe(true);
+      expect(component.headerCorrelationId()).toBe('corr-1');
+      expect(component.additionalHeaders()).toEqual([]);
+    });
+
+    it('useRecent(entry) with no headers field leaves the headers section disabled and empty, no error', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      expect(() =>
+        component.useRecent({
+          exchange: 'orders',
+          routingKey: 'orders.updated',
+          payload: '{"id":2}',
+          sentAt: '2026-01-01T00:00:00.000Z',
+        }),
+      ).not.toThrow();
+
+      expect(component.headersEnabled()).toBe(false);
+      expect(component.additionalHeaders()).toEqual([]);
+    });
   });
 });

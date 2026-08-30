@@ -50,6 +50,118 @@
       />
       <label hlmLabel for="expect-reply-checkbox">Esperar respuesta</label>
     </div>
+    <div class="flex items-center gap-2">
+      <hlm-checkbox
+        inputId="headers-enabled-checkbox"
+        name="headersEnabled"
+        [ngModel]="headersEnabled()"
+        (ngModelChange)="headersEnabled.set($event)"
+        [ngModelOptions]="{ standalone: true }"
+      />
+      <label hlmLabel for="headers-enabled-checkbox">Agregar headers personalizados</label>
+    </div>
+
+    @if (headersEnabled()) {
+      <div class="flex flex-col gap-3 rounded-md border border-border p-3" data-testid="headers-comunes-section">
+        <h3 class="text-sm font-medium text-card-foreground">Comunes</h3>
+        <label hlmLabel class="flex flex-col items-start gap-1">
+          Tipo de mensaje (.NET)
+          <input
+            hlmInput
+            name="headerTipoMensaje"
+            [ngModel]="headerTipoMensaje()"
+            (ngModelChange)="headerTipoMensaje.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label hlmLabel class="flex flex-col items-start gap-1">
+          Content-Type
+          <input
+            hlmInput
+            name="headerContentType"
+            [ngModel]="headerContentType()"
+            (ngModelChange)="headerContentType.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label hlmLabel class="flex flex-col items-start gap-1">
+          Intención
+          <select
+            hlmInput
+            name="headerIntencion"
+            [ngModel]="headerIntencion()"
+            (ngModelChange)="headerIntencion.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option value="">(sin especificar)</option>
+            <option value="Send">Send</option>
+            <option value="Publish">Publish</option>
+            <option value="Reply">Reply</option>
+            <option value="Subscribe">Subscribe</option>
+            <option value="Unsubscribe">Unsubscribe</option>
+          </select>
+        </label>
+        <label hlmLabel class="flex flex-col items-start gap-1">
+          Message ID
+          <input
+            hlmInput
+            name="headerMessageId"
+            [ngModel]="headerMessageId()"
+            (ngModelChange)="headerMessageId.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label hlmLabel class="flex flex-col items-start gap-1">
+          Correlation ID
+          <div hlmInputGroup>
+            <input
+              hlmInputGroupInput
+              name="headerCorrelationId"
+              [ngModel]="headerCorrelationId()"
+              (ngModelChange)="headerCorrelationId.set($event)"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <div hlmInputGroupAddon align="inline-end">
+              <button hlmInputGroupButton type="button" (click)="generateCorrelationId()">Generar</button>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div class="flex flex-col gap-2 rounded-md border border-border p-3" data-testid="headers-adicionales-section">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-medium text-card-foreground">Adicionales</h3>
+          <button hlmBtn variant="ghost" size="sm" type="button" (click)="addHeaderRow()">Agregar fila</button>
+        </div>
+        @if (additionalHeaders().length === 0) {
+          <p class="text-xs text-card-foreground/60">No hay headers adicionales.</p>
+        } @else {
+          @for (row of additionalHeaders(); track $index) {
+            <div class="flex items-center gap-2">
+              <input
+                hlmInput
+                name="headerRowKey{{ $index }}"
+                placeholder="Clave"
+                [ngModel]="row.key"
+                (ngModelChange)="updateHeaderRowKey($index, $event)"
+                [ngModelOptions]="{ standalone: true }"
+              />
+              <input
+                hlmInput
+                name="headerRowValue{{ $index }}"
+                placeholder="Valor"
+                [ngModel]="row.value"
+                (ngModelChange)="updateHeaderRowValue($index, $event)"
+                [ngModelOptions]="{ standalone: true }"
+              />
+              <button hlmBtn variant="ghost" size="sm" type="button" class="text-destructive" (click)="removeHeaderRow($index)">
+                <ng-icon name="lucideTrash2" />
+              </button>
+            </div>
+          }
+        }
+      </div>
+    }
     <button hlmBtn type="submit">Enviar</button>
   </form>
 
