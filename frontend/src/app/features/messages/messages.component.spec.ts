@@ -5,6 +5,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { vi } from 'vitest';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
+import { ReplyDraftService } from '../../core/reply-draft.service';
 import { MessagesComponent } from './messages.component';
 
 function msg(seq: number, overrides: Partial<ReceivedMessage> = {}): ReceivedMessage {
@@ -560,5 +561,59 @@ describe('MessagesComponent', () => {
     const resumeButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim().includes('Reanudar'));
     expect(resumeButton?.getAttribute('data-slot')).toBe('button');
     expect(resumeButton?.querySelector('ng-icon[name="lucidePlay"]')).not.toBeNull();
+  });
+
+  /** Renders the feed, subscribed to 'sub-1', with the given messages pushed onto the fake hub. */
+  function renderFeed(messages: ReceivedMessage[]) {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+    fakeBusHubService.messagesSignal.set(messages);
+    fixture.detectChanges();
+    return { fixture, component, root: fixture.nativeElement as HTMLElement };
+  }
+
+  function findResponder(root: HTMLElement): HTMLButtonElement | undefined {
+    return Array.from(root.querySelectorAll('button')).find((b) =>
+      b.getAttribute('aria-label')?.startsWith('Responder a'),
+    );
+  }
+
+  it('renders a Responder control on a feed row whose message has a non-null replyTo (3.1)', () => {
+    const { root } = renderFeed([msg(0, { replyTo: 'amq.gen-reply-xyz', correlationId: 'corr-9' })]);
+
+    expect(findResponder(root)).toBeDefined();
+  });
+
+  it('renders no Responder control on a feed row whose message has no replyTo (3.1)', () => {
+    const { root } = renderFeed([msg(0)]);
+
+    expect(findResponder(root)).toBeUndefined();
+  });
+
+  it('clicking a row Responder calls ReplyDraftService.request with routingKey=replyTo and the message correlationId (3.2)', () => {
+    const replyDraft = TestBed.inject(ReplyDraftService);
+    const requestSpy = vi.spyOn(replyDraft, 'request');
+    const { fixture, root } = renderFeed([
+      msg(0, { replyTo: 'amq.gen-reply-xyz', correlationId: 'corr-9' }),
+    ]);
+
+    findResponder(root)!.click();
+    fixture.detectChanges();
+
+    expect(requestSpy).toHaveBeenCalledWith({ routingKey: 'amq.gen-reply-xyz', correlationId: 'corr-9' });
+  });
+
+  it('clicking a row Responder passes correlationId null when the message has no correlationId (3.2)', () => {
+    const replyDraft = TestBed.inject(ReplyDraftService);
+    const requestSpy = vi.spyOn(replyDraft, 'request');
+    const { fixture, root } = renderFeed([msg(0, { replyTo: 'amq.gen-reply-abc' })]);
+
+    findResponder(root)!.click();
+    fixture.detectChanges();
+
+    expect(requestSpy).toHaveBeenCalledWith({ routingKey: 'amq.gen-reply-abc', correlationId: null });
   });
 });
