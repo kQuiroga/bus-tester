@@ -20,21 +20,33 @@ public sealed class SignalRMessageBroadcaster : IMessageBroadcaster
     public Task BroadcastAsync(SubscriptionHandle handle, BusMessage message, CancellationToken ct = default) =>
         _hubContext.Clients.Group(BusHub.GroupName(handle.Value)).SendAsync(
             "MessageReceived",
-            new MessageReceivedDto(
-                handle.Value,
-                message.Exchange,
-                message.RoutingKey,
-                message.Payload,
-                message.ReplyTo,
-                message.CorrelationId),
+            MessageReceivedDto.FromDomain(handle.Value, message),
             ct);
 }
 
-/// <summary>Shape pushed to the Angular client over SignalR.</summary>
+/// <summary>
+/// Shape pushed to the Angular client over SignalR. This is the byte-compatible wire seam for the
+/// broker-neutral received model: the payload keeps its existing field names
+/// (<c>subscriptionId</c>, <c>exchange</c>, <c>routingKey</c>, <c>payload</c>, <c>replyTo</c>,
+/// <c>correlationId</c>). The neutral <see cref="BusMessage.Target"/> maps to <c>exchange</c> and
+/// the optional <see cref="BusMessage.RoutingKey"/> maps to <c>routingKey</c> (empty string when
+/// absent) so the untouched client keeps working.
+/// </summary>
 public sealed record MessageReceivedDto(
     Guid SubscriptionId,
     string Exchange,
     string RoutingKey,
     string Payload,
     string? ReplyTo = null,
-    string? CorrelationId = null);
+    string? CorrelationId = null)
+{
+    /// <summary>Maps a broker-neutral <see cref="BusMessage"/> onto the byte-compatible SignalR payload.</summary>
+    public static MessageReceivedDto FromDomain(Guid subscriptionId, BusMessage message) =>
+        new(
+            subscriptionId,
+            message.Target,
+            message.RoutingKey ?? string.Empty,
+            message.Payload,
+            message.ReplyTo,
+            message.CorrelationId);
+}

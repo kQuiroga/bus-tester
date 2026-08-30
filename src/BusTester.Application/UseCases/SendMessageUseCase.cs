@@ -20,7 +20,7 @@ public sealed class SendMessageUseCase
     public async Task HandleAsync(SendMessageCommand command, CancellationToken ct = default)
     {
         var message = new BusMessage(
-            command.Exchange,
+            command.Target,
             command.RoutingKey,
             command.Payload,
             command.ReplyTo,
