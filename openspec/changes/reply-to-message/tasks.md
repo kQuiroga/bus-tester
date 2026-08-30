@@ -46,12 +46,12 @@ All phases strict-TDD sliced: RED (failing test) → GREEN (impl). Run the suite
 
 ## Phase 4: SendComponent reply mode + correlationId (PR 3)
 
-- [ ] 4.1 RED `send.component.spec.ts`: draft effect with new seq applies `replyMode=true`, `exchange=''`, `routingKey`, `correlationId = target.correlationId ?? ''`, `payload=''`.
-- [ ] 4.2 RED: in `replyMode`, `exchangeError()` null for exactly `''` but set for `'  '`; outside `replyMode`, `''` still errors.
-- [ ] 4.3 RED: editing `exchange` or `routingKey` clears `replyMode`; `''` exchange error returns.
-- [ ] 4.4 RED: `send()` in `replyMode` posts `exchange: ''` and adds `correlationId` to the `/api/messages` body; blank/null correlationId → key omitted.
-- [ ] 4.5 GREEN `send.component.ts`: add `replyMode` + `correlationId` signals; add `effect` on `replyDraft.draft()` tracking last applied `seq`; reply-mode branch in `exchangeError`; clear `replyMode` on exchange/routingKey edits; extend `send()` payload.
-- [ ] 4.6 GREEN `send.component.html`: read-only "(intercambio predeterminado)" Exchange chip and Correlation ID field shown only when `replyMode()`.
+- [x] 4.1 RED `send.component.spec.ts`: draft effect with new seq applies `replyMode=true`, `exchange=''`, `routingKey`, `correlationId = target.correlationId ?? ''`, `payload=''`.
+- [x] 4.2 RED: in `replyMode`, `exchangeError()` null for exactly `''` but set for `'  '`; outside `replyMode`, `''` still errors.
+- [x] 4.3 RED: editing `exchange` or `routingKey` clears `replyMode`; `''` exchange error returns.
+- [x] 4.4 RED: `send()` in `replyMode` posts `exchange: ''` and adds `correlationId` to the `/api/messages` body; blank/null correlationId → key omitted.
+- [x] 4.5 GREEN `send.component.ts`: add `replyMode` + `correlationId` signals; add `effect` on `replyDraft.draft()` tracking last applied `seq`; reply-mode branch in `exchangeError`; clear `replyMode` on exchange/routingKey edits; extend `send()` payload.
+- [x] 4.6 GREEN `send.component.html`: read-only "(intercambio predeterminado)" Exchange chip and Correlation ID field shown only when `replyMode()`.
 
 ## Phase 5: Dirty-check + overwrite confirmation (PR 3)
 

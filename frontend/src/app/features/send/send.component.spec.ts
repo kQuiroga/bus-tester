@@ -13,6 +13,7 @@ import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { toast } from '@spartan-ng/brain/sonner';
 import { BusHubService } from '../../core/bus-hub.service';
+import { ReplyDraftService } from '../../core/reply-draft.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { SendComponent } from './send.component';
 import { SendHistoryService } from './send-history.service';
@@ -591,4 +592,141 @@ describe('SendComponent', () => {
       expect(component.additionalHeaders()).toEqual([]);
     });
   });
+
+  describe('reply mode (Responder pre-fill)', () => {
+    function applyDraft(
+      fixture: ReturnType<typeof TestBed.createComponent<SendComponent>>,
+      target: { routingKey: string; correlationId: string | null },
+    ): void {
+      TestBed.inject(ReplyDraftService).request(target);
+      fixture.detectChanges();
+    }
+
+    it('applies a new reply draft: replyMode on, empty exchange, routing key + correlation id set, empty payload', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      applyDraft(fixture, { routingKey: 'reply.queue.abc', correlationId: 'corr-42' });
+
+      expect(component.replyMode()).toBe(true);
+      expect(component.exchange()).toBe('');
+      expect(component.routingKey()).toBe('reply.queue.abc');
+      expect(component.correlationId()).toBe('corr-42');
+      expect(component.payload()).toBe('');
+    });
+
+    it('a message without a correlationId pre-fills the routing key and leaves correlation id blank', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      applyDraft(fixture, { routingKey: 'reply.queue.xyz', correlationId: null });
+
+      expect(component.replyMode()).toBe(true);
+      expect(component.routingKey()).toBe('reply.queue.xyz');
+      expect(component.correlationId()).toBe('');
+    });
+
+    it('in reply mode an exactly-empty exchange is not an error, but whitespace still is', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      applyDraft(fixture, { routingKey: 'reply.q', correlationId: null });
+
+      expect(component.exchange()).toBe('');
+      expect(component.exchangeError()).toBeNull();
+
+      component.exchange.set('   ');
+      expect(component.exchangeError()).toBe('El exchange es obligatorio.');
+    });
+
+    it('outside reply mode an exactly-empty exchange is still an error', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      expect(component.replyMode()).toBe(false);
+      component.exchange.set('');
+      expect(component.exchangeError()).toBe('El exchange es obligatorio.');
+    });
+
+    it('manually editing the exchange leaves reply mode', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      applyDraft(fixture, { routingKey: 'reply.q', correlationId: null });
+      expect(component.replyMode()).toBe(true);
+
+      component.onExchangeInput('orders');
+
+      expect(component.replyMode()).toBe(false);
+      expect(component.exchange()).toBe('orders');
+    });
+
+    it('manually editing the routing key leaves reply mode and restores the empty-exchange error', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      applyDraft(fixture, { routingKey: 'reply.q', correlationId: null });
+      expect(component.replyMode()).toBe(true);
+
+      component.onRoutingKeyInput('orders.reply');
+
+      expect(component.replyMode()).toBe(false);
+      expect(component.routingKey()).toBe('orders.reply');
+      expect(component.exchangeError()).toBe('El exchange es obligatorio.');
+    });
+
+    it('in reply mode, send() posts exchange:"" plus the correlationId in the body', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      applyDraft(fixture, { routingKey: 'reply.q', correlationId: 'corr-99' });
+      component.payload.set('{"ok":true}');
+
+      component.send();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages'));
+      expect(req.request.body).toEqual({
+        exchange: '',
+        routingKey: 'reply.q',
+        payload: '{"ok":true}',
+        headers: {},
+        correlationId: 'corr-99',
+      });
+      req.flush(null);
+      expect(toast.success).toHaveBeenCalledWith('Mensaje enviado.', { class: 'bg-status-ok-bg text-status-ok' });
+    });
+
+    it('in reply mode with no correlationId, the correlationId key is omitted from the body', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      applyDraft(fixture, { routingKey: 'reply.q', correlationId: null });
+      component.payload.set('{"ok":true}');
+
+      component.send();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages'));
+      expect(req.request.body).toEqual({ exchange: '', routingKey: 'reply.q', payload: '{"ok":true}', headers: {} });
+      expect('correlationId' in (req.request.body as Record<string, unknown>)).toBe(false);
+      req.flush(null);
+    });
+
+    it('renders a read-only default-exchange chip and a Correlation ID field only in reply mode', async () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      fixture.detectChanges();
+      const root: HTMLElement = fixture.nativeElement;
+
+      expect(root.querySelector('[data-testid="reply-exchange-chip"]')).toBeNull();
+      expect(root.querySelector('input[name="correlationId"]')).toBeNull();
+      expect(root.querySelector('input[name="exchange"]')).not.toBeNull();
+
+      TestBed.inject(ReplyDraftService).request({ routingKey: 'reply.q', correlationId: 'corr-1' });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const chip = root.querySelector('[data-testid="reply-exchange-chip"]');
+      expect(chip?.textContent).toContain('(intercambio predeterminado)');
+      expect(root.querySelector('input[name="exchange"]')).toBeNull();
+      const corrInput = root.querySelector('input[name="correlationId"]') as HTMLInputElement | null;
+      expect(corrInput).not.toBeNull();
+      expect(corrInput?.value).toBe('corr-1');
+    });
+  });
+
 });
