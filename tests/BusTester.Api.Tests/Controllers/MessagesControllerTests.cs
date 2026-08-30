@@ -127,14 +127,32 @@ public class MessagesControllerTests
     }
 
     [Fact]
-    public async Task Send_WithEmptyExchange_Returns400_AsProblemJson_AndNeverReachesBusPort()
+    public async Task Send_WithEmptyExchange_Returns200_AndPublishesToTheDefaultExchange()
     {
         await using var factory = new BusTesterApiFactory();
         using var client = factory.CreateClient();
 
         var response = await client.PostAsJsonAsync(
             "/api/messages",
-            new { exchange = "", routingKey = "orders.created", payload = "{\"id\":1}" });
+            new { exchange = "", routingKey = "orders.reply", payload = "{\"id\":1}" });
+
+        // An empty exchange is the AMQP default exchange (routes by queue name) and is a valid
+        // publish target — a reply published via the Responder action relies on this.
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var sent = Assert.Single(factory.BusPort.SentMessages);
+        Assert.Equal("", sent.Exchange);
+        Assert.Equal("orders.reply", sent.RoutingKey);
+    }
+
+    [Fact]
+    public async Task Send_WithWhitespaceOnlyExchange_Returns400_AsProblemJson_AndNeverReachesBusPort()
+    {
+        await using var factory = new BusTesterApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/messages",
+            new { exchange = "   ", routingKey = "orders.created", payload = "{\"id\":1}" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);

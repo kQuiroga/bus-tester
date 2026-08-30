@@ -79,7 +79,7 @@ Frontend-only, additive UI action with no persisted-data or API shape changes. R
 - [ ] Publishing the reply is provably observable (e.g., via RabbitMQ management UI or an integration-style test) as reaching the original `replyTo` queue with the matching `CorrelationId`.
 - [ ] The Responder action works regardless of current subscription state (no gate on being actively subscribed).
 - [ ] Backend changes are limited to the two approved default-exchange fixes (`BusMessage` guard, `RabbitMqAdapter` passive-declare skip); `Application` and `Api` layers are untouched.
-- [ ] Ordinary sends still reject a blank/whitespace Exchange end to end (frontend + Domain); only exactly `""` from a reply-mode send is allowed through.
+- [x] `SendComponent` still rejects a blank/whitespace Exchange for ordinary (non-reply) sends; only a reply-mode send pre-fills the exactly-empty `""` value. At the Domain/API layer, an exactly-empty `""` Exchange is accepted as the AMQP default exchange (a valid publish target — a reply relies on it); whitespace-only is still rejected end to end. `POST /api/messages` therefore returns 200 for `exchange: ""` and 400 for `exchange: "   "` (see `BusTester.Api.Tests`, updated 2026-08-30).
 
 ## Confirmed product decisions (from proposal question round)
 
