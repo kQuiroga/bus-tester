@@ -30,11 +30,11 @@ Parallelization: PRs are sequential (all touch `RabbitMqAdapter.cs`). Tasks insi
 ## Phase 1: Connection config + lifecycle (PR 1)
 _Spec: bus-connection — "Establish and Maintain Connection" (MODIFIED)._
 
-- [ ] 1.1 RED `BusConnectionConfigTests`: empty `Servers`, blank host-in-list, out-of-range port rejected; credential-less accepted; username-without-password rejected; existing 4-arg ctor tests stay green.
-- [ ] 1.2 GREEN `src/BusTester.Domain/BrokerServer.cs`: `record BrokerServer(string Host, int Port)` + port 1..65535 guard.
-- [ ] 1.3 GREEN `src/BusTester.Domain/BusConnectionConfig.cs`: add `IReadOnlyList<BrokerServer> Servers` (≥1), `string? Username`, `string? Password`, both-or-neither rule; keep 4-arg ctor + 4 guards; `Host`/`Port` project `Servers[0]`.
-- [ ] 1.4 RED Infrastructure #34 regression: connect → subscribe → connect again; assert prior `IConnection` + subscription channels `IsOpen == false`, no orphan, new connection sends/subscribes.
-- [ ] 1.5 GREEN `src/BusTester.Infrastructure/RabbitMqAdapter.cs`: private `TeardownAsync(ct)` closes+disposes subscription channels + `_connection` and nulls them; `ConnectAsync` calls it first; `DisconnectAsync`/`DisposeAsync` delegate; read `Servers[0]`, set `factory.UserName`/`Password` only when non-null.
+- [x] 1.1 RED `BusConnectionConfigTests`: empty `Servers`, blank host-in-list, out-of-range port rejected; credential-less accepted; username-without-password rejected; existing 4-arg ctor tests stay green.
+- [x] 1.2 GREEN `src/BusTester.Domain/BrokerServer.cs`: `record BrokerServer(string Host, int Port)` + port 1..65535 guard.
+- [x] 1.3 GREEN `src/BusTester.Domain/BusConnectionConfig.cs`: add `IReadOnlyList<BrokerServer> Servers` (≥1), `string? Username`, `string? Password`, both-or-neither rule; keep 4-arg ctor + 4 guards; `Host`/`Port` project `Servers[0]`.
+- [x] 1.4 RED Infrastructure #34 regression: connect → subscribe → connect again; assert prior `IConnection` + subscription channels `IsOpen == false`, no orphan, new connection sends/subscribes.
+- [x] 1.5 GREEN `src/BusTester.Infrastructure/RabbitMqAdapter.cs`: private `TeardownAsync(ct)` closes+disposes subscription channels + `_connection` and nulls them; `ConnectAsync` calls it first; `DisconnectAsync`/`DisposeAsync` delegate; read `Servers[0]`, set `factory.UserName`/`Password` only when non-null.
 - [ ] 1.6 RED+GREEN `src/BusTester.Api/Controllers/ConnectionsController.cs`: `POST /api/connections` accepts `{ servers:[{host,port}], username?, password? }` AND today's `{ host, port, username, password }` body unchanged (no new required field).
 - [ ] 1.7 REFACTOR: dedupe teardown paths; `dotnet test`.
 
