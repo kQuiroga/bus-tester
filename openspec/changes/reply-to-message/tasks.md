@@ -40,9 +40,9 @@ All phases strict-TDD sliced: RED (failing test) → GREEN (impl). Run the suite
 
 ## Phase 3: MessagesComponent Responder action (PR 2)
 
-- [ ] 3.1 RED `messages.component.spec.ts`: row with non-null `replyTo` renders Responder control; null `replyTo` → no control (hidden).
-- [ ] 3.2 RED `messages.component.spec.ts`: clicking Responder calls `ReplyDraftService.request({ routingKey: msg.replyTo, correlationId: msg.correlationId })`.
-- [ ] 3.3 GREEN inject `ReplyDraftService`, add `respond(msg)` in `messages.component.ts`; add Responder button in `messages.component.html` row action group under `@if (msg.replyTo)`, reusing existing action + responsive classes (no clipping at ~375px).
+- [x] 3.1 RED `messages.component.spec.ts`: row with non-null `replyTo` renders Responder control; null `replyTo` → no control (hidden).
+- [x] 3.2 RED `messages.component.spec.ts`: clicking Responder calls `ReplyDraftService.request({ routingKey: msg.replyTo, correlationId: msg.correlationId })`.
+- [x] 3.3 GREEN inject `ReplyDraftService`, add `respond(msg)` in `messages.component.ts`; add Responder button in `messages.component.html` row action group under `@if (msg.replyTo)`, reusing existing action + responsive classes (no clipping at ~375px).
 
 ## Phase 4: SendComponent reply mode + correlationId (PR 3)
 

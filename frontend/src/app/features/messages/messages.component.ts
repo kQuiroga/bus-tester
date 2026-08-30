@@ -9,6 +9,7 @@ import { HlmBadge } from '@spartan-ng/helm/badge';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
+import { ReplyDraftService } from '../../core/reply-draft.service';
 import { JsonPrettyPipe } from './json-pretty.pipe';
 
 /** One row of the reply panel: a pending send-with-reply subscription plus every message
@@ -54,6 +55,7 @@ export class MessagesComponent {
   private readonly api = inject(ApiClientService);
   private readonly busHub = inject(BusHubService);
   private readonly replySubscriptions = inject(ReplySubscriptionService);
+  private readonly replyDraft = inject(ReplyDraftService);
 
   readonly queueName = signal('');
   readonly subscriptions = signal<Subscription[]>([]);
@@ -134,6 +136,19 @@ export class MessagesComponent {
 
   togglePause(): void {
     this.paused.update((p) => !p);
+  }
+
+  /** Hands the message's reply target to the Send panel via {@link ReplyDraftService}
+   *  (request-reply spec: "Responder Action Pre-Fills the Reply Target Into the Send Panel").
+   *  Only reachable from a row whose `replyTo` is non-null (template `@if`). */
+  respond(message: ReceivedMessage): void {
+    if (!message.replyTo) {
+      return;
+    }
+    this.replyDraft.request({
+      routingKey: message.replyTo,
+      correlationId: message.correlationId ?? null,
+    });
   }
 
   isNewRow(message: ReceivedMessage): boolean {
