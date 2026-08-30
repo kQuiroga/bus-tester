@@ -149,10 +149,13 @@ export class MessagesComponent {
     }
 
     this.errorMessage.set(null);
-    // Fire-and-forget: idempotent on the real service, harmless no-op against the fake used in
-    // tests. Establishes the SignalR connection lazily on first subscribe rather than at app
-    // boot, so component-creation tests never attempt a real network call.
-    this.busHub.start().catch(() => {});
+    // Idempotent on the real service, so kicking it off here (in parallel with the POST below)
+    // is safe even if a join elsewhere already triggered it. Establishes the SignalR connection
+    // lazily on first subscribe rather than at app boot, so component-creation tests never
+    // attempt a real network call. The join is sequenced behind this same promise (not fired
+    // immediately) so it never races an in-flight connection start (regression: joining before
+    // start() resolved intermittently failed with "No se pudo unir al grupo de suscripción").
+    const hubReady = this.busHub.start();
     const queueName = this.queueName();
     this.api.post<SubscriptionResponse>('/api/subscriptions', { queueName }).subscribe({
       next: (response) => {
@@ -160,9 +163,11 @@ export class MessagesComponent {
         // Unlike start(), a rejected join here leaves this chip rendered as subscribed while
         // silently receiving nothing — surface it instead of swallowing (message-consumption
         // spec: "Subscribe and Unsubscribe Failures Are Handled Without Unhandled Rejections").
-        this.busHub.joinSubscription(response.id).catch((err: unknown) => {
-          this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'));
-        });
+        hubReady
+          .then(() => this.busHub.joinSubscription(response.id))
+          .catch((err: unknown) => {
+            this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'));
+          });
       },
       error: (err: unknown) => {
         this.errorMessage.set(ApiClientService.errorDetail(err, 'No se pudo suscribir a la cola.'));

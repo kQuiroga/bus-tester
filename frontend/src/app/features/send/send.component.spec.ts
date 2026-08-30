@@ -261,7 +261,7 @@ describe('SendComponent', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('a successful with-reply send registers the pending reply and joins the SignalR group', () => {
+  it('a successful with-reply send registers the pending reply and joins the SignalR group', async () => {
     const fixture = TestBed.createComponent(SendComponent);
     const component = fixture.componentInstance;
     const replySubscriptions = TestBed.inject(ReplySubscriptionService);
@@ -278,6 +278,36 @@ describe('SendComponent', () => {
       .flush({ subscriptionId: 'sub-1', correlationId: 'corr-1' });
 
     expect(addSpy).toHaveBeenCalledWith({ subscriptionId: 'sub-1', correlationId: 'corr-1' });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fakeBusHubService.joinSubscription).toHaveBeenCalledWith('sub-1');
+  });
+
+  it('a successful with-reply send waits for busHub.start() to resolve before joining the SignalR group, ' +
+    'instead of racing it (regression: start()/joinSubscription race)', async () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    const component = fixture.componentInstance;
+    let resolveStart!: () => void;
+    fakeBusHubService.start.mockReturnValue(new Promise<void>((resolve) => { resolveStart = resolve; }));
+    component.exchange.set('orders');
+    component.routingKey.set('orders.created');
+    component.payload.set('{"id":1}');
+    component.expectReply.set(true);
+
+    component.send();
+
+    httpMock
+      .expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages/with-reply'))
+      .flush({ subscriptionId: 'sub-1', correlationId: 'corr-1' });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fakeBusHubService.joinSubscription).not.toHaveBeenCalled();
+
+    resolveStart();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(fakeBusHubService.joinSubscription).toHaveBeenCalledWith('sub-1');
   });
 
