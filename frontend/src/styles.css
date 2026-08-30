@@ -1,49 +1,88 @@
 @import "tailwindcss";
 
+/* Kept so the 14 `dark:` utilities across the vendored `libs/ui/*` helm files
+   keep resolving against an explicit class instead of `prefers-color-scheme`
+   (design D1). `index.html` always carries `class="dark"`; there is no toggle. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-background: oklch(98% 0.003 247.86);
-  --color-foreground: oklch(21% 0.034 264.665);
+  /* ---------------------------------------------------------------------------
+   * Graphite palette — the single fixed dark theme (ui-presentation:
+   * "Dark Mode Is the Default Theme" / "Graphite Palette, Typography, and Radii")
+   * ------------------------------------------------------------------------- */
+  --color-ground: #161616;
+  --color-panel: #1f1f1f;
+  --color-panel-2: #282828;
+  --color-line: #363636;
+  --color-ink: #ededed;
+  --color-ink-muted: #9a9a9a;
 
-  --color-card: oklch(100% 0 0);
-  --color-card-foreground: oklch(21% 0.034 264.665);
+  /* Static broker accent colors + the indirection that selects one (design D2).
+   * `--broker-accent` is set on `[data-broker='kafka']` below; unset otherwise,
+   * so the fallback chain lands on the RabbitMQ amber. */
+  --color-broker-rabbitmq: #e0a34a;
+  --color-broker-kafka: #3d8ef0;
+  --color-accent: var(--broker-accent, var(--color-broker-rabbitmq));
+  --color-accent-foreground: var(--color-ground);
 
-  --color-border: oklch(90% 0.013 255.5);
+  /* ---- Semantic surface tokens mapped onto the Graphite palette ---- */
+  --color-background: var(--color-ground);
+  --color-foreground: var(--color-ink);
 
-  --color-primary: oklch(54.6% 0.215 262.9);
-  --color-primary-foreground: oklch(98% 0.003 247.86);
+  --color-card: var(--color-panel);
+  --color-card-foreground: var(--color-ink);
 
-  --color-secondary: oklch(94% 0.01 264.665);
-  --color-secondary-foreground: oklch(21% 0.034 264.665);
+  --color-popover: var(--color-panel);
+  --color-popover-foreground: var(--color-ink);
 
-  --color-muted: oklch(94% 0.01 264.665);
-  --color-muted-foreground: oklch(46% 0.02 264.665);
+  --color-muted: var(--color-panel-2);
+  --color-muted-foreground: var(--color-ink-muted);
 
-  --color-accent: oklch(94% 0.02 262.9);
-  --color-accent-foreground: oklch(21% 0.034 264.665);
+  --color-secondary: var(--color-panel-2);
+  --color-secondary-foreground: var(--color-ink);
 
-  --color-destructive: oklch(54.6% 0.215 25.7);
-  --color-destructive-foreground: oklch(98% 0.003 247.86);
+  --color-border: var(--color-line);
+  --color-input: var(--color-line);
+  --color-ring: var(--color-broker-rabbitmq);
 
-  --color-input: oklch(90% 0.013 255.5); /* = border */
+  --color-primary: var(--color-ink);
+  --color-primary-foreground: var(--color-ground);
 
-  --color-popover: oklch(100% 0 0); /* = card */
-  --color-popover-foreground: oklch(21% 0.034 264.665); /* = card-foreground */
+  --color-destructive: #e5484d;
+  --color-destructive-foreground: var(--color-ink);
 
-  --color-ring: oklch(62.3% 0.188 259.8);
+  /* ---- Status colors (dark-only) ---- */
+  --color-status-ok: #4cc38a;
+  --color-status-ok-bg: #10261c;
+  --color-status-error: #e5747a;
+  --color-status-error-bg: #2a1618;
+  --color-status-warn: #e0a34a;
+  --color-status-warn-bg: #2a2113;
 
-  --color-status-ok: oklch(44.8% 0.119 151.3);
-  --color-status-ok-bg: oklch(97.3% 0.038 156.5);
-  --color-status-error: oklch(39.6% 0.141 25.7);
-  --color-status-error-bg: oklch(97.1% 0.013 17.4);
-  --color-status-warn: oklch(47% 0.13 70);
-  --color-status-warn-bg: oklch(97% 0.06 85);
+  /* ---- Per-queue hues, consumed by slice 4's pill + dot ---- */
+  --color-queue-1: #e0a34a;
+  --color-queue-2: #3d8ef0;
+  --color-queue-3: #4cc38a;
+  --color-queue-4: #b57bff;
+  --color-queue-5: #e5747a;
+  --color-queue-6: #4bb8c4;
 
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  /* ---------------------------------------------------------------------------
+   * Radii — every corner traces back to one 12px base token
+   * ------------------------------------------------------------------------- */
+  --radius-base: 0.75rem; /* 12px */
+  --radius-sm: var(--radius-base);
+  --radius-md: var(--radius-base);
+  --radius-lg: var(--radius-base);
+  --radius-xl: var(--radius-base);
+
+  /* ---------------------------------------------------------------------------
+   * Typography — distinctive display / body / mono, each with a system fallback
+   * so an offline dev build degrades instead of blocking (design D8)
+   * ------------------------------------------------------------------------- */
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-sans: 'Public Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   --duration-fast: 120ms;
   --duration-base: 200ms;
@@ -64,48 +103,33 @@
   }
 }
 
-.dark {
-  --color-background: oklch(20.8% 0.042 265.755);
-  --color-foreground: oklch(96% 0.005 264.53);
-
-  --color-card: oklch(25.5% 0.037 264.665);
-  --color-card-foreground: oklch(96% 0.005 264.53);
-
-  --color-border: oklch(35% 0.03 264.665);
-
-  --color-primary: oklch(62.3% 0.188 259.8);
-  --color-primary-foreground: oklch(98% 0.003 247.86);
-
-  --color-secondary: oklch(30% 0.03 264.665);
-  --color-secondary-foreground: oklch(96% 0.005 264.53);
-
-  --color-muted: oklch(30% 0.03 264.665);
-  --color-muted-foreground: oklch(65% 0.02 264.665);
-
-  --color-accent: oklch(30% 0.04 259.8);
-  --color-accent-foreground: oklch(96% 0.005 264.53);
-
-  --color-destructive: oklch(62% 0.19 24.5);
-  --color-destructive-foreground: oklch(98% 0.003 247.86);
-
-  --color-input: oklch(35% 0.03 264.665); /* = border (dark) */
-
-  --color-popover: oklch(25.5% 0.037 264.665); /* = card (dark) */
-  --color-popover-foreground: oklch(96% 0.005 264.53); /* = card-foreground (dark) */
-
-  --color-ring: oklch(70.7% 0.165 259.5);
-
-  --color-status-ok: oklch(84.1% 0.166 153.3);
-  --color-status-ok-bg: oklch(28% 0.05 153.3);
-  --color-status-error: oklch(80.8% 0.145 24.5);
-  --color-status-error-bg: oklch(28% 0.075 24.5);
-  --color-status-warn: oklch(85% 0.15 85);
-  --color-status-warn-bg: oklch(30% 0.06 70);
+/* Broker accent override — `BrokerAccentService` writes `data-broker` onto
+   `<html>` (design D2). RabbitMQ needs no rule: it is the fallback. */
+[data-broker='kafka'] {
+  --broker-accent: var(--color-broker-kafka);
 }
 
 @layer base {
+  html {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
   }
 
   @media (prefers-reduced-motion: reduce) {
