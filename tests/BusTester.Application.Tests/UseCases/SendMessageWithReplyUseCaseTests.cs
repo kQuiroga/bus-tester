@@ -52,6 +52,35 @@ public class SendMessageWithReplyUseCaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WithHeaders_PassesThemThroughUnchangedIntoBusMessage()
+    {
+        var fakeBusPort = new FakeBusPort();
+        var useCase = new SendMessageWithReplyUseCase(fakeBusPort, new SubscriptionCoordinator());
+        var headers = new Dictionary<string, string> { ["NServiceBus.ContentType"] = "application/json", ["X-Custom"] = "abc" };
+        var command = new SendMessageWithReplyCommand("orders", "orders.created", "{\"id\":1}", Headers: headers);
+
+        await useCase.HandleAsync(command);
+
+        var published = Assert.Single(fakeBusPort.SentMessages);
+        Assert.Equal(2, published.Headers.Count);
+        Assert.Equal("application/json", published.Headers["NServiceBus.ContentType"]);
+        Assert.Equal("abc", published.Headers["X-Custom"]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithoutHeaders_PublishesBusMessageWithEmptyHeaders()
+    {
+        var fakeBusPort = new FakeBusPort();
+        var useCase = new SendMessageWithReplyUseCase(fakeBusPort, new SubscriptionCoordinator());
+        var command = new SendMessageWithReplyCommand("orders", "orders.created", "{\"id\":1}");
+
+        await useCase.HandleAsync(command);
+
+        var published = Assert.Single(fakeBusPort.SentMessages);
+        Assert.Empty(published.Headers);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenSendFails_UnsubscribesTheJustCreatedHandle_AndRethrows()
     {
         var fakeBusPort = new FakeBusPort { SendException = new BusPublishException("Exchange 'missing' not found.") };

@@ -27,7 +27,8 @@ public sealed class MessagesController : ControllerBase
             request.RoutingKey,
             request.Payload,
             request.ReplyTo,
-            request.CorrelationId);
+            request.CorrelationId,
+            request.Headers);
         await _sendMessageUseCase.HandleAsync(command, ct);
         return Ok();
     }
@@ -41,7 +42,8 @@ public sealed class MessagesController : ControllerBase
             request.Exchange,
             request.RoutingKey,
             request.Payload,
-            request.CorrelationId);
+            request.CorrelationId,
+            request.Headers);
         var result = await _sendMessageWithReplyUseCase.HandleAsync(command, ct);
         return Ok(new SendWithReplyResponse(result.SubscriptionId.Value, result.CorrelationId));
     }
@@ -52,12 +54,14 @@ public sealed record SendMessageRequest(
     string RoutingKey,
     string Payload,
     string? ReplyTo = null,
-    string? CorrelationId = null);
+    string? CorrelationId = null,
+    Dictionary<string, string>? Headers = null);
 
 public sealed record SendMessageWithReplyRequest(
     string Exchange,
     string RoutingKey,
     string Payload,
-    string? CorrelationId = null);
+    string? CorrelationId = null,
+    Dictionary<string, string>? Headers = null);
 
 public sealed record SendWithReplyResponse(Guid SubscriptionId, string CorrelationId);

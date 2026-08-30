@@ -2,18 +2,23 @@ namespace BusTester.Domain;
 
 public sealed class BusMessage
 {
+    private static readonly IReadOnlyDictionary<string, string> EmptyHeaders =
+        new Dictionary<string, string>();
+
     public string Exchange { get; }
     public string RoutingKey { get; }
     public string Payload { get; }
     public string? ReplyTo { get; }
     public string? CorrelationId { get; }
+    public IReadOnlyDictionary<string, string> Headers { get; }
 
     public BusMessage(
         string exchange,
         string routingKey,
         string payload,
         string? replyTo = null,
-        string? correlationId = null)
+        string? correlationId = null,
+        IReadOnlyDictionary<string, string>? headers = null)
     {
         if (string.IsNullOrWhiteSpace(exchange))
         {
@@ -35,5 +40,6 @@ public sealed class BusMessage
         Payload = payload;
         ReplyTo = replyTo;
         CorrelationId = correlationId;
+        Headers = headers ?? EmptyHeaders;
     }
 }

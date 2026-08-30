@@ -5,4 +5,5 @@ public sealed record SendMessageCommand(
     string RoutingKey,
     string Payload,
     string? ReplyTo = null,
-    string? CorrelationId = null);
+    string? CorrelationId = null,
+    IReadOnlyDictionary<string, string>? Headers = null);
