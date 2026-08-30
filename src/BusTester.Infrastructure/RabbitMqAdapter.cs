@@ -21,6 +21,12 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
     private readonly SemaphoreSlim _subscriptionsLock = new(1, 1);
     private IConnection? _connection;
 
+    /// <summary>
+    /// RabbitMQ statically supports the full request-reply flow (temporary exclusive/auto-delete
+    /// reply queues). This is a constant client fact and needs no connection.
+    /// </summary>
+    public BrokerCapabilities Capabilities { get; } = new("RabbitMQ", SupportsRequestReply: true);
+
     /// <summary>Test hook: the adapter's current live connection, or null when disconnected.</summary>
     internal IConnection? CurrentConnection => _connection;
 
