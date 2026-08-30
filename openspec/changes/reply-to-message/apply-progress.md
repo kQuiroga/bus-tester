@@ -98,8 +98,33 @@ Mode: Strict TDD (`npx ng test --watch=false --include='<glob>'` → `@angular/b
 
 None. Matches D4 (service shape) and D6 (Responder hidden when `replyTo` null). `respond()` normalizes `msg.correlationId` (`string | undefined` on `ReceivedMessage`) to `string | null` for the `ReplyTarget` contract — task 3.2 wording `msg.correlationId` preserved for the non-null case.
 
-### Remaining (not this batch)
+## Batch 3 — PR3 / Phases 4+5: SendComponent reply mode + correlationId + dirty-check + overwrite confirm
 
-- Phase 4 (PR3): SendComponent reply mode + correlationId — tasks 4.1–4.6
-- Phase 5 (PR3): dirty-check + `window.confirm` overwrite guard — tasks 5.1–5.5
-- Phase 6: verification + manual smoke
+Branch `feat/reply-to-message-send-panel` (stacked on `feat/reply-to-message-bridge`, chain PR 3 of 3, last impl batch). Strict TDD, vitest 4. Full detail in Engram `sdd/reply-to-message/apply-progress`.
+
+Tasks 4.1–5.5 all `[x]`. Two work-unit commits:
+- `611f2a4` feat(reply): add Send panel reply mode with correlation id — `replyMode`/`correlationId` signals, constructor `effect` on `replyDraft.draft()` tracking `lastAppliedDraftSeq` (applies via `untracked`), reply-mode `exchangeError` branch (null for exactly `''`, still errors on whitespace), `onExchangeInput`/`onRoutingKeyInput` exit reply mode, `send()` adds `correlationId` key only in reply mode + non-blank, template read-only `reply-exchange-chip` span + `name="correlationId"` field.
+- `fb4105a` feat(reply): confirm before overwriting unsaved Send panel edits — `FormSnapshot`/`EMPTY_SNAPSHOT`, `lastAppliedSnapshot` signal, `isDirty` computed (serialized `{exchange,routingKey,payload,headers}` compare), `captureSnapshot()` in `useRecent`/`useTemplate`/`applyReplyDraft`/`send()`-success, `confirmOverwrite()` = `window.confirm` seam, `applyReplyDraft` bails on `isDirty() && !confirmOverwrite()` (still consumes `seq`).
+
+RED for both slices was a compile failure (missing members); TDD RED→GREEN→TRIANGULATE followed per task.
+
+### Work Unit Evidence (Batch 3)
+
+| Evidence | Value |
+|---|---|
+| Focused test | `npx ng test --watch=false --include='**/send.component.spec.ts'` → 49 passed (was 33, +16: 9 reply-mode, 7 dirty-check/confirm). |
+| Full suite | `npx ng test --watch=false` → 10 files, 203 passed (baseline 187, +16). |
+| Runtime harness | `N/A` — no new broker/HTTP path (`send()` still posts `/api/messages`); live reply round-trip is Phase 6.2 manual smoke. |
+| Rollback boundary | Revert `611f2a4` + `fb4105a`. `reply-draft.service.ts` (PR2), backend, and `messages.component` untouched; `api-config.ts` never staged. |
+
+### Deviations: None. Matches D1/D2/D3/D5.
+
+### Spec scenarios covered (Send-panel side of 6.1)
+
+- request-reply "Responder Action Pre-Fills": *Activating Responder pre-fills the reply target*; *Message has replyTo but no correlationId*.
+- request-reply "Overwriting Unsaved Send-Panel Edits Requires Confirmation": all 4 scenarios.
+- ui-presentation "Send Panel Validates Exchange and Payload" (MODIFIED): *Reply-mode empty exchange accepted + read-only*; *Editing exchange or routing key leaves reply mode*; *blank exchange rejected outside reply mode* (regression green).
+
+### Remaining
+
+- Phase 6: `sdd-verify` (full scenario cross-check, `dotnet test` + `npm test`), then Phase 6.2 manual smoke.

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideDownload, lucideTrash2 } from '@ng-icons/lucide';
@@ -11,10 +11,21 @@ import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmTextarea } from '@spartan-ng/helm/textarea';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService } from '../../core/bus-hub.service';
+import { ReplyDraftService, ReplyTarget } from '../../core/reply-draft.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { RecentSend, SendHistoryService, SendTemplate } from './send-history.service';
 
 type SendField = 'exchange' | 'routingKey' | 'payload';
+
+/** Snapshot of the user-editable form state, used for the dirty-check (design D2). */
+interface FormSnapshot {
+  exchange: string;
+  routingKey: string;
+  payload: string;
+  headers: string;
+}
+
+const EMPTY_SNAPSHOT: FormSnapshot = { exchange: '', routingKey: '', payload: '', headers: '{}' };
 
 /** A free-form Adicionales header row (send-custom-headers spec: "Adicionales Free-Form Rows"). */
 interface HeaderRow {
@@ -77,6 +88,7 @@ export class SendComponent {
   private readonly api = inject(ApiClientService);
   private readonly busHub = inject(BusHubService);
   private readonly replySubscriptions = inject(ReplySubscriptionService);
+  private readonly replyDraft = inject(ReplyDraftService);
   readonly history = inject(SendHistoryService);
 
   readonly exchange = signal('');
@@ -86,6 +98,23 @@ export class SendComponent {
   readonly templateName = signal('');
   /** "Expect a reply" toggle (request-reply spec: "Request a Reply via Auto-Created Temp Queue"). */
   readonly expectReply = signal(false);
+
+  /**
+   * Reply mode is entered by a Responder pre-fill (design D1). While active, Exchange renders as a
+   * read-only "(intercambio predeterminado)" chip, an exactly-empty Exchange is accepted (AMQP
+   * default exchange), and `send()` includes the reply `correlationId`. Manually editing Exchange or
+   * Routing Key exits reply mode and the ordinary required-Exchange rule resumes.
+   */
+  readonly replyMode = signal(false);
+  /** Reply target correlation id, shown only in reply mode; blank when the source message had none. */
+  readonly correlationId = signal('');
+  /** `seq` of the last {@link ReplyDraftService} draft this panel applied, so a repeat Responder
+   *  click on the same message (which bumps `seq`) re-applies. */
+  private lastAppliedDraftSeq = 0;
+
+  /** Baseline the dirty-check compares against; re-captured after every programmatic fill and after
+   *  a successful send (design D2). A pristine empty form equals {@link EMPTY_SNAPSHOT}. */
+  private readonly lastAppliedSnapshot = signal<FormSnapshot>(EMPTY_SNAPSHOT);
 
   /** Custom-headers opt-in toggle (send-custom-headers spec: "Custom Headers Section Is Opt-In
    *  and Hidden by Default"). */
@@ -128,7 +157,14 @@ export class SendComponent {
     return headers;
   });
 
-  readonly exchangeError = computed(() => (this.exchange().trim() === '' ? 'El exchange es obligatorio.' : null));
+  readonly exchangeError = computed(() => {
+    const value = this.exchange();
+    // Reply mode accepts an exactly-empty Exchange (AMQP default exchange); whitespace is never valid.
+    if (this.replyMode() && value === '') {
+      return null;
+    }
+    return value.trim() === '' ? 'El exchange es obligatorio.' : null;
+  });
   readonly payloadError = computed(() => (this.payload().trim() === '' ? 'El payload es obligatorio.' : null));
   readonly routingKeyError = computed(() =>
     this.routingKey() !== '' && this.routingKey().trim() === '' ? 'La clave de enrutamiento no puede estar en blanco.' : null,
@@ -137,8 +173,80 @@ export class SendComponent {
     () => this.exchangeError() !== null || this.payloadError() !== null || this.routingKeyError() !== null,
   );
 
+  /** True when the editable form state diverges from {@link lastAppliedSnapshot} (design D2). */
+  readonly isDirty = computed(() => this.currentSnapshot() !== this.snapshotKey(this.lastAppliedSnapshot()));
+
+  private readonly currentSnapshot = computed(() =>
+    this.snapshotKey({
+      exchange: this.exchange(),
+      routingKey: this.routingKey(),
+      payload: this.payload(),
+      headers: JSON.stringify(this.resolvedHeaders()),
+    }),
+  );
+
+  constructor() {
+    // Applies a Responder pre-fill handed over by ReplyDraftService (design D1/D5). Keyed off the
+    // draft `seq` so a repeat Responder click on the same message re-applies; gated on the dirty
+    // check so unsaved edits are never silently overwritten (design D2/D3).
+    effect(() => {
+      const draft = this.replyDraft.draft();
+      if (!draft) {
+        return;
+      }
+      untracked(() => this.applyReplyDraft(draft.target, draft.seq));
+    });
+  }
+
   onBlur(field: SendField): void {
     this.touched.update((current) => new Set(current).add(field));
+  }
+
+  /** Exchange field input handler: manual edits exit reply mode (design D1). */
+  onExchangeInput(value: string): void {
+    this.exchange.set(value);
+    this.replyMode.set(false);
+  }
+
+  /** Routing key input handler: manual edits exit reply mode (design D1). */
+  onRoutingKeyInput(value: string): void {
+    this.routingKey.set(value);
+    this.replyMode.set(false);
+  }
+
+  /** Native confirmation seam for the overwrite prompt (design D3) — spy-able in tests. */
+  confirmOverwrite(): boolean {
+    return window.confirm('El panel de envío tiene cambios sin guardar. ¿Reemplazarlos con la nueva respuesta?');
+  }
+
+  private applyReplyDraft(target: ReplyTarget, seq: number): void {
+    if (seq === this.lastAppliedDraftSeq) {
+      return;
+    }
+    if (this.isDirty() && !this.confirmOverwrite()) {
+      this.lastAppliedDraftSeq = seq;
+      return;
+    }
+    this.lastAppliedDraftSeq = seq;
+    this.replyMode.set(true);
+    this.exchange.set('');
+    this.routingKey.set(target.routingKey);
+    this.correlationId.set(target.correlationId ?? '');
+    this.payload.set('');
+    this.captureSnapshot();
+  }
+
+  private snapshotKey(snapshot: FormSnapshot): string {
+    return JSON.stringify(snapshot);
+  }
+
+  private captureSnapshot(): void {
+    this.lastAppliedSnapshot.set({
+      exchange: this.exchange(),
+      routingKey: this.routingKey(),
+      payload: this.payload(),
+      headers: JSON.stringify(this.resolvedHeaders()),
+    });
   }
 
   addHeaderRow(): void {
@@ -179,12 +287,23 @@ export class SendComponent {
       return;
     }
 
+    const body: Record<string, unknown> = { exchange, routingKey, payload, headers };
+    // In reply mode, carry the source message's correlationId so the reply is correlated
+    // (design D5); omit the key entirely when the source had none.
+    if (this.replyMode()) {
+      const correlationId = this.correlationId().trim();
+      if (correlationId !== '') {
+        body['correlationId'] = correlationId;
+      }
+    }
+
     this.api
-      .post('/api/messages', { exchange, routingKey, payload, headers })
+      .post('/api/messages', body)
       .subscribe({
         next: () => {
           toast.success('Mensaje enviado.', { class: TOAST_OK_CLASS });
           this.history.recordSend({ exchange, routingKey, payload, headers });
+          this.captureSnapshot();
         },
         error: (err: unknown) => {
           toast.error(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'), { class: TOAST_ERROR_CLASS });
@@ -224,18 +343,22 @@ export class SendComponent {
   }
 
   useRecent(entry: RecentSend): void {
+    this.replyMode.set(false);
     this.exchange.set(entry.exchange);
     this.routingKey.set(entry.routingKey);
     this.payload.set(entry.payload);
     this.restoreHeaders(entry.headers);
+    this.captureSnapshot();
   }
 
   useTemplate(template: SendTemplate): void {
+    this.replyMode.set(false);
     this.exchange.set(template.exchange);
     this.routingKey.set(template.routingKey);
     this.payload.set(template.payload);
     this.touched.set(new Set<SendField>(['exchange', 'routingKey', 'payload']));
     this.restoreHeaders(template.headers);
+    this.captureSnapshot();
   }
 
   saveTemplate(): void {
