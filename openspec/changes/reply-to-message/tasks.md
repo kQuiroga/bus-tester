@@ -63,5 +63,5 @@ All phases strict-TDD sliced: RED (failing test) → GREEN (impl). Run the suite
 
 ## Phase 6: Verification
 
-- [ ] 6.1 Every scenario in `specs/request-reply/spec.md` and `specs/ui-presentation/spec.md` has a covering test; `dotnet test` + `npm test -- --watch false` green.
-- [ ] 6.2 Manual smoke: Responder → author payload → send → reply lands on the original temp queue with matching `correlationId`.
+- [x] 6.1 Scenario coverage: 16/17 scenarios have an automated covering test; `dotnet test` (Domain 35/35, Infra 15/15) + `npx ng test --watch=false` (203/203) green. The 1 remaining scenario ("Responder action stays usable at ~375px, no clipping/scroll") has no automated viewport/E2E runner in this project — verified manually in the 6.2 smoke instead (screenshot at 375px: Responder button fully visible, no clipping, no horizontal scroll). See `verify-report.md`.
+- [x] 6.2 Manual smoke PASSED (2026-08-30, live against local RabbitMQ, full stack on the PR3 tip). Flow: connect → subscribe `smoke.requests` → send-with-reply to `smoke.ex`/`smoke.rk` → app receives its own request (has `replyTo`) → **Responder** → Send panel enters reply mode (default-exchange chip, routing key = temp reply queue `amq.gen-…`, correlation id matches, payload blank) → dirty-panel `window.confirm` fired and was accepted → author `{"pong":42}` → send → reply published to the default exchange (`exchange=""`) routed by queue name → **reply arrived on the original temp reply queue and rendered in the "Respuestas" panel matched by correlation id**.
