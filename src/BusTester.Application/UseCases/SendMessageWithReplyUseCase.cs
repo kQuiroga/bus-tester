@@ -1,6 +1,7 @@
 using BusTester.Application.Ports;
 using BusTester.Application.Subscriptions;
 using BusTester.Domain;
+using BusTester.Domain.Exceptions;
 
 namespace BusTester.Application.UseCases;
 
@@ -31,6 +32,14 @@ public sealed class SendMessageWithReplyUseCase
 
     public async Task<SendWithReplyResult> HandleAsync(SendMessageWithReplyCommand command, CancellationToken ct = default)
     {
+        // Request-reply is gated by the connected adapter's capability flag. Check it before any
+        // broker work so no temporary reply queue is declared for an unsupported broker.
+        if (!_busPort.Capabilities.SupportsRequestReply)
+        {
+            throw new RequestReplyNotSupportedException(
+                $"The connected broker '{_busPort.Capabilities.BrokerName}' does not support request-reply messaging.");
+        }
+
         SubscriptionHandle? handle = null;
 
         Task OnMessage(BusMessage message, CancellationToken messageCt) =>

@@ -1,3 +1,4 @@
+using BusTester.Application.Ports;
 using BusTester.Application.Subscriptions;
 using BusTester.Application.Tests.Fakes;
 using BusTester.Application.UseCases;
@@ -78,6 +79,40 @@ public class SendMessageWithReplyUseCaseTests
 
         var published = Assert.Single(fakeBusPort.SentMessages);
         Assert.Empty(published.Headers);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBrokerDoesNotSupportRequestReply_Throws_AndDeclaresNoReplyQueue()
+    {
+        var fakeBusPort = new FakeBusPort
+        {
+            Capabilities = new BrokerCapabilities("Kafka", SupportsRequestReply: false),
+        };
+        var useCase = new SendMessageWithReplyUseCase(fakeBusPort, new SubscriptionCoordinator());
+        var command = new SendMessageWithReplyCommand("orders", "orders.created", "{\"id\":1}");
+
+        await Assert.ThrowsAsync<RequestReplyNotSupportedException>(() => useCase.HandleAsync(command));
+
+        Assert.Empty(fakeBusPort.CallOrder);
+        Assert.Equal(0, fakeBusPort.DeclareTemporaryReplyQueueCallCount);
+        Assert.Empty(fakeBusPort.SentMessages);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBrokerSupportsRequestReply_ProceedsAsBefore()
+    {
+        var fakeBusPort = new FakeBusPort
+        {
+            Capabilities = new BrokerCapabilities("RabbitMQ", SupportsRequestReply: true),
+        };
+        var useCase = new SendMessageWithReplyUseCase(fakeBusPort, new SubscriptionCoordinator());
+        var command = new SendMessageWithReplyCommand("orders", "orders.created", "{\"id\":1}");
+
+        var result = await useCase.HandleAsync(command);
+
+        Assert.False(string.IsNullOrWhiteSpace(result.CorrelationId));
+        Assert.Equal(["Declare", "Send"], fakeBusPort.CallOrder);
+        Assert.Equal(1, fakeBusPort.DeclareTemporaryReplyQueueCallCount);
     }
 
     [Fact]
