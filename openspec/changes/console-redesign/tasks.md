@@ -52,11 +52,11 @@ Strict TDD: every slice runs RED → GREEN → REFACTOR against `npm test -- --w
 
 ## Phase 2 — Slice 2: Connect popup + status pill + reserved slot (deps: S1)
 
-- [ ] 2.1 RED: connect component specs — dialog auto-opens while `!connected()`; pill always rendered, click reopens same dialog; connected body shows `Desconectar` / `Cambiar broker`, no credential fields; `[data-testid="broker-selector-slot"]` present, `aria-hidden`, non-focusable; hub `reconnecting` renders inline in pill.
-- [ ] 2.2 GREEN: vendor `frontend/libs/ui/dialog` via spartan CLI + add `tsconfig.json` path (match existing helm libs).
-- [ ] 2.3 GREEN: split `features/connect/` into container + `connect-dialog` / `status-pill` presentational children; `connectDialogOpen` signal; body switches on `connected()`; `Cambiar broker` reopens credentials form, runs existing `disconnect()` → `connect()` on `/api/connections`.
-- [ ] 2.4 GREEN: render inert `broker-selector-slot` beside the pill; suite green.
-- [ ] 2.5 REFACTOR: delete the old permanent connect column; suite green.
+- [x] 2.1 RED: connect component specs — dialog auto-opens while `!connected()`; pill always rendered, click reopens same dialog; connected body shows `Desconectar` / `Cambiar broker`, no credential fields; `[data-testid="broker-selector-slot"]` present, `aria-hidden`, non-focusable; hub `reconnecting` renders inline in pill.
+- [x] 2.2 GREEN: vendor `frontend/libs/ui/dialog` via spartan CLI + add `tsconfig.json` path (match existing helm libs). — CLI is nx-only; hand-vendored from CLI 1.3.3 generator templates.
+- [x] 2.3 GREEN: split `features/connect/` into container + `connect-dialog` / `status-pill` presentational children; `connectDialogOpen` signal; body switches on `connected()`; `Cambiar broker` reopens credentials form, runs existing `disconnect()` → `connect()` on `/api/connections`.
+- [x] 2.4 GREEN: render inert `broker-selector-slot` beside the pill; suite green.
+- [x] 2.5 REFACTOR: delete the old permanent connect column; suite green.
 
 ## Phase 3 — Slice 3: Send panel recent sends (deps: S1)
 
