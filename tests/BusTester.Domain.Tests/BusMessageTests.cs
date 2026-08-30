@@ -17,11 +17,18 @@ public class BusMessageTests
 
     [Theory]
     [InlineData(null)]
-    [InlineData("")]
     [InlineData("   ")]
     public void Create_WithMissingExchange_ThrowsArgumentException(string? exchange)
     {
         Assert.Throws<ArgumentException>(() => new BusMessage(exchange!, "orders.created", "payload"));
+    }
+
+    [Fact]
+    public void Create_WithEmptyExchange_Succeeds()
+    {
+        var message = new BusMessage(exchange: "", routingKey: "orders.reply", payload: "{\"id\":1}");
+
+        Assert.Equal("", message.Exchange);
     }
 
     [Theory]

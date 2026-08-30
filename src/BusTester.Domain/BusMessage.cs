@@ -20,9 +20,16 @@ public sealed class BusMessage
         string? correlationId = null,
         IReadOnlyDictionary<string, string>? headers = null)
     {
-        if (string.IsNullOrWhiteSpace(exchange))
+        // An empty exchange ("") is the AMQP default exchange and is explicitly allowed so a reply
+        // can be published straight to a queue by name. Null and whitespace-only remain invalid.
+        if (exchange is null)
         {
             throw new ArgumentException("Exchange is required.", nameof(exchange));
+        }
+
+        if (exchange.Length > 0 && exchange.Trim().Length == 0)
+        {
+            throw new ArgumentException("Exchange must not be whitespace-only.", nameof(exchange));
         }
 
         if (string.IsNullOrWhiteSpace(routingKey))

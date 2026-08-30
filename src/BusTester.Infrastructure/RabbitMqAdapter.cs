@@ -65,7 +65,12 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
             // surface as an async channel close after this call already returned. A passive
             // declare forces a synchronous round trip that fails fast while the channel — scoped
             // to this single send — is still open, leaving the connection itself unaffected.
-            await channel.ExchangeDeclarePassiveAsync(message.Exchange, ct);
+            // The AMQP default exchange ("") cannot be declared passively (the broker replies
+            // ACCESS_REFUSED), and it always exists, so skip the check in that case.
+            if (message.Exchange.Length != 0)
+            {
+                await channel.ExchangeDeclarePassiveAsync(message.Exchange, ct);
+            }
 
             var body = Encoding.UTF8.GetBytes(message.Payload);
 
