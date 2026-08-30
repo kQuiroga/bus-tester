@@ -55,11 +55,11 @@ All phases strict-TDD sliced: RED (failing test) → GREEN (impl). Run the suite
 
 ## Phase 5: Dirty-check + overwrite confirmation (PR 3)
 
-- [ ] 5.1 RED `send.component.spec.ts`: snapshot captured after `useRecent`, `useTemplate`, reply pre-fill, successful `send()`; pristine empty form not dirty; typing payload → dirty.
-- [ ] 5.2 RED: dirty panel + new draft seq calls `confirmOverwrite()`; false → form + `replyMode` unchanged; true → new target applied.
-- [ ] 5.3 RED: clean panel + new draft seq → `confirmOverwrite()` not called, pre-fill applies.
-- [ ] 5.4 GREEN: add `lastAppliedSnapshot` signal + `isDirty()` computed over `{exchange,routingKey,payload,headers}`; `captureSnapshot()` in `useRecent`/`useTemplate`/reply-apply/`send()` success; init to empty baseline.
-- [ ] 5.5 GREEN: add `confirmOverwrite(): boolean` wrapping `window.confirm`; gate reply-apply on `isDirty() ? confirmOverwrite() : true`.
+- [x] 5.1 RED `send.component.spec.ts`: snapshot captured after `useRecent`, `useTemplate`, reply pre-fill, successful `send()`; pristine empty form not dirty; typing payload → dirty.
+- [x] 5.2 RED: dirty panel + new draft seq calls `confirmOverwrite()`; false → form + `replyMode` unchanged; true → new target applied.
+- [x] 5.3 RED: clean panel + new draft seq → `confirmOverwrite()` not called, pre-fill applies.
+- [x] 5.4 GREEN: add `lastAppliedSnapshot` signal + `isDirty()` computed over `{exchange,routingKey,payload,headers}`; `captureSnapshot()` in `useRecent`/`useTemplate`/reply-apply/`send()` success; init to empty baseline.
+- [x] 5.5 GREEN: add `confirmOverwrite(): boolean` wrapping `window.confirm`; gate reply-apply on `isDirty() ? confirmOverwrite() : true`.
 
 ## Phase 6: Verification
 

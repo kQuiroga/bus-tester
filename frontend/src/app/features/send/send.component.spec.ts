@@ -729,4 +729,108 @@ describe('SendComponent', () => {
     });
   });
 
+  describe('dirty-check and overwrite confirmation', () => {
+    it('a pristine form is not dirty; typing into the payload makes it dirty', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      expect(component.isDirty()).toBe(false);
+
+      component.payload.set('typed');
+      expect(component.isDirty()).toBe(true);
+    });
+
+    it('useRecent, useTemplate and a successful send each re-baseline the dirty snapshot', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      component.useRecent({ exchange: 'orders', routingKey: 'o.c', payload: 'p', sentAt: '2026-01-01T00:00:00.000Z' });
+      expect(component.isDirty()).toBe(false);
+
+      component.useTemplate({ name: 't', exchange: 'orders', routingKey: 'o.c', payload: 'p2' });
+      expect(component.isDirty()).toBe(false);
+
+      component.payload.set('changed');
+      expect(component.isDirty()).toBe(true);
+      component.send();
+      httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/messages')).flush(null);
+      expect(component.isDirty()).toBe(false);
+    });
+
+    it('the reply pre-fill re-baselines the snapshot so the form is not dirty right after it', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+
+      TestBed.inject(ReplyDraftService).request({ routingKey: 'reply.q', correlationId: 'c1' });
+      fixture.detectChanges();
+
+      expect(component.isDirty()).toBe(false);
+    });
+
+    it('a dirty panel prompts before a second reply pre-fill; declining leaves the form untouched', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      const replyDraft = TestBed.inject(ReplyDraftService);
+      const confirmSpy = vi.spyOn(component, 'confirmOverwrite').mockReturnValue(false);
+
+      replyDraft.request({ routingKey: 'reply.one', correlationId: 'c1' });
+      fixture.detectChanges();
+      expect(component.routingKey()).toBe('reply.one');
+
+      component.payload.set('half-written reply');
+      replyDraft.request({ routingKey: 'reply.two', correlationId: 'c2' });
+      fixture.detectChanges();
+
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(component.routingKey()).toBe('reply.one');
+      expect(component.correlationId()).toBe('c1');
+      expect(component.payload()).toBe('half-written reply');
+      expect(component.replyMode()).toBe(true);
+    });
+
+    it('confirming the overwrite applies the new reply target', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      const replyDraft = TestBed.inject(ReplyDraftService);
+      vi.spyOn(component, 'confirmOverwrite').mockReturnValue(true);
+
+      replyDraft.request({ routingKey: 'reply.one', correlationId: 'c1' });
+      fixture.detectChanges();
+      component.payload.set('half-written reply');
+
+      replyDraft.request({ routingKey: 'reply.two', correlationId: 'c2' });
+      fixture.detectChanges();
+
+      expect(component.routingKey()).toBe('reply.two');
+      expect(component.correlationId()).toBe('c2');
+      expect(component.payload()).toBe('');
+    });
+
+    it('a clean panel applies the reply pre-fill with no confirmation prompt', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      const replyDraft = TestBed.inject(ReplyDraftService);
+      const confirmSpy = vi.spyOn(component, 'confirmOverwrite');
+
+      replyDraft.request({ routingKey: 'reply.one', correlationId: 'c1' });
+      fixture.detectChanges();
+      replyDraft.request({ routingKey: 'reply.two', correlationId: 'c2' });
+      fixture.detectChanges();
+
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(component.routingKey()).toBe('reply.two');
+    });
+
+    it('confirmOverwrite() delegates to window.confirm', () => {
+      const fixture = TestBed.createComponent(SendComponent);
+      const component = fixture.componentInstance;
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+      expect(component.confirmOverwrite()).toBe(true);
+      expect(confirmSpy).toHaveBeenCalled();
+
+      confirmSpy.mockReturnValue(false);
+      expect(component.confirmOverwrite()).toBe(false);
+    });
+  });
 });
