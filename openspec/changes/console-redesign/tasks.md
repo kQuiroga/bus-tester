@@ -41,13 +41,13 @@ Strict TDD: every slice runs RED → GREEN → REFACTOR against `npm test -- --w
 
 ## Phase 1 — Slice 1: Graphite tokens + shell + accent seam (no deps)
 
-- [ ] 1.1 RED: rewrite `frontend/src/styles.tokens.spec.ts` — remove `.dark {` extraction; assert single-mode Graphite hex values, 12px radius base, three font families, accent-indirection default.
-- [ ] 1.2 RED: add `frontend/src/app/core/broker-accent.service.spec.ts` — `effect()` sets `<html data-broker>`; `'kafka'` maps `--broker-accent`; default resolves RabbitMQ amber.
-- [ ] 1.3 GREEN: collapse `frontend/src/styles.css` to one dark `@theme` (palette, radii, queue hues, `--color-accent` indirection); delete `.dark {}`; add `[data-broker='kafka']` map; keep `@custom-variant dark`.
-- [ ] 1.4 GREEN: `frontend/src/index.html` — Google Fonts `<link>` + fallback stacks; keep `class="dark"`.
-- [ ] 1.5 GREEN: create `frontend/src/app/core/broker-accent.service.ts` (`BrokerKind` signal → `documentElement.dataset['broker']` via `DOCUMENT` + `effect()`); provide in root; stays `'rabbitmq'`.
-- [ ] 1.6 GREEN: `frontend/src/app/app.{ts,html}` — shell/header on surface tokens, dialog/sheet host outlets; full suite green.
-- [ ] 1.7 REFACTOR: dedupe token names, no hardcoded radii/colors in touched files; suite green.
+- [x] 1.1 RED: rewrite `frontend/src/styles.tokens.spec.ts` — remove `.dark {` extraction; assert single-mode Graphite hex values, 12px radius base, three font families, accent-indirection default.
+- [x] 1.2 RED: add `frontend/src/app/core/broker-accent.service.spec.ts` — `effect()` sets `<html data-broker>`; `'kafka'` maps `--broker-accent`; default resolves RabbitMQ amber.
+- [x] 1.3 GREEN: collapse `frontend/src/styles.css` to one dark `@theme` (palette, radii, queue hues, `--color-accent` indirection); delete `.dark {}`; add `[data-broker='kafka']` map; keep `@custom-variant dark`.
+- [x] 1.4 GREEN: `frontend/src/index.html` — Google Fonts `<link>` + fallback stacks; keep `class="dark"`.
+- [x] 1.5 GREEN: create `frontend/src/app/core/broker-accent.service.ts` (`BrokerKind` signal → `documentElement.dataset['broker']` via `DOCUMENT` + `effect()`); provide in root; stays `'rabbitmq'`.
+- [x] 1.6 GREEN: `frontend/src/app/app.{ts,html}` — shell/header on surface tokens, dialog/sheet host outlets; full suite green.
+- [x] 1.7 REFACTOR: dedupe token names, no hardcoded radii/colors in touched files; suite green.
 
 ## Phase 2 — Slice 2: Connect popup + status pill + reserved slot (deps: S1)
 

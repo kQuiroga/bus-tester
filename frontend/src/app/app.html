@@ -1,7 +1,19 @@
-<main class="grid grid-cols-1 gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(260px,320px)_minmax(280px,1fr)_minmax(320px,1fr)] lg:gap-6">
-  <h1 class="text-2xl font-semibold tracking-tight text-foreground lg:col-span-3">{{ title }}</h1>
-  <app-connect />
-  <app-send />
-  <app-messages />
-</main>
+<div class="min-h-screen bg-background text-foreground">
+  <header
+    class="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur sm:px-6"
+  >
+    <h1 class="text-xl font-semibold tracking-tight text-foreground">{{ title }}</h1>
+    <p class="text-sm text-muted-foreground">Panel de pruebas de mensajería</p>
+  </header>
+
+  <main
+    class="grid grid-cols-1 gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(260px,320px)_minmax(280px,1fr)_minmax(320px,1fr)] lg:gap-6"
+  >
+    <app-connect />
+    <app-send />
+    <app-messages />
+  </main>
+</div>
+
+<!-- CDK overlay host for the connect dialog (slice 2) and reply drawer (slice 5). -->
 <hlm-toaster />
