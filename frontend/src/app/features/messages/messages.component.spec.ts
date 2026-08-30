@@ -352,6 +352,24 @@ describe('MessagesComponent', () => {
     ]);
   });
 
+  it('replyPanel() excludes a message with matching correlationId delivered on a different subscription', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    const replySubscriptions = TestBed.inject(ReplySubscriptionService);
+    replySubscriptions.add({ subscriptionId: 'reply-sub-1', correlationId: 'corr-1' });
+
+    // Same correlationId as the pending reply, but delivered via an unrelated queue subscription
+    // (e.g. the sender is also subscribed to the queue it just published to) — must not count as
+    // a reply.
+    fakeBusHubService.messagesSignal.set([
+      msg(0, { subscriptionId: 'sub-other', correlationId: 'corr-1' }),
+    ]);
+
+    expect(component.replyPanel()).toEqual([
+      { subscriptionId: 'reply-sub-1', correlationId: 'corr-1', replies: [] },
+    ]);
+  });
+
   it('replyPanel() delivers multiple matching replies for the same correlationId, unguarded', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
