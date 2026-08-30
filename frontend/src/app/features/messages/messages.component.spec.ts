@@ -62,7 +62,7 @@ describe('MessagesComponent', () => {
     return component;
   }
 
-  it('subscribeToQueue() posts the queue name, adds a chip and joins the SignalR group on success', () => {
+  it('subscribeToQueue() posts the queue name, adds a chip and joins the SignalR group on success', async () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
     component.queueName.set('orders-queue');
@@ -74,6 +74,30 @@ describe('MessagesComponent', () => {
     req.flush({ id: 'sub-1' });
 
     expect(component.subscriptions()).toEqual([{ id: 'sub-1', queueName: 'orders-queue' }]);
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fakeBusHubService.joinSubscription).toHaveBeenCalledWith('sub-1');
+  });
+
+  it('subscribeToQueue() waits for busHub.start() to resolve before joining the SignalR group, ' +
+    'instead of racing it (regression: start()/joinSubscription race)', async () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    let resolveStart!: () => void;
+    fakeBusHubService.start.mockReturnValue(new Promise<void>((resolve) => { resolveStart = resolve; }));
+
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fakeBusHubService.joinSubscription).not.toHaveBeenCalled();
+
+    resolveStart();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(fakeBusHubService.joinSubscription).toHaveBeenCalledWith('sub-1');
   });
 

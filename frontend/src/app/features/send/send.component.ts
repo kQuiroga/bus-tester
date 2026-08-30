@@ -196,7 +196,12 @@ export class SendComponent {
    *  then registers the pending reply and joins its SignalR group so MessagesComponent's reply
    *  panel can pick it up (design.md Data Flow). */
   private sendWithReply(exchange: string, routingKey: string, payload: string, headers: Record<string, string>): void {
-    this.busHub.start().catch(() => {});
+    // Idempotent on the real service, so kicking it off here (in parallel with the POST below)
+    // is safe even if a join elsewhere already triggered it. The join is sequenced behind this
+    // same promise (not fired immediately) so it never races an in-flight connection start
+    // (regression: joining before start() resolved intermittently failed with "No se pudo unir
+    // al grupo de suscripción").
+    const hubReady = this.busHub.start();
     this.api
       .post<SendWithReplyResponse>('/api/messages/with-reply', { exchange, routingKey, payload, headers })
       .subscribe({
@@ -206,9 +211,11 @@ export class SendComponent {
             subscriptionId: response.subscriptionId,
             correlationId: response.correlationId,
           });
-          this.busHub.joinSubscription(response.subscriptionId).catch((err: unknown) => {
-            toast.error(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'), { class: TOAST_ERROR_CLASS });
-          });
+          hubReady
+            .then(() => this.busHub.joinSubscription(response.subscriptionId))
+            .catch((err: unknown) => {
+              toast.error(ApiClientService.errorDetail(err, 'No se pudo unir al grupo de suscripción.'), { class: TOAST_ERROR_CLASS });
+            });
         },
         error: (err: unknown) => {
           toast.error(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'), { class: TOAST_ERROR_CLASS });
