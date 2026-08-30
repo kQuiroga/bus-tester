@@ -1,7 +1,7 @@
 # Apply Progress: Reply to a Received Message
 
 Store: hybrid. Mirror of Engram topic `sdd/reply-to-message/apply-progress`.
-Mode: Strict TDD (backend `dotnet test`).
+Mode: Strict TDD (backend `dotnet test`; frontend `npx ng test --watch=false --include='<glob>'`).
 
 ## Batch 1 — PR1 / Phase 1: Backend default-exchange support
 
@@ -50,8 +50,56 @@ Branch: `feat/reply-to-message-backend` (stacked-to-main, chain PR 1 of 3).
 
 None. Matches D1 backend decision (allow exact `""`, skip passive declare). Design mentioned `if (message.Exchange.Length == 0) skip`; tasks.md specified `if (message.Exchange.Length != 0) { declare }` — equivalent, tasks.md form used.
 
+## Batch 2 — PR2 / Phases 2+3: ReplyDraftService bridge + MessagesComponent Responder action
+
+Branch: `feat/reply-to-message-bridge` (stacked on `feat/reply-to-message-backend`, chain PR 2 of 3).
+Mode: Strict TDD (`npx ng test --watch=false --include='<glob>'` → `@angular/build:unit-test` / vitest 4).
+
+### Completed tasks
+
+- [x] 2.1 RED `frontend/src/app/core/reply-draft.service.spec.ts`: `request(target)` sets `draft()` `{target, seq}`; same target twice → seq 1 then 2; different targets keep incrementing; `clear()` nulls it; starts null.
+- [x] 2.2 GREEN `frontend/src/app/core/reply-draft.service.ts`: `ReplyTarget { routingKey: string; correlationId: string | null }`; private `_draft = signal<{ target: ReplyTarget; seq: number } | null>(null)`; `readonly draft = _draft.asReadonly()`; `request(target)` bumps `seq` via `(current?.seq ?? 0) + 1`; `clear()` sets null; `@Injectable({ providedIn: 'root' })`. Mirrors `ReplySubscriptionService`.
+- [x] 3.1 RED `messages.component.spec.ts`: feed row whose message has non-null `replyTo` renders a `aria-label^="Responder a"` control; row without `replyTo` renders none.
+- [x] 3.2 RED `messages.component.spec.ts`: clicking the row Responder calls `ReplyDraftService.request({ routingKey: msg.replyTo, correlationId: msg.correlationId })`; triangulated with a message lacking `correlationId` → called with `correlationId: null`.
+- [x] 3.3 GREEN `messages.component.ts`: inject `ReplyDraftService`, add `respond(message)` (guards on `replyTo`, normalizes `correlationId ?? null`). `messages.component.html`: Responder `hlmBtn` ghost/sm button per feed row inside a new `flex items-start justify-between gap-2` header, guarded by `@if (message.replyTo)`, `shrink-0` + `break-all` sibling so it does not clip at ~375px.
+
+### Files changed (Batch 2)
+
+| File | Action | What |
+|------|--------|------|
+| `frontend/src/app/core/reply-draft.service.ts` | Created | Signal-based reply-target bridge (design D4) |
+| `frontend/src/app/core/reply-draft.service.spec.ts` | Created | 5 unit tests for `request`/`seq`/`clear` |
+| `frontend/src/app/features/messages/messages.component.ts` | Modified | Inject `ReplyDraftService`; add `respond(message)` |
+| `frontend/src/app/features/messages/messages.component.html` | Modified | Per-row Responder button gated on `message.replyTo`, responsive header row |
+| `frontend/src/app/features/messages/messages.component.spec.ts` | Modified | +4 tests (render gating x2, click dispatch x2) |
+| `openspec/changes/reply-to-message/tasks.md` | Modified | Marked 2.1–3.3 `[x]` |
+
+### TDD Cycle Evidence (Batch 2)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 2.1/2.2 | `reply-draft.service.spec.ts` | Unit | N/A (new) | `Could not resolve "./reply-draft.service"` — build fail, module absent | 5/5 pass | seq 1→2 same target; different targets keep incrementing seq; `clear()` path | Clean — mirrors `ReplySubscriptionService` |
+| 3.1/3.2/3.3 | `messages.component.spec.ts` | Integration (TestBed + DOM) | 30/30 pass | 3 new behavioral tests failed (`findResponder` undefined / no button) before markup added | 34/34 pass | `correlationId` present → passed through; `correlationId` absent → `null` | Clean — reused `hlmBtn` ghost/sm |
+
+### Work Unit Evidence (Batch 2)
+
+| Evidence | Value |
+|---|---|
+| Focused test command / result | `npx ng test --watch=false --include='**/reply-draft.service.spec.ts'` → Test Files 1 passed, Tests 5 passed. `npx ng test --watch=false --include='**/messages.component.spec.ts'` → Test Files 1 passed, Tests 34 passed (was 30). |
+| Runtime harness command / result | No runtime boundary in PR2 (no broker/HTTP path added). Manual smoke deferred to Phase 6: click Responder on a `replyTo` row and confirm the Send panel pre-fills (needs Phase 4 send-side effect, not in this PR). Marked `N/A` for automated harness. |
+| Rollback boundary | Revert commits `7025a3b` + `c62b255`: delete `reply-draft.service.ts`/`.spec.ts`, revert `respond()` + injection in `messages.component.ts`, revert the header `<div>` + Responder `@if` block in `messages.component.html`, drop the 4 added specs. No other code touched; `api-config.ts` never staged. |
+
+### Commits (feat/reply-to-message-bridge)
+
+- `7025a3b` feat(reply): add ReplyDraftService state bridge for reply pre-fill
+- `c62b255` feat(reply): add Responder action to message feed rows with replyTo
+
+### Deviations from design (Batch 2)
+
+None. Matches D4 (service shape) and D6 (Responder hidden when `replyTo` null). `respond()` normalizes `msg.correlationId` (`string | undefined` on `ReceivedMessage`) to `string | null` for the `ReplyTarget` contract — task 3.2 wording `msg.correlationId` preserved for the non-null case.
+
 ### Remaining (not this batch)
 
-- Phase 2 (PR2): `ReplyDraftService` + Responder action — tasks 2.1–3.3
-- Phase 3 (PR3): SendComponent reply mode + dirty-check + confirm — tasks 4.1–5.5
+- Phase 4 (PR3): SendComponent reply mode + correlationId — tasks 4.1–4.6
+- Phase 5 (PR3): dirty-check + `window.confirm` overwrite guard — tasks 5.1–5.5
 - Phase 6: verification + manual smoke
