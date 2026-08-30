@@ -1,88 +1,41 @@
-<section class="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-  <h2 class="text-lg font-medium text-card-foreground">Conexión</h2>
-  <form class="mt-3 flex flex-col gap-3" (ngSubmit)="connect()">
-    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
-      Host del broker
-      <input
-        hlmInput
-        name="host"
-        [ngModel]="host()"
-        (ngModelChange)="host.set($event)"
-        [disabled]="connected() || pending()"
-      />
-    </label>
-    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
-      Puerto
-      <input
-        hlmInput
-        name="port"
-        type="number"
-        [ngModel]="port()"
-        (ngModelChange)="port.set($event)"
-        [disabled]="connected() || pending()"
-      />
-    </label>
-    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
-      Usuario
-      <input
-        hlmInput
-        name="username"
-        [ngModel]="username()"
-        (ngModelChange)="username.set($event)"
-        [disabled]="connected() || pending()"
-      />
-    </label>
-    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
-      Contraseña
-      <input
-        hlmInput
-        name="password"
-        type="password"
-        [ngModel]="password()"
-        (ngModelChange)="password.set($event)"
-        [disabled]="connected() || pending()"
-      />
-    </label>
-    <button hlmBtn type="submit" [disabled]="connected() || pending()">Conectar</button>
-    <button hlmBtn variant="secondary" type="button" (click)="disconnect()" [disabled]="!connected() || pending()">
-      Desconectar
-    </button>
-  </form>
-  @if (connected() || pending() || errorMessage() || hubStatusLabel()) {
-    <div class="mt-3 flex flex-wrap items-center gap-2">
-      @if (pending()) {
-        <p hlmBadge variant="outline" data-testid="broker-status" class="bg-status-warn-bg text-status-warn">
-          <ng-icon name="lucideLoaderCircle" />
-          {{ connected() ? 'Desconectando…' : 'Conectando…' }}
-        </p>
-      } @else if (connected()) {
-        <p hlmBadge variant="outline" data-testid="broker-status" class="bg-status-ok-bg text-status-ok">
-          <ng-icon name="lucideCircleCheck" />
-          Conectado (último conocido)
-        </p>
-      }
-      @if (errorMessage()) {
-        <p hlmBadge variant="outline" data-testid="broker-error" class="bg-status-error-bg text-status-error">
-          <ng-icon name="lucideCircleX" />
-          {{ errorMessage() }}
-        </p>
-      }
-      @if (hubStatusLabel()) {
-        <p hlmBadge variant="outline" data-testid="hub-status" [class]="hubStatusClasses()">
-          @switch (hubConnectionState()) {
-            @case ('connected') {
-              <ng-icon name="lucideCircleCheck" />
-            }
-            @case ('disconnected') {
-              <ng-icon name="lucideCircleX" />
-            }
-            @default {
-              <ng-icon name="lucideLoaderCircle" />
-            }
-          }
-          {{ hubStatusLabel() }}
-        </p>
-      }
-    </div>
-  }
-</section>
+<div class="flex flex-wrap items-center gap-2">
+  <app-status-pill
+    [connected]="connected()"
+    [pending]="pending()"
+    [errorMessage]="errorMessage()"
+    [hubState]="hubConnectionState()"
+    (activate)="openConnectDialog()"
+  />
+
+  <!-- Reserved, inert broker-selector slot (connection-status spec: "Reserved Broker-Selector
+       Slot"). No wiring: aria-hidden, non-focusable, pointer-events disabled. -->
+  <div
+    data-testid="broker-selector-slot"
+    aria-hidden="true"
+    tabindex="-1"
+    inert
+    class="pointer-events-none inline-flex select-none items-center rounded-md border border-dashed border-border/60 px-2 py-1 text-xs text-muted-foreground/60"
+  >
+    Broker
+  </div>
+</div>
+
+<hlm-dialog
+  [state]="connectDialogOpen() ? 'open' : 'closed'"
+  (stateChanged)="onDialogStateChange($event)"
+>
+  <hlm-dialog-content *hlmDialogPortal class="flex flex-col gap-4">
+    <app-connect-dialog
+      [connected]="connected()"
+      [pending]="pending()"
+      [errorMessage]="errorMessage()"
+      [(host)]="host"
+      [(port)]="port"
+      [(username)]="username"
+      [(password)]="password"
+      (connectSubmit)="connect()"
+      (disconnect)="disconnect()"
+      (changeBroker)="changeBroker()"
+    />
+  </hlm-dialog-content>
+</hlm-dialog>

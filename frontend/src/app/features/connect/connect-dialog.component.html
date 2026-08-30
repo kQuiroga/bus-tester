@@ -1,0 +1,80 @@
+<div class="flex flex-col gap-1">
+  <h2 class="text-base font-medium text-card-foreground">Conexión</h2>
+  <p class="text-sm text-muted-foreground">
+    {{ connected() ? 'Sesión de broker activa (último estado conocido).' : 'Conecta el tester a un broker para empezar.' }}
+  </p>
+</div>
+
+@if (!connected()) {
+  <form class="flex flex-col gap-3" (ngSubmit)="submit()">
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
+      Host del broker
+      <input
+        hlmInput
+        name="host"
+        [ngModel]="host()"
+        (ngModelChange)="host.set($event)"
+        [disabled]="pending()"
+      />
+    </label>
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
+      Puerto
+      <input
+        hlmInput
+        name="port"
+        type="number"
+        [ngModel]="port()"
+        (ngModelChange)="port.set($event)"
+        [disabled]="pending()"
+      />
+    </label>
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
+      Usuario
+      <input
+        hlmInput
+        name="username"
+        [ngModel]="username()"
+        (ngModelChange)="username.set($event)"
+        [disabled]="pending()"
+      />
+    </label>
+    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
+      Contraseña
+      <input
+        hlmInput
+        name="password"
+        type="password"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+        [disabled]="pending()"
+      />
+    </label>
+    <button hlmBtn type="submit" [disabled]="pending()">Conectar</button>
+  </form>
+} @else {
+  <div class="flex flex-col gap-2 sm:flex-row">
+    <button hlmBtn variant="secondary" type="button" (click)="disconnect.emit()" [disabled]="pending()">
+      Desconectar
+    </button>
+    <button hlmBtn variant="outline" type="button" (click)="changeBroker.emit()" [disabled]="pending()">
+      Cambiar broker
+    </button>
+  </div>
+}
+
+@if (pending() || errorMessage()) {
+  <div class="flex flex-wrap items-center gap-2">
+    @if (pending()) {
+      <p hlmBadge variant="outline" data-testid="connect-dialog-status" class="bg-status-warn-bg text-status-warn">
+        <ng-icon name="lucideLoaderCircle" />
+        {{ connected() ? 'Desconectando…' : 'Conectando…' }}
+      </p>
+    }
+    @if (errorMessage(); as error) {
+      <p hlmBadge variant="outline" data-testid="connect-dialog-error" class="bg-status-error-bg text-status-error">
+        <ng-icon name="lucideCircleX" />
+        {{ error }}
+      </p>
+    }
+  </div>
+}

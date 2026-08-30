@@ -1,0 +1,20 @@
+<button
+  type="button"
+  hlmBadge
+  variant="outline"
+  data-testid="broker-status-pill"
+  [class]="toneClass()"
+  (click)="activate.emit()"
+>
+  @if (pending()) {
+    <ng-icon name="lucideLoaderCircle" />
+  } @else if (connected()) {
+    <ng-icon name="lucideCircleCheck" />
+  } @else {
+    <ng-icon name="lucideCircleX" />
+  }
+  <span data-testid="broker-status-pill-label">{{ brokerLabel() }}</span>
+  @if (hubInlineLabel(); as hub) {
+    <span data-testid="hub-state-inline" class="opacity-80">· {{ hub }}</span>
+  }
+</button>

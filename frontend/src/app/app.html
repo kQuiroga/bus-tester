@@ -4,12 +4,14 @@
   >
     <h1 class="text-xl font-semibold tracking-tight text-foreground">{{ title }}</h1>
     <p class="text-sm text-muted-foreground">Panel de pruebas de mensajería</p>
+    <div class="ml-auto flex items-center">
+      <app-connect />
+    </div>
   </header>
 
   <main
-    class="grid grid-cols-1 gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(260px,320px)_minmax(280px,1fr)_minmax(320px,1fr)] lg:gap-6"
+    class="grid grid-cols-1 gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(320px,420px)_minmax(360px,1fr)] lg:gap-6"
   >
-    <app-connect />
     <app-send />
     <app-messages />
   </main>
