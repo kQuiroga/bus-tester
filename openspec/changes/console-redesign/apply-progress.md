@@ -283,4 +283,33 @@ No vendored output this slice. Well under the 800-line review budget (decision #
 
 - None.
 
-## STATUS: slices 1 and 2 at prototype fidelity. Slices 3-5 fidelity passes run after this (separate agents).
+## Slice 3 correction C4 — prototype fidelity (send panel + recent sends + templates)
+
+Branch `feat/console-redesign-s3-send`. Source of truth: `docs/redesign-prototype/Main.dc.html` SEND card (~58-111). Strict TDD, RED-first in `send.component.spec.ts`.
+
+| Gap | Fix |
+|-----|-----|
+| Section captions | Exchange / Clave de enrutamiento / Payload `hlmLabel` and the `Envíos recientes` / `Plantillas` `<h3>` all carry `.field-label` (prototype `.lbl`). Count in the header: `Envíos recientes · {{ recentSends().length }}`. |
+| Inputs | Exchange, routing key, template-name inputs → `h-[34px] rounded-[8px] bg-muted`; payload textarea → `min-h-[92px] rounded-[8px] bg-muted` (prototype `.in`). |
+| Buttons | `Enviar` = full-width accent `w-full h-[38px] rounded-[9px]` (prototype `.btn`); `Guardar plantilla` renamed `Guardar`, `h-[34px] rounded-[8px] px-[14px]` (prototype `.btn-sm`). |
+| Recent "Vaciar" | Plain text button — no `hlmBtn`, no `lucideTrash2` — `bg-transparent text-[11px] text-muted-foreground hover:brightness-125` (prototype `.x`). `[data-testid="recent-sends-clear"]` kept. |
+| Recent rows | One-line mono summary via `recentSummary(entry)` → `exchange / routingKey` (`(intercambio predeterminado)` when exchange empty), `font-mono text-[11px]` truncated. Row `rounded-[7px] border-border bg-muted px-[9px] py-[6px]`. `Cargar` = `.ghost` (`rounded-[7px] border bg-muted text-[11px]`, no icon). Added caption `últimos 5 · el resto se descarta de localStorage` (`font-mono text-[10px]`). |
+| Templates rows | `[data-testid="template-row"]`, same panel2 chrome; `Cargar` = `.ghost`, `Eliminar` = plain `.x` text button (no `hlmBtn`, no icon). |
+| Card / dividers | Section card `p-[18px]`; recent + templates dividers `pt-[13px]`. |
+
+### C4 TDD Cycle Evidence
+RED: 7 failing assertions in `send.component.spec.ts` (Enviar/Guardar sizing, plain-text Vaciar, no-icon rows, count-in-`.field-label` + one-line mono summary, default-exchange marker, `.field-label` section headers, `.in` input utilities). GREEN: `npm test -- --no-watch` → **13 files / 215 tests passed**, 0 failed (baseline 205). `npm run build` succeeds (`styles` 45.55 kB; pre-existing 500 kB initial-bundle budget warning at 630 kB, unchanged). Built `styles-*.css` verified for `h-\[34px\]`, `h-\[38px\]`, `rounded-\[7px\]/\[8px\]/\[9px\]`, `p-\[18px\]`, `text-\[11px\]/\[10px\]`, `px-\[9px\]`, `py-\[6px\]`, `min-h-\[92px\]`, `field-label`.
+
+### C4 files
+`send.component.{ts,html,spec.ts}` only. `lucideDownload` import + provider dropped (`lucideTrash2` retained for the Adicionales header row). Rollback = revert the C4 commit; all changes confined to `features/send/*`.
+
+### C4 Deviations
+- D7 reply-mode / dirty-guard code in `send.component.ts` left fully intact — removal is slice 5 (task 5.8).
+- Arbitrary Tailwind px values used where the token scale has no step — consistent with slice 1 C2 / slice 2 C3 precedent.
+
+### Notes for slices 4-5 fidelity passes
+- `.field-label` global class is the caption treatment; `.ghost` pattern = `rounded-[7px] border border-border bg-muted text-[11px]` on `hlmBtn variant="ghost" size="sm"`; `.x` pattern = plain `<button>` `bg-transparent text-[11px] text-muted-foreground hover:brightness-125` (no `hlmBtn`).
+- Prototype row chrome = `rounded-[7px] border-border bg-muted px-[9px] py-[6px]`.
+- Slice 5 must delete `recentSummary` callers only if it reworks the list; the send-panel reply removal (D7) is otherwise independent of this pass.
+
+## STATUS: slices 1-3 at prototype fidelity. Slices 4-5 fidelity passes run after this (separate agents).

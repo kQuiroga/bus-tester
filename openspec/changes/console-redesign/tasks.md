@@ -67,6 +67,7 @@ Strict TDD: every slice runs RED → GREEN → REFACTOR against `npm test -- --w
 - [x] 3.3 GREEN: `send-history.service.ts` — `RECENT_SENDS_CAP = 5`, `loadCapped()` truncate+rewrite migration, `clearRecentSends()`.
 - [x] 3.4 GREEN: `send.component.{ts,html}` — recent-sends layout (≤5) + `Vaciar` control wired to the service; suite green.
 - [x] 3.5 REFACTOR: component delegates to the service only, no storage access in the component; suite green.
+- [x] 3.6 C4 FIDELITY (prototype `docs/redesign-prototype/Main.dc.html`, Strict TDD): send-panel labels/section headers → `.field-label`; inputs + textarea → prototype `.in` (`h-[34px] rounded-[8px] bg-muted`); "Enviar" full-width accent `h-[38px] rounded-[9px]`, "Guardar" `.btn-sm` `h-[34px] rounded-[8px]`; recent-sends header `ENVÍOS RECIENTES · {count}` + plain-text `.x` "Vaciar" (no icon); recent rows one-line mono `exchange / routingKey` + `.ghost` "Cargar"; caption `últimos 5 · el resto se descarta de localStorage`; templates rows `.ghost` "Cargar" + `.x` "Eliminar"; card `p-[18px]`, dividers `pt-[13px]`.
 
 ## Phase 4 — Slice 4: Messages feed cards + queue pill/dot (deps: S1)
 
