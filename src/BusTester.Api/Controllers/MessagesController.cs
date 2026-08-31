@@ -22,6 +22,8 @@ public sealed class MessagesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Send([FromBody] SendMessageRequest request, CancellationToken ct)
     {
+        // Wire seam: the HTTP body keeps its existing `exchange`/`routingKey` field names; they map
+        // onto the broker-neutral command (`exchange` -> Target).
         var command = new SendMessageCommand(
             request.Exchange,
             request.RoutingKey,

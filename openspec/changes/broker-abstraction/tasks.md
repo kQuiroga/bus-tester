@@ -41,13 +41,13 @@ _Spec: bus-connection — "Establish and Maintain Connection" (MODIFIED)._
 ## Phase 2: Message neutralization + wire seam (PR 2)
 _Spec: message-sending — "Broker-Neutral Send Message Superset"; message-consumption — "Broker-Neutral Received Message Superset"._
 
-- [ ] 2.1 RED `BusMessageTests`: null `RoutingKey` accepted; null `Target` rejected; blank `Payload` rejected; `""` `Target` allowed.
-- [ ] 2.2 GREEN `src/BusTester.Domain/BusMessage.cs`: `Exchange`→`Target` (required, `""` ok); `RoutingKey` nullable; XML-document the neutral superset; no new fields.
-- [ ] 2.3 GREEN `SendMessageCommand.cs`, `SendMessageWithReplyCommand.cs`: `Exchange`→`Target`.
-- [ ] 2.4 RED+GREEN `MessagesController.cs`: wire keeps `exchange`/`routingKey`; maps `exchange → command.Target`.
-- [ ] 2.5 RED+GREEN `SignalRMessageBroadcaster.cs`: map `Target → Exchange`, `RoutingKey ?? "" → RoutingKey`; `MessageReceivedDto` fields/types + SignalR `MessageReceived` payload field names unchanged (asserted in Api test).
-- [ ] 2.6 RED+GREEN `RabbitMqAdapter.cs`: map `Target` → AMQP exchange; enforce non-blank routing key at adapter level (RED: blank key rejected by adapter).
-- [ ] 2.7 REFACTOR; Infrastructure send/receive/reply parity run; `dotnet test`.
+- [x] 2.1 RED `BusMessageTests`: null `RoutingKey` accepted; null `Target` rejected; blank `Payload` rejected; `""` `Target` allowed.
+- [x] 2.2 GREEN `src/BusTester.Domain/BusMessage.cs`: `Exchange`→`Target` (required, `""` ok); `RoutingKey` nullable; XML-document the neutral superset; no new fields.
+- [x] 2.3 GREEN `SendMessageCommand.cs`, `SendMessageWithReplyCommand.cs`: `Exchange`→`Target`.
+- [x] 2.4 RED+GREEN `MessagesController.cs`: wire keeps `exchange`/`routingKey`; maps `exchange → command.Target`.
+- [x] 2.5 RED+GREEN `SignalRMessageBroadcaster.cs`: map `Target → Exchange`, `RoutingKey ?? "" → RoutingKey`; `MessageReceivedDto` fields/types + SignalR `MessageReceived` payload field names unchanged (asserted via `MessageReceivedDtoTests` serialization test in Infrastructure.Tests — no SignalR client harness exists in Api.Tests).
+- [x] 2.6 RED+GREEN `RabbitMqAdapter.cs`: map `Target` → AMQP exchange; enforce non-blank routing key at adapter level (RED: blank key rejected by adapter).
+- [x] 2.7 REFACTOR; Infrastructure send/receive/reply parity run; `dotnet test`.
 
 ## Phase 3: Capabilities + request-reply gate (PR 3)
 _Spec: bus-connection — "Adapter Declares Broker Capabilities" + "Read Broker Capabilities Endpoint"; request-reply — "Request-Reply Is Gated by a Capability Flag"._

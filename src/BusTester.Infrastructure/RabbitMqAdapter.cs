@@ -106,6 +106,14 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
 
     public async Task SendAsync(BusMessage message, CancellationToken ct = default)
     {
+        // BusMessage is broker-neutral and allows a null/blank routing key, but RabbitMQ needs one
+        // to route the publish. Enforce it here (the rule that used to live in the domain type).
+        if (string.IsNullOrWhiteSpace(message.RoutingKey))
+        {
+            throw new ArgumentException("RabbitMQ requires a non-blank routing key.", nameof(message));
+        }
+
+        var routingKey = message.RoutingKey;
         var connection = RequireConnection();
 
         try
@@ -118,9 +126,9 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
             // to this single send — is still open, leaving the connection itself unaffected.
             // The AMQP default exchange ("") cannot be declared passively (the broker replies
             // ACCESS_REFUSED), and it always exists, so skip the check in that case.
-            if (message.Exchange.Length != 0)
+            if (message.Target.Length != 0)
             {
-                await channel.ExchangeDeclarePassiveAsync(message.Exchange, ct);
+                await channel.ExchangeDeclarePassiveAsync(message.Target, ct);
             }
 
             var body = Encoding.UTF8.GetBytes(message.Payload);
@@ -141,8 +149,8 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
                 }
 
                 await channel.BasicPublishAsync(
-                    message.Exchange,
-                    message.RoutingKey,
+                    message.Target,
+                    routingKey,
                     mandatory: false,
                     properties,
                     body,
@@ -150,12 +158,12 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
             }
             else
             {
-                await channel.BasicPublishAsync(message.Exchange, message.RoutingKey, body, ct);
+                await channel.BasicPublishAsync(message.Target, routingKey, body, ct);
             }
         }
         catch (OperationInterruptedException ex)
         {
-            throw new BusPublishException($"Could not publish to exchange '{message.Exchange}'.", ex);
+            throw new BusPublishException($"Could not publish to exchange '{message.Target}'.", ex);
         }
     }
 

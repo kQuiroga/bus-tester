@@ -21,7 +21,7 @@ public class MessagesControllerTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var sent = Assert.Single(factory.BusPort.SentMessages);
-        Assert.Equal("orders", sent.Exchange);
+        Assert.Equal("orders", sent.Target);
         Assert.Equal("{\"id\":1}", sent.Payload);
     }
 
@@ -140,7 +140,7 @@ public class MessagesControllerTests
         // publish target — a reply published via the Responder action relies on this.
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var sent = Assert.Single(factory.BusPort.SentMessages);
-        Assert.Equal("", sent.Exchange);
+        Assert.Equal("", sent.Target);
         Assert.Equal("orders.reply", sent.RoutingKey);
     }
 

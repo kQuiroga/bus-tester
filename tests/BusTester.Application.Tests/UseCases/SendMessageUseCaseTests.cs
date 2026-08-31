@@ -17,7 +17,7 @@ public class SendMessageUseCaseTests
         await useCase.HandleAsync(command);
 
         var published = Assert.Single(fakeBusPort.SentMessages);
-        Assert.Equal("orders", published.Exchange);
+        Assert.Equal("orders", published.Target);
         Assert.Equal("orders.created", published.RoutingKey);
         Assert.Equal("{\"id\":1}", published.Payload);
     }

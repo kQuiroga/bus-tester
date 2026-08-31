@@ -6,38 +6,52 @@ namespace BusTester.Domain.Tests;
 public class BusMessageTests
 {
     [Fact]
-    public void Create_WithValidExchangeRoutingKeyAndPayload_SetsProperties()
+    public void Create_WithValidTargetRoutingKeyAndPayload_SetsProperties()
     {
-        var message = new BusMessage(exchange: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
+        var message = new BusMessage(target: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
 
-        Assert.Equal("orders", message.Exchange);
+        Assert.Equal("orders", message.Target);
         Assert.Equal("orders.created", message.RoutingKey);
         Assert.Equal("{\"id\":1}", message.Payload);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("   ")]
-    public void Create_WithMissingExchange_ThrowsArgumentException(string? exchange)
+    [Fact]
+    public void Create_WithNullTarget_ThrowsArgumentException()
     {
-        Assert.Throws<ArgumentException>(() => new BusMessage(exchange!, "orders.created", "payload"));
+        Assert.Throws<ArgumentException>(() => new BusMessage(null!, "orders.created", "payload"));
     }
 
     [Fact]
-    public void Create_WithEmptyExchange_Succeeds()
+    public void Create_WithWhitespaceOnlyTarget_ThrowsArgumentException()
     {
-        var message = new BusMessage(exchange: "", routingKey: "orders.reply", payload: "{\"id\":1}");
+        Assert.Throws<ArgumentException>(() => new BusMessage("   ", "orders.created", "payload"));
+    }
 
-        Assert.Equal("", message.Exchange);
+    [Fact]
+    public void Create_WithEmptyTarget_Succeeds()
+    {
+        var message = new BusMessage(target: "", routingKey: "orders.reply", payload: "{\"id\":1}");
+
+        Assert.Equal("", message.Target);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Create_WithMissingRoutingKey_ThrowsArgumentException(string? routingKey)
+    public void Create_WithMissingOrBlankRoutingKey_IsAccepted(string? routingKey)
     {
-        Assert.Throws<ArgumentException>(() => new BusMessage("orders", routingKey!, "payload"));
+        var message = new BusMessage("orders", routingKey, "payload");
+
+        Assert.Equal(routingKey, message.RoutingKey);
+    }
+
+    [Fact]
+    public void Create_WithoutRoutingKey_DefaultsToNull()
+    {
+        var message = new BusMessage("orders", routingKey: null, payload: "payload");
+
+        Assert.Null(message.RoutingKey);
     }
 
     [Theory]
@@ -53,7 +67,7 @@ public class BusMessageTests
     public void Create_WithReplyToAndCorrelationId_SetsBothProperties()
     {
         var message = new BusMessage(
-            exchange: "orders",
+            target: "orders",
             routingKey: "orders.created",
             payload: "{\"id\":1}",
             replyTo: "orders.reply",
@@ -67,7 +81,7 @@ public class BusMessageTests
     public void Create_WithOnlyCorrelationId_LeavesReplyToNull()
     {
         var message = new BusMessage(
-            exchange: "orders",
+            target: "orders",
             routingKey: "orders.created",
             payload: "{\"id\":1}",
             correlationId: "corr-456");
@@ -80,7 +94,7 @@ public class BusMessageTests
     public void Create_WithOnlyReplyTo_LeavesCorrelationIdNull()
     {
         var message = new BusMessage(
-            exchange: "orders",
+            target: "orders",
             routingKey: "orders.created",
             payload: "{\"id\":1}",
             replyTo: "orders.reply");
@@ -92,7 +106,7 @@ public class BusMessageTests
     [Fact]
     public void Create_WithoutReplyToOrCorrelationId_DefaultsBothToNull()
     {
-        var message = new BusMessage(exchange: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
+        var message = new BusMessage(target: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
 
         Assert.Null(message.ReplyTo);
         Assert.Null(message.CorrelationId);
@@ -101,7 +115,7 @@ public class BusMessageTests
     [Fact]
     public void Create_WithoutHeaders_DefaultsToEmptyNonNullDictionary()
     {
-        var message = new BusMessage(exchange: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
+        var message = new BusMessage(target: "orders", routingKey: "orders.created", payload: "{\"id\":1}");
 
         Assert.NotNull(message.Headers);
         Assert.Empty(message.Headers);
@@ -117,7 +131,7 @@ public class BusMessageTests
         };
 
         var message = new BusMessage(
-            exchange: "orders",
+            target: "orders",
             routingKey: "orders.created",
             payload: "{\"id\":1}",
             headers: headers);
