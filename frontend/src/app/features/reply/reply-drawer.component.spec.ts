@@ -12,12 +12,14 @@ import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { toast } from '@spartan-ng/brain/sonner';
 import { ReplyDraftService, ReplyTarget } from '../../core/reply-draft.service';
+import { queueColorIndex } from '../messages/queue-color';
 import { SendHistoryService } from '../send/send-history.service';
 import { ReplyDrawerComponent } from './reply-drawer.component';
 
 const RECENT_SENDS_KEY = 'send-panel.recent-sends';
 
 const ORIGIN: NonNullable<ReplyTarget['origin']> = {
+  queue: 'orders.created',
   exchange: 'orders',
   routingKey: 'orders.created',
   payload: '{"id":7}',
@@ -100,13 +102,27 @@ describe('ReplyDrawerComponent', () => {
     expect(component.exchange).toBe('');
     expect(component.payload()).toBe('');
 
-    const rkInput = drawerBody()!.querySelector<HTMLInputElement>('[data-testid="reply-routing-key"]');
-    expect(rkInput).not.toBeNull();
-    expect(rkInput!.readOnly).toBe(true);
-    expect(rkInput!.value).toBe('amq.gen-reply-2');
+    // The prototype drawer shows the routing key inside the pinned "Mensaje original" box,
+    // not as its own editable field.
+    const pinned = drawerBody()!.querySelector('[data-testid="reply-origin"]');
+    expect(pinned!.textContent).toContain('orders.created');
   });
 
-  it('leaves the Correlation ID blank when the source message had none', async () => {
+  it('renders a readonly, mono Correlation ID input pre-filled from the source message', async () => {
+    const fixture = TestBed.createComponent(ReplyDrawerComponent);
+    fixture.detectChanges();
+
+    request({ routingKey: 'amq.gen-reply-2b', correlationId: 'corr-2b', origin: ORIGIN });
+    fixture.detectChanges();
+    await settleOverlay(fixture);
+
+    const corrInput = drawerBody()!.querySelector<HTMLInputElement>('[data-testid="reply-correlation-id"]');
+    expect(corrInput).not.toBeNull();
+    expect(corrInput!.readOnly).toBe(true);
+    expect(corrInput!.value).toBe('corr-2b');
+  });
+
+  it('renders the readonly Correlation ID input even when the source message had none', async () => {
     const fixture = TestBed.createComponent(ReplyDrawerComponent);
     fixture.detectChanges();
 
@@ -115,6 +131,61 @@ describe('ReplyDrawerComponent', () => {
     await settleOverlay(fixture);
 
     expect(fixture.componentInstance.correlationId()).toBe('');
+    const corrInput = drawerBody()!.querySelector<HTMLInputElement>('[data-testid="reply-correlation-id"]');
+    expect(corrInput).not.toBeNull();
+    expect(corrInput!.readOnly).toBe(true);
+    expect(corrInput!.value).toBe('');
+  });
+
+  it('applies the shared .field-label treatment to the three drawer labels', async () => {
+    const fixture = TestBed.createComponent(ReplyDrawerComponent);
+    fixture.detectChanges();
+
+    request({ routingKey: 'amq.gen-reply-lbl', correlationId: 'corr-lbl', origin: ORIGIN });
+    fixture.detectChanges();
+    await settleOverlay(fixture);
+
+    const labels = Array.from(drawerBody()!.querySelectorAll('.field-label')).map((l) => l.textContent?.trim());
+    expect(labels).toEqual(expect.arrayContaining(['Mensaje original', 'Correlation ID', 'Payload de respuesta']));
+  });
+
+  it('tints the pinned original-message box with a left border in the source queue hue', async () => {
+    const fixture = TestBed.createComponent(ReplyDrawerComponent);
+    fixture.detectChanges();
+
+    request({ routingKey: 'amq.gen-reply-hue', correlationId: null, origin: ORIGIN });
+    fixture.detectChanges();
+    await settleOverlay(fixture);
+
+    const body = drawerBody()!;
+    const content = body.matches('[data-testid="reply-drawer"]') ? body : body.closest('[data-testid="reply-drawer"]')!;
+    expect(content.getAttribute('data-queue-color')).toBe(String(queueColorIndex(ORIGIN.queue)));
+
+    const originBox = body.querySelector<HTMLElement>('[data-testid="reply-origin"]')!;
+    expect(originBox.style.borderLeftColor).toContain('--queue-hue');
+  });
+
+  it('shows the caption reminding that the Send panel keeps its draft', async () => {
+    const fixture = TestBed.createComponent(ReplyDrawerComponent);
+    fixture.detectChanges();
+
+    request({ routingKey: 'amq.gen-reply-cap', correlationId: null, origin: ORIGIN });
+    fixture.detectChanges();
+    await settleOverlay(fixture);
+
+    expect(drawerBody()!.textContent).toContain('El panel de Enviar queda intacto con tu borrador.');
+  });
+
+  it('labels the submit control "Enviar respuesta"', async () => {
+    const fixture = TestBed.createComponent(ReplyDrawerComponent);
+    fixture.detectChanges();
+
+    request({ routingKey: 'amq.gen-reply-send-lbl', correlationId: null, origin: ORIGIN });
+    fixture.detectChanges();
+    await settleOverlay(fixture);
+
+    const send = drawerBody()!.querySelector('[data-testid="reply-send"]');
+    expect(send!.textContent?.trim()).toBe('Enviar respuesta');
   });
 
   it('accepts its own empty Exchange as the AMQP default exchange (no inline error)', () => {

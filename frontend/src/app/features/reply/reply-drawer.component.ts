@@ -4,12 +4,12 @@ import type { BrnDialogState } from '@spartan-ng/brain/dialog';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmInput } from '@spartan-ng/helm/input';
-import { HlmLabel } from '@spartan-ng/helm/label';
-import { HlmSheet, HlmSheetContent, HlmSheetHeader, HlmSheetPortal, HlmSheetTitle } from '@spartan-ng/helm/sheet';
+import { HlmSheet, HlmSheetContent, HlmSheetPortal, HlmSheetTitle } from '@spartan-ng/helm/sheet';
 import { HlmTextarea } from '@spartan-ng/helm/textarea';
 import { ApiClientService } from '../../core/api-client.service';
 import { ReplyDraftService } from '../../core/reply-draft.service';
 import { JsonPrettyPipe } from '../messages/json-pretty.pipe';
+import { queueColorIndex, type QueueColor } from '../messages/queue-color';
 import { SendHistoryService } from '../send/send-history.service';
 
 /** Toast styling reused from the Send panel (ui-presentation spec: "Send Feedback Delivered via
@@ -19,10 +19,12 @@ const TOAST_ERROR_CLASS = 'bg-status-error-bg text-status-error';
 
 /**
  * Right-side reply drawer (request-reply spec: "Responder Action Opens a Reply Drawer Anchored to
- * the Message"; design D3/D4/D9). Opens whenever {@link ReplyDraftService} holds a draft, pins the
- * source message at the top, and owns a minimal reply form: the Routing Key is read-only (the
- * message's `replyTo`), the Exchange is always the AMQP default exchange (`""`, accepted with no
- * inline error), and only the payload is editable. It issues its own `POST /api/messages` and
+ * the Message"; design D3/D4/D9). Opens whenever {@link ReplyDraftService} holds a draft. Layout
+ * follows the approved prototype (`docs/redesign-prototype/Main.dc.html` reply drawer): a header dot
+ * in the source queue's hue, a pinned "Mensaje original" box (routing key + exchange meta + payload)
+ * with a left border in the same hue, a read-only Correlation ID, and the editable reply payload.
+ * The reply always publishes through the AMQP default exchange (`""`, accepted with no inline
+ * error) with the source message's `replyTo` as the routing key. It issues its own `POST /api/messages` and
  * records the send into the shared recent-sends history — the small duplication of the send call is
  * accepted per D9 rather than extracting a shared send service. Closing the drawer clears the draft.
  */
@@ -33,10 +35,8 @@ const TOAST_ERROR_CLASS = 'bg-status-error-bg text-status-error';
     FormsModule,
     HlmButton,
     HlmInput,
-    HlmLabel,
     HlmSheet,
     HlmSheetContent,
-    HlmSheetHeader,
     HlmSheetPortal,
     HlmSheetTitle,
     HlmTextarea,
@@ -57,6 +57,21 @@ export class ReplyDrawerComponent {
 
   /** Source message pinned at the top of the drawer (design D4). */
   readonly origin = computed(() => this.draft()?.target.origin ?? null);
+
+  /** Palette slot (1..6) of the source message's queue, so the header dot and the pinned
+   *  original-message box share the same hue as that queue's feed pill (prototype reply drawer;
+   *  reuses the slice-4 `[data-queue-color='N']` → `--queue-hue` mechanism). */
+  readonly queueColor = computed<QueueColor | null>(() => {
+    const queue = this.origin()?.queue ?? '';
+    return queue === '' ? null : queueColorIndex(queue);
+  });
+
+  /** Meta line inside the pinned box — `exchange: {value}`, with the AMQP default-exchange marker
+   *  when the source message carried no exchange (matches the feed row wording). */
+  readonly originMeta = computed(() => {
+    const o = this.origin();
+    return o ? `exchange: ${o.exchange || '(intercambio predeterminado)'}` : '';
+  });
 
   /** Read-only reply target routing key (the source message's `replyTo`). */
   readonly routingKey = computed(() => this.draft()?.target.routingKey ?? '');

@@ -213,6 +213,7 @@ export class MessagesComponent {
       routingKey: message.replyTo,
       correlationId: message.correlationId ?? null,
       origin: {
+        queue: this.queueNameOf(message),
         exchange: message.exchange,
         routingKey: message.routingKey,
         payload: message.payload,

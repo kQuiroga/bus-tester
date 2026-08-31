@@ -9,7 +9,7 @@ export interface ReplyTarget {
    * contract — and `reply-draft.service.spec.ts` — stay unchanged; only `MessagesComponent.respond`
    * populates it.
    */
-  origin?: { exchange: string; routingKey: string; payload: string; receivedAt: string };
+  origin?: { queue: string; exchange: string; routingKey: string; payload: string; receivedAt: string };
 }
 
 /**
