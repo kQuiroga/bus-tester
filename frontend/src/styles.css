@@ -49,8 +49,13 @@
   --color-input: var(--color-line);
   --color-ring: var(--color-accent);
 
-  --color-primary: var(--color-ink);
-  --color-primary-foreground: var(--color-ground);
+  /* Primary buttons fill with the broker accent over dark ink, matching the
+   * prototype `.btn` (`background: var(--accent); color: var(--accent-ink)`).
+   * Because `--color-accent` is the broker indirection, primary actions render
+   * amber for RabbitMQ, blue for Kafka, and neutral grey while disconnected
+   * (decision #167). */
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-accent-foreground);
 
   --color-destructive: #e5484d;
   --color-destructive-foreground: var(--color-ink);
@@ -63,13 +68,18 @@
   --color-status-warn: #e0a34a;
   --color-status-warn-bg: #2a2113;
 
-  /* ---- Per-queue hues, consumed by slice 4's pill + dot ---- */
-  --color-queue-1: #e0a34a;
-  --color-queue-2: #3d8ef0;
-  --color-queue-3: #4cc38a;
-  --color-queue-4: #b57bff;
-  --color-queue-5: #e5747a;
-  --color-queue-6: #4bb8c4;
+  /* ---- Per-queue hues, consumed by slice 4's pill + dot ----
+   * Slots 1-5 are the approved prototype palette (`graphite.q` in
+   * docs/redesign-prototype/Main.dc.html): green, teal, violet, blue, pink.
+   * Slot 6 extends the palette with a warm coral — FNV-1a is `% 6`, so a sixth
+   * hue is needed; it stays visibly distinct from the amber accent and the
+   * five prototype hues. */
+  --color-queue-1: #5ac37d;
+  --color-queue-2: #67c1c9;
+  --color-queue-3: #b393e6;
+  --color-queue-4: #6f9fe0;
+  --color-queue-5: #e08a9e;
+  --color-queue-6: #e0906a;
 
   /* ---------------------------------------------------------------------------
    * Radii — every corner traces back to one 12px base token
@@ -151,5 +161,18 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+@layer components {
+  /* Reusable field-label treatment mirroring the prototype `.lbl`
+     (docs/redesign-prototype/Main.dc.html): a small, tracked-out, uppercase,
+     muted caption sitting above form controls. Defined here in slice 1; slices
+     2-5 apply it to their own labels. */
+  .field-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
   }
 }
