@@ -52,16 +52,16 @@ _Spec: message-sending — "Broker-Neutral Send Message Superset"; message-consu
 ## Phase 3: Capabilities + request-reply gate (PR 3)
 _Spec: bus-connection — "Adapter Declares Broker Capabilities" + "Read Broker Capabilities Endpoint"; request-reply — "Request-Reply Is Gated by a Capability Flag"._
 
-- [ ] 3.1 GREEN `src/BusTester.Application/Ports/BrokerCapabilities.cs`: `record BrokerCapabilities(string BrokerName, bool SupportsRequestReply)`.
-- [ ] 3.2 GREEN `Ports/IBusPort.cs`: add `BrokerCapabilities Capabilities { get; }` + `ConnectAsync` teardown-first XML contract; update `StubBusPort` and `FakeBusPort` to implement it.
-- [ ] 3.3 RED+GREEN `UseCases/GetBrokerCapabilitiesUseCase.cs`: returns `busPort.Capabilities`.
-- [ ] 3.4 RED `SendMessageWithReplyUseCaseTests`: `SupportsRequestReply=false` throws `RequestReplyNotSupportedException` and declares no queue (assert `FakeBusPort.CallOrder`); `true` path unchanged.
-- [ ] 3.5 GREEN `src/BusTester.Domain/Exceptions/RequestReplyNotSupportedException.cs : BusException`; guard as first statement of `SendMessageWithReplyUseCase.HandleAsync`.
-- [ ] 3.6 GREEN `RabbitMqAdapter.Capabilities` → `new("RabbitMQ", SupportsRequestReply: true)` constant.
-- [ ] 3.7 RED+GREEN `Controllers/CapabilitiesController.cs`: `GET /api/capabilities` → `200 {"brokerName":"RabbitMQ","supportsRequestReply":true}`; answers before connect, stable after connect/disconnect; register `GetBrokerCapabilitiesUseCase` in `Program.cs`.
-- [ ] 3.8 GREEN map `RequestReplyNotSupportedException` → HTTP 409 in `BusExceptionHandler`.
-- [ ] 3.9 RED Infrastructure: `Capabilities.SupportsRequestReply` readable with no connection.
-- [ ] 3.10 REFACTOR; full `dotnet test` (Docker); confirm `ArchitectureTests` green.
+- [x] 3.1 GREEN `src/BusTester.Application/Ports/BrokerCapabilities.cs`: `record BrokerCapabilities(string BrokerName, bool SupportsRequestReply)`.
+- [x] 3.2 GREEN `Ports/IBusPort.cs`: add `BrokerCapabilities Capabilities { get; }` + `ConnectAsync` teardown-first XML contract; update `StubBusPort` and `FakeBusPort` to implement it.
+- [x] 3.3 RED+GREEN `UseCases/GetBrokerCapabilitiesUseCase.cs`: returns `busPort.Capabilities`.
+- [x] 3.4 RED `SendMessageWithReplyUseCaseTests`: `SupportsRequestReply=false` throws `RequestReplyNotSupportedException` and declares no queue (assert `FakeBusPort.CallOrder`); `true` path unchanged.
+- [x] 3.5 GREEN `src/BusTester.Domain/Exceptions/RequestReplyNotSupportedException.cs` (extends `Exception` — matches sibling bus exceptions; no `BusException` base exists in this codebase); guard as first statement of `SendMessageWithReplyUseCase.HandleAsync`.
+- [x] 3.6 GREEN `RabbitMqAdapter.Capabilities` → `new("RabbitMQ", SupportsRequestReply: true)` constant.
+- [x] 3.7 RED+GREEN `Controllers/CapabilitiesController.cs`: `GET /api/capabilities` → `200 {"brokerName":"RabbitMQ","supportsRequestReply":true}`; answers before connect, stable after connect/disconnect; register `GetBrokerCapabilitiesUseCase` in `Program.cs`.
+- [x] 3.8 GREEN map `RequestReplyNotSupportedException` → HTTP 409 in `BusExceptionHandler`.
+- [x] 3.9 RED Infrastructure: `Capabilities.SupportsRequestReply` readable with no connection.
+- [x] 3.10 REFACTOR; full `dotnet test` (Docker); confirm `ArchitectureTests` green.
 
 ## Phase 4: Verification
 - [ ] 4.1 Full `dotnet test` (all four projects, Docker running) green; RabbitMQ send/subscribe/reply observably identical; no `frontend/` or `docker-compose.yml` file changed; `ArchitectureTests` proves Domain/Application free of `RabbitMQ.Client`.

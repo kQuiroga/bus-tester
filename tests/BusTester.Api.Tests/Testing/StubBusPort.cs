@@ -9,6 +9,12 @@ namespace BusTester.Api.Tests.Testing;
 /// </summary>
 public sealed class StubBusPort : IBusPort
 {
+    /// <summary>
+    /// Defaults to the RabbitMQ descriptor so capability-agnostic controller tests are unaffected;
+    /// individual tests override it to exercise capability gates.
+    /// </summary>
+    public BrokerCapabilities Capabilities { get; set; } = new("RabbitMQ", SupportsRequestReply: true);
+
     public BusConnectionConfig? ConnectedConfig { get; private set; }
 
     public List<BusMessage> SentMessages { get; } = [];

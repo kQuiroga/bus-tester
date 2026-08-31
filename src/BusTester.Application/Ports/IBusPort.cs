@@ -9,6 +9,19 @@ namespace BusTester.Application.Ports;
 /// </summary>
 public interface IBusPort
 {
+    /// <summary>
+    /// Static description of the connected broker's supported features. MUST be produced without
+    /// an active connection (a constant per adapter) so callers can read it before connecting and
+    /// get the same answer across connect/disconnect cycles.
+    /// </summary>
+    BrokerCapabilities Capabilities { get; }
+
+    /// <summary>
+    /// Opens a connection using <paramref name="config"/>. When a connection already exists the
+    /// adapter MUST first release the prior connection, its channels, and any running
+    /// consumer/poll loops before opening the new one (issue #34); losing the existing
+    /// subscriptions across a reconnect is expected, documented behaviour.
+    /// </summary>
     Task ConnectAsync(BusConnectionConfig config, CancellationToken ct = default);
 
     Task DisconnectAsync(CancellationToken ct = default);

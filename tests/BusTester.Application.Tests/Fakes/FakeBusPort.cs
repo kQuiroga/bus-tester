@@ -10,6 +10,12 @@ namespace BusTester.Application.Tests.Fakes;
 /// </summary>
 public sealed class FakeBusPort : IBusPort
 {
+    /// <summary>
+    /// Defaults to a request-reply-capable descriptor so existing use-case tests are unaffected;
+    /// set it to a <c>SupportsRequestReply: false</c> value to exercise the capability gate.
+    /// </summary>
+    public BrokerCapabilities Capabilities { get; set; } = new("RabbitMQ", SupportsRequestReply: true);
+
     public List<BusMessage> SentMessages { get; } = [];
 
     public List<SubscriptionRequest> SubscribedRequests { get; } = [];
