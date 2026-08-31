@@ -72,6 +72,40 @@ Note on RED for 1.1: the missing service (1.2) broke the bundle first, so 1.1's 
 | `frontend/src/app/app.ts` | Injects `BrokerAccentService` so the accent seam is live document-wide |
 | `frontend/src/app/app.html` | Shell + sticky header on surface tokens; panels unchanged |
 
+## Slice 1 correction C2 — prototype fidelity (tokens + shell)
+
+Scoped fix on `feat/console-redesign-s1-tokens`, commit `c723a75`. Source of
+truth: `docs/redesign-prototype/Main.dc.html` (the approved design canvas,
+vendored in commit cba01f3). The implemented slice 1 diverged from the `graphite`
+theme object and `<style>` block of that prototype in four places.
+
+| Gap | Prototype | Was | Now |
+|-----|-----------|-----|-----|
+| Queue palette | `graphite.q = ['#5ac37d','#67c1c9','#b393e6','#6f9fe0','#e08a9e']` | `#e0a34a,#3d8ef0,#4cc38a,#b57bff,#e5747a,#4bb8c4` | `--color-queue-1..5` = the prototype hues exactly; `--color-queue-6` = warm coral `#e0906a` (FNV-1a is `% 6`, needs a sixth slot distinct from accent + the five) with a code comment; all six pinned in the token spec |
+| Primary buttons | `.btn { background: var(--accent); color: var(--accent-ink) }` | `--color-primary: var(--color-ink)` → every button near-white | `--color-primary: var(--color-accent)`, `--color-primary-foreground: var(--color-accent-foreground)` → buttons follow the broker accent (amber RabbitMQ / blue Kafka) and stay neutral grey while disconnected (decision #167, intended) |
+| Field labels | `.lbl { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color: var(--muted) }` | no reusable class | new `.field-label` in `@layer components` with exactly those rules (`color: var(--color-muted-foreground)`); slices 2-5 apply it |
+| Header | top bar is a `.card` (`background: var(--panel); border: 1px solid var(--line); border-radius: 12px`, pad ~11px 15px, margin ~14px) | `border-b` strip, `bg-card/80` | `<header>` in `app.html` restyled: `rounded-xl border border-border bg-card px-[15px] py-[11px] m-4 sm:m-6`, still `sticky top-0`; `<main>` top padding dropped to avoid a double gap |
+
+### C2 TDD Cycle Evidence
+
+| Step | Test | RED (observed) | GREEN |
+|------|------|----------------|-------|
+| C2-a queue palette | `styles.tokens.spec.ts` "queue hue tokens realize the prototype Graphite palette" — 6 pinned `it.each` rows | `expected '#e0a34a' to be '#5ac37d'` … `expected '#4bb8c4' to be '#e0906a'` (6 failing) | all 6 green after `styles.css` palette edit |
+| C2-b primary | `styles.tokens.spec.ts` "--color-primary follows the broker accent, not the near-white ink" + `--color-accent-foreground` semantic-alias row | `--color-primary: var(--color-accent)` regex false (1 failing) | green after `styles.css` primary edit |
+| C2-c field-label | `styles.tokens.spec.ts` ".field-label component class" — @layer membership + 4 rule assertions | `selector ".field-label" not found in styles.css` (2 failing) | green after `@layer components` block added |
+| C2-d header | none — style-only Tailwind classes on a component; existing `app.spec.ts` stays green | n/a | `app.spec.ts` 2/2 green |
+
+Total C2 RED: 9 failing assertions, then 194/194 green.
+
+### Notes for slices 2-5 (prototype token/shell layer)
+
+- **Apply `.field-label`** to every form/section caption (prototype uses `.lbl` on send fields, "Envíos recientes", "Plantillas", connect-dialog field labels, drawer "Mensaje original" / "Correlation ID" / "Payload de respuesta"). Plain class, no `@apply` needed.
+- **Primary buttons now inherit the accent automatically** via `bg-primary` / the spartan default button variant — amber/blue/grey with no per-component work. `Desconectar` stays on `--color-destructive` (`#e5484d` ≈ prototype `#e06d6d`).
+- **Prototype card metrics**: `border-radius: 12px` (`rounded-xl`), `border: 1px solid var(--line)`, `background: var(--panel)`. Inner padding `18px` (panels), `22px` (connect popup, drawer). Grid gap `14px`.
+- **Prototype input** `.in`: height 34px, `radius 8px`, `background: var(--panel2)`, `:focus` border → `var(--accent)`.
+- **`.qpill`** (slice 4): prototype tints `background: mix(hue, ground, .82)`, text = the hue, 6px solid dot. Current `color-mix(in oklab, var(--queue-hue) 18%, transparent)` is close — keep.
+- **Status dots**: prototype connected `#57d9a3`, disconnected `#e06d6d` → reuse `--color-status-ok` / `--color-status-error`.
+
 ## Slice 2 — Connect popup + status pill + reserved slot (COMPLETE)
 
 **Branch**: `feat/console-redesign-s2-connect` (child of `feat/console-redesign-s1-tokens`)
@@ -147,36 +181,20 @@ CDK overlay while `connectDialogOpen()`.
 | 2.4 | `connect.component.spec.ts` slot test | Unit | ✅ `[data-testid=broker-selector-slot]` null | ✅ present, aria-hidden, tabindex -1, no HTTP on click | ➖ |
 | 2.5 | full suite + `app.spec.ts` | Unit | n/a (refactor) | ✅ 13 files / 193 tests green after moving the pill to the header | ✅ grid 3-col → 2-col, no dead connect-column markup |
 
-### Work Unit Evidence
+### Work Unit Evidence (Slice 2)
 
 | Evidence | Value |
 |---|---|
-| Focused test command + result | `npm test -- --watch false` (from `frontend/`) → **13 files / 193 tests passed**, 0 failed (was 11 files / 189; net +4: `status-pill` +7, `connect-dialog` +7, `connect` container −10 obsolete permanent-column tests) |
-| Runtime harness | N/A — repo has no e2e/integration harness; Vitest is the only runner. `npm run build` succeeds; initial bundle budget warning grew from ~500 kB to 628 kB (+128 kB) because the vendored dialog pulls in `@angular/cdk/overlay` — expected cost of design D3, not a regression in app code. |
-| Rollback boundary | Revert commits `07f3401` + `9e3d001`. Files: delete `frontend/libs/ui/dialog/`, drop the `@spartan-ng/helm/dialog` line from `frontend/tsconfig.json`, restore `frontend/src/app/features/connect/*` and the `<app-connect />` grid cell in `frontend/src/app/app.html`. No other slice touches these. |
+| Focused test command + result | `npm test -- --watch false` (from `frontend/`) → **13 files / 193 tests passed**, 0 failed |
+| Runtime harness | N/A — Vitest is the only runner. `npm run build` succeeds; initial bundle budget warning grew from ~500 kB to 628 kB (+128 kB) because the vendored dialog pulls in `@angular/cdk/overlay` — expected cost of design D3. |
+| Rollback boundary | Revert commits `07f3401` + `9e3d001`. Delete `frontend/libs/ui/dialog/`, drop the `@spartan-ng/helm/dialog` path, restore `frontend/src/app/features/connect/*` and the `<app-connect />` grid cell. |
 
-### Changed-line count (this slice, committed)
+### Deviations from design (Slice 2)
 
-| Bucket | Added | Deleted | Total |
-|---|---|---|---|
-| Vendored (`frontend/libs/ui/dialog/**`) | 272 | 0 | 272 |
-| Authored (connect feature + app.html + tsconfig) | 405 | 409 | 814 |
-| **Slice total** | **677** | **409** | **1086** |
+- **Dialog vendoring method**: design D3 says the CLI vendors the lib; the CLI is nx-only and cannot run here. Hand-vendored from the CLI's own templates with the documented class substitution. No behavioural deviation.
+- **Dialog header/title in the presentational child**: plain `<h2>` / `<p>` instead of `hlmDialogTitle` / `hlmDialogDescription` (those inject `BrnDialogRef` and throw in isolation). Overlay/focus-trap/close still come from `HlmDialog` / `HlmDialogContent`.
+- **`changeBroker()`**: `disconnect()` + keep popup open (body shows credentials form); the tester edits fields and submits. Matches D10 without modifying `connect()`.
 
-Authored deletions are almost entirely the obsolete `connect.component.spec.ts`
-(−268) that characterised the removed permanent-column connect flow, plus the
-`connect.component.{ts,html}` rewrite. Net new authored lines ≈ 268. The vendored
-CLI output alone (272) did **not** push the authored diff toward the 800 budget
-(decision #150); the authored figure is inflated by the mandated spec rewrite
-(task 2.1 RED) and the mandated column deletion (task 2.5). Flagged for the
-PR-time `ask-on-risk` review-workload decision.
+### Issues found (Slice 2)
 
-### Deviations from design
-
-- **Dialog vendoring method**: design D3 says "the CLI vendors `libs/ui/{dialog,sheet}`". The CLI cannot run here (nx-only). Hand-vendored from the CLI's own templates with the documented class substitution. Output is structurally identical to a CLI run against a spartan-configured workspace. No behavioural deviation.
-- **Dialog header/title inside the presentational child**: used plain `<h2>` / `<p>` instead of `hlmDialogTitle` / `hlmDialogDescription`, because those directives inject `BrnDialogRef` and throw when the child is rendered in isolation (its own spec). The dialog chrome (overlay, focus trap, close button) still comes from the vendored `HlmDialog` / `HlmDialogContent` in the container.
-- **`changeBroker()`**: implemented as `disconnect()` + keep popup open (body then shows the credentials form because `connected()` is false). Does not auto-fire `connect()` — the tester edits the fields and submits. Matches task 2.3 intent ("reopens credentials form, runs existing `disconnect()` → `connect()`") and D10 without modifying `connect()`.
-
-### Issues found
-
-- None blocking. Bundle-size budget warning noted above.
+- None blocking. Bundle-size budget warning noted above. Prototype-fidelity gaps fixed in correction C3 (below).

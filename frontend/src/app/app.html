@@ -1,6 +1,9 @@
 <div class="min-h-screen bg-background text-foreground">
+  <!-- Top bar renders as a card (prototype `.card`): panel surface, full 1px
+       line border, 12px radius, inset from the viewport edges — not a plain
+       bottom-border strip. Stays sticky so it tracks the scroll. -->
   <header
-    class="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur sm:px-6"
+    class="sticky top-0 z-10 m-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-[15px] py-[11px] sm:m-6"
   >
     <h1 class="text-xl font-semibold tracking-tight text-foreground">{{ title }}</h1>
     <p class="text-sm text-muted-foreground">Panel de pruebas de mensajería</p>
@@ -10,7 +13,7 @@
   </header>
 
   <main
-    class="grid grid-cols-1 gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(320px,420px)_minmax(360px,1fr)] lg:gap-6"
+    class="grid grid-cols-1 gap-4 px-4 pb-4 sm:px-6 sm:pb-6 lg:grid-cols-[minmax(320px,420px)_minmax(360px,1fr)] lg:gap-6"
   >
     <app-send />
     <app-messages />
