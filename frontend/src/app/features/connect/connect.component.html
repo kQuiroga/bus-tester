@@ -1,30 +1,39 @@
-<div class="flex flex-wrap items-center gap-2">
+<div class="flex flex-wrap items-center gap-[10px]">
+  <!-- Reserved broker-selector slot (connection-status spec: "Reserved Broker-Selector
+       Slot"). Rendered as the prototype's active-looking `.pill` (`● RabbitMQ ▾`) so the
+       real affordance reads as such, but it stays inert: aria-hidden, aria-disabled,
+       non-focusable, pointer-events disabled. The Kafka track (#143) wires the click to
+       toggle broker + accent in a later slice/PR. -->
+  <div
+    data-testid="broker-selector-slot"
+    aria-hidden="true"
+    aria-disabled="true"
+    tabindex="-1"
+    inert
+    class="pointer-events-none inline-flex cursor-default select-none items-center gap-[7px] rounded-full border border-border bg-card px-[11px] py-[5px] font-mono text-xs text-foreground"
+  >
+    <span
+      data-testid="broker-selector-slot-dot"
+      class="inline-block h-[7px] w-[7px] shrink-0 rounded-[3px] bg-accent"
+    ></span>
+    RabbitMQ ▾
+  </div>
+
   <app-status-pill
     [connected]="connected()"
     [pending]="pending()"
     [errorMessage]="errorMessage()"
     [hubState]="hubConnectionState()"
+    [endpoint]="host() + ':' + port()"
     (activate)="openConnectDialog()"
   />
-
-  <!-- Reserved, inert broker-selector slot (connection-status spec: "Reserved Broker-Selector
-       Slot"). No wiring: aria-hidden, non-focusable, pointer-events disabled. -->
-  <div
-    data-testid="broker-selector-slot"
-    aria-hidden="true"
-    tabindex="-1"
-    inert
-    class="pointer-events-none inline-flex select-none items-center rounded-md border border-dashed border-border/60 px-2 py-1 text-xs text-muted-foreground/60"
-  >
-    Broker
-  </div>
 </div>
 
 <hlm-dialog
   [state]="connectDialogOpen() ? 'open' : 'closed'"
   (stateChanged)="onDialogStateChange($event)"
 >
-  <hlm-dialog-content *hlmDialogPortal class="flex flex-col gap-4">
+  <hlm-dialog-content *hlmDialogPortal class="flex flex-col gap-[14px] p-[22px]">
     <app-connect-dialog
       [connected]="connected()"
       [pending]="pending()"

@@ -7,6 +7,7 @@ type PillInputs = {
   pending: boolean;
   errorMessage: string | null;
   hubState: HubConnectionState;
+  endpoint: string;
 };
 
 describe('StatusPillComponent', () => {
@@ -20,6 +21,7 @@ describe('StatusPillComponent', () => {
     fixture.componentRef.setInput('pending', inputs.pending ?? false);
     fixture.componentRef.setInput('errorMessage', inputs.errorMessage ?? null);
     fixture.componentRef.setInput('hubState', inputs.hubState ?? 'idle');
+    fixture.componentRef.setInput('endpoint', inputs.endpoint ?? 'localhost:5672');
     fixture.detectChanges();
     return fixture;
   }
@@ -27,6 +29,12 @@ describe('StatusPillComponent', () => {
   function pill(fixture: ReturnType<typeof render>) {
     return (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
       '[data-testid="broker-status-pill"]',
+    );
+  }
+
+  function dot(fixture: ReturnType<typeof render>) {
+    return (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+      '[data-testid="broker-status-pill-dot"]',
     );
   }
 
@@ -45,14 +53,28 @@ describe('StatusPillComponent', () => {
     expect(count).toBe(1);
   });
 
-  it('shows a connected label once the broker is connected', () => {
-    const fixture = render({ connected: true });
-    expect(pill(fixture)!.textContent).toContain('Conectado');
+  it('shows a connected label with the broker endpoint once connected', () => {
+    const fixture = render({ connected: true, endpoint: 'localhost:5672' });
+    expect(pill(fixture)!.textContent).toContain('Conectado · localhost:5672');
   });
 
   it('shows a no-connection label while disconnected', () => {
     const fixture = render({ connected: false });
     expect(pill(fixture)!.textContent).toContain('Sin conexión');
+  });
+
+  it('renders the prototype pill chrome: rounded-full, border, card surface', () => {
+    const cls = pill(render())!.className;
+    expect(cls).toContain('rounded-full');
+    expect(cls).toContain('border');
+    expect(cls).toContain('bg-card');
+  });
+
+  it('renders a status dot tinted green when connected and red when disconnected', () => {
+    expect(dot(render({ connected: true, hubState: 'connected' }))!.className).toContain(
+      'bg-status-ok',
+    );
+    expect(dot(render({ connected: false }))!.className).toContain('bg-status-error');
   });
 
   it('renders the hub reconnecting state inline inside the pill, not as a separate banner', () => {

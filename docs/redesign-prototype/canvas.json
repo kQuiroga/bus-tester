@@ -1,0 +1,19 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Console — prototipo" },
+    { "id": "page-2", "name": "Direcciones descartadas" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "page": "page-1", "x": 0, "y": 0, "w": 1440, "h": 1120, "title": "Console — prototipo clickable", "is_interactive": true },
+    { "file": "DirectionTerminal.dc.html", "page": "page-2", "x": 0, "y": 0, "w": 1440, "h": 1010, "title": "Terminal" },
+    { "file": "DirectionStudio.dc.html", "page": "page-2", "x": 1580, "y": 0, "w": 1440, "h": 1120, "title": "Studio" },
+    { "file": "DirectionSignal.dc.html", "page": "page-2", "x": 0, "y": 1320, "w": 1440, "h": 1010, "title": "Signal" }
+  ],
+  "annotations": [
+    { "id": "note-proto", "page": "page-1", "x": 0, "y": -164, "w": 760, "text": "CONSOLE + GRAPHITE — prototipo clickable\nTema Graphite (gris neutro). ACENTO SEGÚN BROKER: ámbar con RabbitMQ, azul con Kafka. Click en el pill \"RabbitMQ ▾ / Kafka ▾\" (arriba izq.) para alternar — cambia acento, popup de conexión (bootstrap.servers vs host/puerto) y endpoint.\nProbá también: \"Responder\" abre/cierra el drawer · \"Suscribirse\" agrega la cola con su color · \"Cargar\" llena el form.\nEl tweak \"theme\" sigue disponible para comparar paletas." },
+    { "id": "note-terminal", "page": "page-2", "x": 0, "y": -140, "w": 640, "text": "TERMINAL (descartada)\nTodo monoespaciado, tail -f, respuesta como split inferior." },
+    { "id": "note-studio", "page": "page-2", "x": 1580, "y": -140, "w": 640, "text": "STUDIO (descartada)\nPapel cálido, serif de titular, fila con fondo pastel por cola." },
+    { "id": "note-signal", "page": "page-2", "x": 0, "y": 1180, "w": 640, "text": "SIGNAL (descartada)\nTabla densa, barra de estado fija, rail de respuesta." }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

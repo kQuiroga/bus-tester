@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    .root {
+      width: 1440px; min-height: 1060px; box-sizing: border-box;
+      background: #f6f3ee; color: #2b2722;
+      font-family: "Public Sans", system-ui, sans-serif;
+      padding: 28px 32px 40px;
+    }
+    .serif { font-family: "Instrument Serif", Georgia, serif; }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+    .card { background: #fffdf9; border: 1px solid #e6ded0; border-radius: 14px; }
+    .lbl { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: #7c7267; }
+    .bar { height: 36px; border-radius: 9px; background: #f3ede2; border: 1px solid #e6ded0; }
+  </style>
+</helmet>
+
+<div class="root">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:22px;">
+    <div>
+      <div class="lbl">Dirección</div>
+      <div class="serif" style="font-size:34px; line-height:1.1; margin-top:4px;">Studio — claro y cálido</div>
+      <div style="font-size:13px; color:#7c7267; margin-top:8px; max-width:56ch;">Rompe con el look oscuro de dev-tool. Papel cálido, serif de titular, acento arcilla. Más aire, tipografía más grande, sensación editorial.</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+      <div style="display:flex; gap:6px;">
+        <span style="width:34px;height:34px;border-radius:8px;background:#f6f3ee;border:1px solid #e6ded0;"></span>
+        <span style="width:34px;height:34px;border-radius:8px;background:#fffdf9;border:1px solid #e6ded0;"></span>
+        <span style="width:34px;height:34px;border-radius:8px;background:#c26b4a;"></span>
+        <span style="width:34px;height:34px;border-radius:8px;background:#7a8b6f;"></span>
+        <span style="width:34px;height:34px;border-radius:8px;background:#2b2722;"></span>
+      </div>
+      <div class="mono" style="font-size:11px; color:#7c7267;">Instrument Serif · Public Sans · IBM Plex Mono</div>
+    </div>
+  </div>
+
+  <!-- connection banner -->
+  <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:12px 18px; margin-bottom:16px;">
+    <div class="serif" style="font-size:20px;">BusTester</div>
+    <div style="display:flex; gap:10px; align-items:center; font-size:12px;">
+      <span style="display:inline-flex; align-items:center; gap:7px; background:#eef1e9; color:#5a6b50; padding:5px 12px; border-radius:999px;"><span style="width:7px;height:7px;border-radius:4px;background:#7a8b6f;display:inline-block;"></span>Conectado · localhost:5672</span>
+      <span style="background:#f3ede2; border:1px solid #e6ded0; padding:5px 12px; border-radius:999px;">RabbitMQ ▾</span>
+    </div>
+  </div>
+
+  <div style="position:relative; display:grid; grid-template-columns:1fr 1fr; gap:16px; overflow:hidden; border-radius:14px;">
+    <div class="card" style="padding:20px;">
+      <div class="serif" style="font-size:22px; margin-bottom:14px;">Enviar mensaje</div>
+      <div style="display:flex; flex-direction:column; gap:13px;">
+        <div><div class="lbl" style="margin-bottom:5px;">Exchange</div><div class="bar"></div></div>
+        <div><div class="lbl" style="margin-bottom:5px;">Clave de enrutamiento</div><div class="bar"></div></div>
+        <div><div class="lbl" style="margin-bottom:5px;">Payload</div><div class="bar" style="height:100px; border-radius:11px;"></div></div>
+        <div style="height:40px; border-radius:10px; background:#c26b4a; color:#fffdf9; font-weight:600; display:flex; align-items:center; justify-content:center; font-size:13px;">Enviar</div>
+      </div>
+      <div style="border-top:1px solid #e6ded0; margin-top:18px; padding-top:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="lbl">Envíos recientes · 5</div><span style="font-size:11px; color:#a4442a;">Vaciar</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px;">
+          <div class="mono" style="font-size:11px; background:#f3ede2; border:1px solid #e6ded0; border-radius:8px; padding:7px 10px;">ordenes.event / orden.creada</div>
+          <div class="mono" style="font-size:11px; background:#f3ede2; border:1px solid #e6ded0; border-radius:8px; padding:7px 10px;">pagos.cmd / pago.capturar</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:20px;">
+      <div class="serif" style="font-size:22px; margin-bottom:12px;">Mensajes en vivo</div>
+      <div style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; font-size:11px; font-weight:600;">
+        <span style="background:#e2efe9; color:#3f6b56; padding:4px 10px; border-radius:999px;">pedidos.creados · 12</span>
+        <span style="background:#f6e9dc; color:#9a6023; padding:4px 10px; border-radius:999px;">pagos.confirmados · 7</span>
+        <span style="background:#ece6f2; color:#6b4f86; padding:4px 10px; border-radius:999px;">envios.despachados · 4</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="background:#eef6f1; border:1px solid #dbe9e0; border-radius:10px; padding:11px 13px;">
+          <div class="mono" style="font-size:12px; font-weight:500;">pedido.creado <span style="color:#3f6b56;">· pedidos.creados</span></div>
+          <div class="mono" style="font-size:11px; color:#7c7267; margin-top:5px;">{ "pedidoId": "8842", "cliente": "ACME SA" }</div>
+        </div>
+        <div style="background:#faf1e6; border:1px solid #efe1cf; border-radius:10px; padding:11px 13px;">
+          <div class="mono" style="font-size:12px; font-weight:500;">pago.confirmado <span style="color:#9a6023;">· pagos.confirmados</span></div>
+          <div class="mono" style="font-size:11px; color:#7c7267; margin-top:5px;">{ "pedidoId": "8842", "monto": 149.90 }</div>
+        </div>
+        <div style="background:#f2edf7; border:1px solid #e4dcee; border-radius:10px; padding:11px 13px;">
+          <div class="mono" style="font-size:12px; font-weight:500;">envio.despachado <span style="color:#6b4f86;">· envios.despachados</span></div>
+          <div class="mono" style="font-size:11px; color:#7c7267; margin-top:5px;">{ "envioId": "ENV-8830", "carrier": "Andreani" }</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- drawer -->
+    <div style="position:absolute; inset:0; background:rgba(43,39,34,.28);"></div>
+    <div style="position:absolute; top:0; right:0; width:420px; height:100%; background:#fffdf9; border-left:1px solid #e6ded0; box-shadow:-30px 0 60px -24px rgba(43,39,34,.22); padding:20px; box-sizing:border-box;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div class="serif" style="font-size:20px;">Responder</div><span style="color:#7c7267;">✕</span>
+      </div>
+      <div style="background:#eef6f1; border:1px solid #dbe9e0; border-radius:10px; padding:11px 13px; margin-top:14px;">
+        <div class="lbl" style="font-size:10px;">Mensaje original</div>
+        <div class="mono" style="font-size:12px; margin-top:5px;">pedido.creado <span style="color:#7c7267;">(ordenes.event)</span></div>
+        <div class="mono" style="font-size:11px; color:#7c7267; margin-top:6px;">{ "pedidoId": "8842", "cliente": "ACME SA", "items": 3 }</div>
+      </div>
+      <div style="margin-top:14px;"><div class="lbl" style="margin-bottom:5px;">Correlation ID</div><div class="bar mono" style="display:flex;align-items:center;padding:0 10px;font-size:11px;color:#7c7267;">9f2c-creado-8842</div></div>
+      <div style="margin-top:12px;"><div class="lbl" style="margin-bottom:5px;">Payload de respuesta</div><div class="bar" style="height:120px;border-radius:11px;"></div></div>
+      <div style="height:40px; border-radius:10px; background:#c26b4a; color:#fffdf9; font-weight:600; display:flex; align-items:center; justify-content:center; font-size:13px; margin-top:14px;">Enviar respuesta</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

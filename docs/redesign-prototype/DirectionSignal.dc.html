@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    .root {
+      width: 1440px; min-height: 980px; box-sizing: border-box;
+      background: #0f1216; color: #d3d8de;
+      font-family: "Archivo", system-ui, sans-serif;
+      padding: 26px 30px 34px; font-size: 13px;
+    }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .panel { background: #161a20; border: 1px solid #262c35; border-radius: 7px; }
+    .lbl { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #78828f; }
+    .in { height: 28px; background: #0f1319; border: 1px solid #262c35; border-radius: 4px; }
+    .tab { padding: 5px 11px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .d { width: 7px; height: 7px; border-radius: 4px; display: inline-block; }
+  </style>
+</helmet>
+
+<div class="root">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:18px;">
+    <div>
+      <div class="lbl">Dirección</div>
+      <div style="font-size:25px; font-weight:700; letter-spacing:-.01em; margin-top:5px;">Signal — denso, orientado a datos</div>
+      <div style="font-size:12px; color:#78828f; margin-top:6px; max-width:60ch;">Para vigilar muchas colas a la vez. Tabla compacta, filas de 28&nbsp;px, barra de estado fija, filtros por cola arriba. Máxima densidad de información.</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+      <div style="display:flex; gap:6px;">
+        <span style="width:32px;height:32px;border-radius:6px;background:#0f1216;border:1px solid #262c35;"></span>
+        <span style="width:32px;height:32px;border-radius:6px;background:#161a20;border:1px solid #262c35;"></span>
+        <span style="width:32px;height:32px;border-radius:6px;background:#262c35;"></span>
+        <span style="width:32px;height:32px;border-radius:6px;background:#3b82f6;"></span>
+        <span style="width:32px;height:32px;border-radius:6px;background:#d3d8de;"></span>
+      </div>
+      <div class="mono" style="font-size:10px; color:#78828f;">Archivo · IBM Plex Mono</div>
+    </div>
+  </div>
+
+  <!-- toolbar -->
+  <div class="panel" style="padding:8px 12px; margin-bottom:10px; display:flex; align-items:center; gap:10px;">
+    <span style="font-weight:700;">BusTester</span>
+    <span style="color:#78828f;">·</span>
+    <span class="tab" style="background:#123a34; color:#4fd6bb;"><span class="d" style="background:#4fd6bb;"></span>pedidos.creados 12</span>
+    <span class="tab" style="background:#3a2e16; color:#e8b45f;"><span class="d" style="background:#e8b45f;"></span>pagos.confirmados 7</span>
+    <span class="tab" style="background:#2b2145; color:#b79cf5;"><span class="d" style="background:#b79cf5;"></span>envios.despachados 4</span>
+    <span class="in" style="width:180px; margin-left:8px; display:flex; align-items:center; padding:0 8px; color:#78828f; font-size:11px;">+ suscribir cola</span>
+    <span style="margin-left:auto; display:flex; gap:10px; align-items:center; font-size:12px;">
+      <span style="color:#4fd6bb;">● conectado</span>
+      <span style="background:#1c222b; border:1px solid #262c35; padding:4px 9px; border-radius:6px;">RabbitMQ ▾</span>
+    </span>
+  </div>
+
+  <div style="display:grid; grid-template-columns:260px 1fr 380px; gap:10px;">
+    <!-- compact send -->
+    <div class="panel" style="padding:12px;">
+      <div class="lbl" style="margin-bottom:10px;">Enviar</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div><div class="lbl" style="margin-bottom:3px;">Exchange</div><div class="in"></div></div>
+        <div><div class="lbl" style="margin-bottom:3px;">Routing key</div><div class="in"></div></div>
+        <div><div class="lbl" style="margin-bottom:3px;">Payload</div><div class="in" style="height:80px;"></div></div>
+        <div style="height:30px; background:#3b82f6; color:#0f1216; font-weight:700; border-radius:5px; display:flex; align-items:center; justify-content:center;">Enviar</div>
+      </div>
+      <div class="lbl" style="margin-top:14px;">Recientes · 5</div>
+      <div class="mono" style="font-size:10px; color:#9aa3ae; margin-top:6px; line-height:1.9;">ordenes.event/orden.creada<br>pagos.cmd/pago.capturar<br>envios.event/envio.despachado</div>
+    </div>
+
+    <!-- message table -->
+    <div class="panel" style="padding:0; overflow:hidden;">
+      <div class="mono" style="display:grid; grid-template-columns:78px 150px 150px 1fr 40px; gap:8px; padding:7px 12px; border-bottom:1px solid #262c35; font-size:10px; color:#78828f; letter-spacing:.08em; text-transform:uppercase;">
+        <span>hora</span><span>cola</span><span>routing key</span><span>payload</span><span></span>
+      </div>
+      <div class="mono" style="font-size:11px;">
+        <div style="display:grid; grid-template-columns:78px 150px 150px 1fr 40px; gap:8px; padding:6px 12px; border-bottom:1px solid #1d232b; align-items:center;">
+          <span style="color:#78828f;">12:04:41</span><span style="color:#4fd6bb;"><span class="d" style="background:#4fd6bb;"></span> pedidos.creados</span><span>pedido.creado</span><span style="color:#9aa3ae;">{ "pedidoId": "8842", "cliente": "ACME SA" }</span><span style="color:#3b82f6;">↩</span>
+        </div>
+        <div style="display:grid; grid-template-columns:78px 150px 150px 1fr 40px; gap:8px; padding:6px 12px; border-bottom:1px solid #1d232b; align-items:center;">
+          <span style="color:#78828f;">12:04:39</span><span style="color:#e8b45f;"><span class="d" style="background:#e8b45f;"></span> pagos.confirmados</span><span>pago.confirmado</span><span style="color:#9aa3ae;">{ "pedidoId": "8842", "monto": 149.90 }</span><span style="color:#3b82f6;">↩</span>
+        </div>
+        <div style="display:grid; grid-template-columns:78px 150px 150px 1fr 40px; gap:8px; padding:6px 12px; border-bottom:1px solid #1d232b; align-items:center; background:#12161c;">
+          <span style="color:#78828f;">12:04:38</span><span style="color:#b79cf5;"><span class="d" style="background:#b79cf5;"></span> envios.despachados</span><span>envio.despachado</span><span style="color:#9aa3ae;">{ "envioId": "ENV-8830", "carrier": "Andreani" }</span><span></span>
+        </div>
+        <div style="display:grid; grid-template-columns:78px 150px 150px 1fr 40px; gap:8px; padding:6px 12px; border-bottom:1px solid #1d232b; align-items:center;">
+          <span style="color:#78828f;">12:04:35</span><span style="color:#4fd6bb;"><span class="d" style="background:#4fd6bb;"></span> pedidos.creados</span><span>pedido.creado</span><span style="color:#9aa3ae;">{ "pedidoId": "8843", "cliente": "Globex" }</span><span style="color:#3b82f6;">↩</span>
+        </div>
+        <div style="display:grid; grid-template-columns:78px 150px 150px 1fr 40px; gap:8px; padding:6px 12px; border-bottom:1px solid #1d232b; align-items:center;">
+          <span style="color:#78828f;">12:04:31</span><span style="color:#e8b45f;"><span class="d" style="background:#e8b45f;"></span> pagos.confirmados</span><span>pago.rechazado</span><span style="color:#9aa3ae;">{ "pedidoId": "8841", "motivo": "fondos insuficientes" }</span><span style="color:#3b82f6;">↩</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- reply rail -->
+    <div class="panel" style="padding:12px; border-color:#3b82f6;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:600; color:#6ea8ff;">Responder</span><span style="color:#78828f;">esc</span>
+      </div>
+      <div class="mono" style="background:#0f1319; border:1px solid #262c35; border-left:2px solid #4fd6bb; border-radius:5px; padding:8px 10px; margin-top:10px; font-size:10px; color:#9aa3ae;">
+        pedido.creado (ordenes.event)<br>{ "pedidoId": "8842", "cliente": "ACME SA", "items": 3 }
+      </div>
+      <div class="lbl" style="margin-top:12px; margin-bottom:3px;">Correlation ID</div>
+      <div class="in mono" style="display:flex; align-items:center; padding:0 8px; font-size:10px; color:#9aa3ae;">9f2c-creado-8842</div>
+      <div class="lbl" style="margin-top:10px; margin-bottom:3px;">Payload de respuesta</div>
+      <div class="in" style="height:110px;"></div>
+      <div style="height:30px; background:#3b82f6; color:#0f1216; font-weight:700; border-radius:5px; display:flex; align-items:center; justify-content:center; margin-top:10px;">Enviar respuesta</div>
+    </div>
+  </div>
+
+  <!-- status bar -->
+  <div class="panel mono" style="margin-top:10px; padding:6px 12px; font-size:11px; color:#78828f; display:flex; gap:20px;">
+    <span>3 colas · 23 mensajes</span><span>hub: <span style="color:#4fd6bb;">live</span></span><span>pausa: off</span><span style="margin-left:auto;">rabbitmq://localhost:5672</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

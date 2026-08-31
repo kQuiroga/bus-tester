@@ -94,6 +94,7 @@ describe('styles.css design tokens — single fixed Graphite theme', () => {
       { token: '--color-muted-foreground', source: '--color-ink-muted' },
       { token: '--color-border', source: '--color-line' },
       { token: '--color-input', source: '--color-line' },
+      { token: '--color-accent-foreground', source: '--color-ground' },
       // Focus ring consumes the accent token, never a broker color directly, so
       // it stays neutral while disconnected (ui-presentation: "with no broker
       // connected, a neutral default accent MUST apply").
@@ -103,6 +104,16 @@ describe('styles.css design tokens — single fixed Graphite theme', () => {
     it.each(semanticAliases)('$token is declared as var($source)', ({ token, source }) => {
       const decl = new RegExp(`${token}\\s*:\\s*var\\(\\s*${source}\\b`);
       expect(decl.test(css)).toBe(true);
+    });
+
+    it('--color-primary follows the broker accent, not the near-white ink (slice 1 fidelity)', () => {
+      // The prototype `.btn` fills with `var(--accent)` over `var(--accent-ink)`,
+      // so primary buttons track the broker accent (amber RabbitMQ / blue Kafka)
+      // and render neutral grey while disconnected (decision #167) — never the
+      // near-white ink that made every button look identical.
+      expect(/--color-primary\s*:\s*var\(\s*--color-accent\s*\)/.test(css)).toBe(true);
+      expect(/--color-primary-foreground\s*:\s*var\(\s*--color-accent-foreground\s*\)/.test(css)).toBe(true);
+      expect(/--color-primary\s*:\s*var\(\s*--color-ink\s*\)/.test(css)).toBe(false);
     });
   });
 
@@ -185,12 +196,36 @@ describe('styles.css design tokens — single fixed Graphite theme', () => {
     });
   });
 
-  describe('queue hue tokens are present for slice 4', () => {
-    it.each(['--color-queue-1', '--color-queue-2', '--color-queue-3', '--color-queue-4', '--color-queue-5', '--color-queue-6'])(
-      '%s resolves to a hex color',
-      (token) => {
-        expect(resolveToken(token)).toMatch(/^#[0-9a-f]{3,8}$/i);
-      },
-    );
+  describe('queue hue tokens realize the prototype Graphite palette (slice 1 fidelity)', () => {
+    // Slots 1-5 are the approved prototype palette (`graphite.q` in
+    // docs/redesign-prototype/Main.dc.html): green, teal, violet, blue, pink.
+    // Slot 6 extends the palette with a warm coral kept visibly distinct from
+    // the amber accent and from the other five hues.
+    const queueHues: Array<{ token: string; hex: string }> = [
+      { token: '--color-queue-1', hex: '#5ac37d' },
+      { token: '--color-queue-2', hex: '#67c1c9' },
+      { token: '--color-queue-3', hex: '#b393e6' },
+      { token: '--color-queue-4', hex: '#6f9fe0' },
+      { token: '--color-queue-5', hex: '#e08a9e' },
+      { token: '--color-queue-6', hex: '#e0906a' },
+    ];
+
+    it.each(queueHues)('$token resolves to the pinned hue $hex', ({ token, hex }) => {
+      expect(normalize(resolveToken(token))).toBe(normalize(hex));
+    });
+  });
+
+  describe('.field-label component class (slice 1 fidelity — prototype `.lbl`)', () => {
+    it('is defined inside an @layer components block', () => {
+      expect(/@layer\s+components\s*\{[\s\S]*?\.field-label\s*\{/.test(css)).toBe(true);
+    });
+
+    it('renders 11px uppercase, letter-spaced, muted label text', () => {
+      const body = extractBlock(css, '.field-label');
+      expect(/font-size\s*:\s*11px/.test(body)).toBe(true);
+      expect(/text-transform\s*:\s*uppercase/.test(body)).toBe(true);
+      expect(/letter-spacing\s*:\s*0?\.06em/.test(body)).toBe(true);
+      expect(/color\s*:\s*var\(\s*--color-muted-foreground\s*\)/.test(body)).toBe(true);
+    });
   });
 });

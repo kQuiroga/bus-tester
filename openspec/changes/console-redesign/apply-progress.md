@@ -72,6 +72,40 @@ Note on RED for 1.1: the missing service (1.2) broke the bundle first, so 1.1's 
 | `frontend/src/app/app.ts` | Injects `BrokerAccentService` so the accent seam is live document-wide |
 | `frontend/src/app/app.html` | Shell + sticky header on surface tokens; panels unchanged |
 
+## Slice 1 correction C2 — prototype fidelity (tokens + shell)
+
+Scoped fix on `feat/console-redesign-s1-tokens`, commit `c723a75`. Source of
+truth: `docs/redesign-prototype/Main.dc.html` (the approved design canvas,
+vendored in commit cba01f3). The implemented slice 1 diverged from the `graphite`
+theme object and `<style>` block of that prototype in four places.
+
+| Gap | Prototype | Was | Now |
+|-----|-----------|-----|-----|
+| Queue palette | `graphite.q = ['#5ac37d','#67c1c9','#b393e6','#6f9fe0','#e08a9e']` | `#e0a34a,#3d8ef0,#4cc38a,#b57bff,#e5747a,#4bb8c4` | `--color-queue-1..5` = the prototype hues exactly; `--color-queue-6` = warm coral `#e0906a` (FNV-1a is `% 6`, needs a sixth slot distinct from accent + the five) with a code comment; all six pinned in the token spec |
+| Primary buttons | `.btn { background: var(--accent); color: var(--accent-ink) }` | `--color-primary: var(--color-ink)` → every button near-white | `--color-primary: var(--color-accent)`, `--color-primary-foreground: var(--color-accent-foreground)` → buttons follow the broker accent (amber RabbitMQ / blue Kafka) and stay neutral grey while disconnected (decision #167, intended) |
+| Field labels | `.lbl { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color: var(--muted) }` | no reusable class | new `.field-label` in `@layer components` with exactly those rules (`color: var(--color-muted-foreground)`); slices 2-5 apply it |
+| Header | top bar is a `.card` (`background: var(--panel); border: 1px solid var(--line); border-radius: 12px`, pad ~11px 15px, margin ~14px) | `border-b` strip, `bg-card/80` | `<header>` in `app.html` restyled: `rounded-xl border border-border bg-card px-[15px] py-[11px] m-4 sm:m-6`, still `sticky top-0`; `<main>` top padding dropped to avoid a double gap |
+
+### C2 TDD Cycle Evidence
+
+| Step | Test | RED (observed) | GREEN |
+|------|------|----------------|-------|
+| C2-a queue palette | `styles.tokens.spec.ts` "queue hue tokens realize the prototype Graphite palette" — 6 pinned `it.each` rows | `expected '#e0a34a' to be '#5ac37d'` … `expected '#4bb8c4' to be '#e0906a'` (6 failing) | all 6 green after `styles.css` palette edit |
+| C2-b primary | `styles.tokens.spec.ts` "--color-primary follows the broker accent, not the near-white ink" + `--color-accent-foreground` semantic-alias row | `--color-primary: var(--color-accent)` regex false (1 failing) | green after `styles.css` primary edit |
+| C2-c field-label | `styles.tokens.spec.ts` ".field-label component class" — @layer membership + 4 rule assertions | `selector ".field-label" not found in styles.css` (2 failing) | green after `@layer components` block added |
+| C2-d header | none — style-only Tailwind classes on a component; existing `app.spec.ts` stays green | n/a | `app.spec.ts` 2/2 green |
+
+Total C2 RED: 9 failing assertions, then 194/194 green.
+
+### Notes for slices 2-5 (prototype token/shell layer)
+
+- **Apply `.field-label`** to every form/section caption (prototype uses `.lbl` on send fields, "Envíos recientes", "Plantillas", connect-dialog field labels, drawer "Mensaje original" / "Correlation ID" / "Payload de respuesta"). Plain class, no `@apply` needed.
+- **Primary buttons now inherit the accent automatically** via `bg-primary` / the spartan default button variant — amber/blue/grey with no per-component work. `Desconectar` stays on `--color-destructive` (`#e5484d` ≈ prototype `#e06d6d`).
+- **Prototype card metrics**: `border-radius: 12px` (`rounded-xl`), `border: 1px solid var(--line)`, `background: var(--panel)`. Inner padding `18px` (panels), `22px` (connect popup, drawer). Grid gap `14px`.
+- **Prototype input** `.in`: height 34px, `radius 8px`, `background: var(--panel2)`, `:focus` border → `var(--accent)`.
+- **`.qpill`** (slice 4): prototype tints `background: mix(hue, ground, .82)`, text = the hue, 6px solid dot. Current `color-mix(in oklab, var(--queue-hue) 18%, transparent)` is close — keep.
+- **Status dots**: prototype connected `#57d9a3`, disconnected `#e06d6d` → reuse `--color-status-ok` / `--color-status-error`.
+
 ## Slice 2 — Connect popup + status pill + reserved slot (COMPLETE)
 
 **Branch**: `feat/console-redesign-s2-connect` (child of `feat/console-redesign-s1-tokens`)
@@ -147,39 +181,42 @@ CDK overlay while `connectDialogOpen()`.
 | 2.4 | `connect.component.spec.ts` slot test | Unit | ✅ `[data-testid=broker-selector-slot]` null | ✅ present, aria-hidden, tabindex -1, no HTTP on click | ➖ |
 | 2.5 | full suite + `app.spec.ts` | Unit | n/a (refactor) | ✅ 13 files / 193 tests green after moving the pill to the header | ✅ grid 3-col → 2-col, no dead connect-column markup |
 
-### Work Unit Evidence
+### Work Unit Evidence (Slice 2)
 
 | Evidence | Value |
 |---|---|
-| Focused test command + result | `npm test -- --watch false` (from `frontend/`) → **13 files / 193 tests passed**, 0 failed (was 11 files / 189; net +4: `status-pill` +7, `connect-dialog` +7, `connect` container −10 obsolete permanent-column tests) |
-| Runtime harness | N/A — repo has no e2e/integration harness; Vitest is the only runner. `npm run build` succeeds; initial bundle budget warning grew from ~500 kB to 628 kB (+128 kB) because the vendored dialog pulls in `@angular/cdk/overlay` — expected cost of design D3, not a regression in app code. |
-| Rollback boundary | Revert commits `07f3401` + `9e3d001`. Files: delete `frontend/libs/ui/dialog/`, drop the `@spartan-ng/helm/dialog` line from `frontend/tsconfig.json`, restore `frontend/src/app/features/connect/*` and the `<app-connect />` grid cell in `frontend/src/app/app.html`. No other slice touches these. |
+| Focused test command + result | `npm test -- --watch false` (from `frontend/`) → **13 files / 193 tests passed**, 0 failed |
+| Runtime harness | N/A — Vitest is the only runner. `npm run build` succeeds; initial bundle budget warning grew from ~500 kB to 628 kB (+128 kB) because the vendored dialog pulls in `@angular/cdk/overlay` — expected cost of design D3. |
+| Rollback boundary | Revert commits `07f3401` + `9e3d001`. Delete `frontend/libs/ui/dialog/`, drop the `@spartan-ng/helm/dialog` path, restore `frontend/src/app/features/connect/*` and the `<app-connect />` grid cell. |
 
-### Changed-line count (this slice, committed)
+### Deviations from design (Slice 2)
 
-| Bucket | Added | Deleted | Total |
-|---|---|---|---|
-| Vendored (`frontend/libs/ui/dialog/**`) | 272 | 0 | 272 |
-| Authored (connect feature + app.html + tsconfig) | 405 | 409 | 814 |
-| **Slice total** | **677** | **409** | **1086** |
+- **Dialog vendoring method**: design D3 says the CLI vendors the lib; the CLI is nx-only and cannot run here. Hand-vendored from the CLI's own templates with the documented class substitution. No behavioural deviation.
+- **Dialog header/title in the presentational child**: plain `<h2>` / `<p>` instead of `hlmDialogTitle` / `hlmDialogDescription` (those inject `BrnDialogRef` and throw in isolation). Overlay/focus-trap/close still come from `HlmDialog` / `HlmDialogContent`.
+- **`changeBroker()`**: `disconnect()` + keep popup open (body shows credentials form); the tester edits fields and submits. Matches D10 without modifying `connect()`.
 
-Authored deletions are almost entirely the obsolete `connect.component.spec.ts`
-(−268) that characterised the removed permanent-column connect flow, plus the
-`connect.component.{ts,html}` rewrite. Net new authored lines ≈ 268. The vendored
-CLI output alone (272) did **not** push the authored diff toward the 800 budget
-(decision #150); the authored figure is inflated by the mandated spec rewrite
-(task 2.1 RED) and the mandated column deletion (task 2.5). Flagged for the
-PR-time `ask-on-risk` review-workload decision.
+### Issues found (Slice 2)
 
-### Deviations from design
+- None blocking. Bundle-size budget warning noted above. Prototype-fidelity gaps fixed in correction C3 (below).
 
-- **Dialog vendoring method**: design D3 says "the CLI vendors `libs/ui/{dialog,sheet}`". The CLI cannot run here (nx-only). Hand-vendored from the CLI's own templates with the documented class substitution. Output is structurally identical to a CLI run against a spartan-configured workspace. No behavioural deviation.
-- **Dialog header/title inside the presentational child**: used plain `<h2>` / `<p>` instead of `hlmDialogTitle` / `hlmDialogDescription`, because those directives inject `BrnDialogRef` and throw when the child is rendered in isolation (its own spec). The dialog chrome (overlay, focus trap, close button) still comes from the vendored `HlmDialog` / `HlmDialogContent` in the container.
-- **`changeBroker()`**: implemented as `disconnect()` + keep popup open (body then shows the credentials form because `connected()` is false). Does not auto-fire `connect()` — the tester edits the fields and submits. Matches task 2.3 intent ("reopens credentials form, runs existing `disconnect()` → `connect()`") and D10 without modifying `connect()`.
+## Slice 2 correction C3 — prototype fidelity (connect popup + status pill + header)
 
-### Issues found
+Branch `feat/console-redesign-s2-connect` | commit `4c9fda2`.
+Source of truth: `docs/redesign-prototype/Main.dc.html` top bar (lines ~44-54), CONNECT POPUP (lines ~181-204), `.pill` / `.in` / `.lbl` / `.btn` / `.ghost` style rules, and `renderVals()`. The shipped slice 2 worked but diverged from the approved prototype in four areas; all fixed RED-first (Strict TDD).
 
-- None blocking. Bundle-size budget warning noted above.
+| Gap | Fix |
+|-----|-----|
+| Header content | `app.html` header left is now `BusTester` (17px bold display) + a mono 10px muted caption. Broker + status pills on the right inside `app-connect`. |
+| Reserved broker-selector slot | `[data-testid="broker-selector-slot"]` kept for test continuity, rendered as the prototype's active-looking `.pill` (`rounded-full` panel chip, `bg-accent` 7px dot, `RabbitMQ ▾`). Stays inert — `aria-hidden`, `aria-disabled="true"`, `tabindex="-1"`, `inert`, `pointer-events-none`. Kafka track (#143) wires the click. |
+| Status pill styling | `status-pill.component` dropped `hlmBadge`+icons for a plain button styled as prototype `.pill` (`inline-flex gap-[7px] px-[11px] py-[5px] rounded-full border-border bg-card text-xs`). 7px `rounded-[3px]` dot: `bg-status-ok` connected / `bg-status-error` disconnected / `bg-status-warn` pending. `endpoint` input → `Conectado · {host}:{port}`. |
+| Connect dialog | Title `Conectar a RabbitMQ` / `Conexión · RabbitMQ`. Prototype disconnected hint. `.field-label` on the 4 credential labels; inputs `h-[34px] rounded-[8px] bg-muted`. Full-width outline ghost `Cambiar a Apache Kafka`, `disabled` + `title="Kafka llega en otro cambio"`. `Desconectar` → `variant="destructive"`. Dialog card `p-[22px]`, content `gap-[14px]`. |
+
+### C3 TDD evidence
+RED: 17 failing assertions across `status-pill` / `connect-dialog` / `connect` specs. GREEN: **13 files / 205 tests passed**, 0 failed (baseline 193). `npm run build` succeeds. Commits `4c9fda2` (fix) + `3137919` (docs). Rollback = revert `4c9fda2`.
+
+### C3 Deviations
+- **`Cambiar broker` → inert `Cambiar a Apache Kafka`**: switch affordance present but `disabled` pending the Kafka track; `ConnectComponent.changeBroker()` + binding retained (still unit-tested), re-enable is a one-line template change. Note for #143.
+- Arbitrary Tailwind px values where the token scale has no step — consistent with slice 1 C2.
 
 ## Slice 3 — Send panel recent sends: cap 5, Vaciar, first-load migration (COMPLETE)
 
@@ -245,6 +282,22 @@ No vendored output this slice. Well under the 800-line review budget (decision #
 ### Issues found
 
 - None.
+
+## Slice 3 correction C4 — prototype fidelity (send panel + recent sends + templates)
+
+Branch `feat/console-redesign-s3-send`, commit `baac716`. Source of truth: `docs/redesign-prototype/Main.dc.html` SEND card (~58-111). Strict TDD, RED-first.
+
+| Gap | Fix |
+|-----|-----|
+| Section captions | Exchange / Clave de enrutamiento / Payload labels and the `Envíos recientes` / `Plantillas` headers carry `.field-label`. Count inline: `Envíos recientes · {{ recentSends().length }}`. |
+| Inputs | Text inputs → `h-[34px] rounded-[8px] bg-muted`; payload textarea → `min-h-[92px] rounded-[8px] bg-muted` (prototype `.in`). |
+| Buttons | `Enviar` = full-width accent `h-[38px] rounded-[9px]` (`.btn`); `Guardar plantilla` → `Guardar`, `h-[34px] rounded-[8px] px-[14px]` (`.btn-sm`). |
+| Recent "Vaciar" | Plain text button — no `hlmBtn`/icon — `bg-transparent text-[11px] text-muted-foreground hover:brightness-125` (`.x`). `[data-testid="recent-sends-clear"]` kept. |
+| Recent rows | One-line mono `exchange / routingKey` via `recentSummary()` (`(intercambio predeterminado)` when empty), `font-mono text-[11px]` truncated. Row `rounded-[7px] border-border bg-muted px-[9px] py-[6px]`. `Cargar` = `.ghost`. Caption `últimos 5 · el resto se descarta de localStorage`. |
+| Templates rows | `[data-testid="template-row"]`, panel2 chrome; `Cargar` = `.ghost`, `Eliminar` = plain `.x`. |
+| Card / dividers | Card `p-[18px]`; dividers `pt-[13px]`. |
+
+RED: 7 failing assertions in `send.component.spec.ts`. GREEN: **13 files / 215 tests passed**, 0 failed (baseline 205). `npm run build` succeeds. Files: `send.component.{ts,html,spec.ts}` only. Rollback = revert `baac716`. D7 reply-mode code left intact (slice 5).
 
 ## Slice 4 — Messages feed cards + queue pill/dot (COMPLETE)
 
@@ -322,3 +375,10 @@ Authored total ≈ 278 (SDD docs 10). No vendored output this slice. Under the 8
 ### Issues found
 
 - None. The `--include 'src/app/features/messages/**'` glob (without `/*.spec.ts`) makes the Angular test builder try to load `.html` as a spec — use `--include '…/**/*.spec.ts'` for focused runs.
+
+## STATUS: slices 1-3 at prototype fidelity. Slices 4-5 fidelity passes run after this (separate agents).
+
+### Notes for slice 5 fidelity pass
+- `.field-label` = caption treatment; `.ghost` = `hlmBtn variant="ghost" size="sm"` + `rounded-[7px] border border-border bg-muted text-[11px]`; `.x` = plain `<button>` `bg-transparent text-[11px] text-muted-foreground hover:brightness-125`.
+- Prototype row chrome = `rounded-[7px] border-border bg-muted px-[9px] py-[6px]`.
+- Slice 5's D7 removal deletes `replyMode`/`correlationId`/dirty-guard from `send.component.{ts,html}` — `recentSummary` (added in C4) stays.
