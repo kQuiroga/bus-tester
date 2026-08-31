@@ -72,4 +72,46 @@ Note on RED for 1.1: the missing service (1.2) broke the bundle first, so 1.1's 
 | `frontend/src/app/app.ts` | Injects `BrokerAccentService` so the accent seam is live document-wide |
 | `frontend/src/app/app.html` | Shell + sticky header on surface tokens; panels unchanged |
 
+## Slice 1 correction C2 — prototype fidelity (tokens + shell)
+
+Scoped fix on `feat/console-redesign-s1-tokens`, commit `c723a75`. Source of
+truth: `docs/redesign-prototype/Main.dc.html` (the approved design canvas,
+vendored in commit cba01f3). The implemented slice 1 diverged from the `graphite`
+theme object and `<style>` block of that prototype in four places.
+
+| Gap | Prototype | Was | Now |
+|-----|-----------|-----|-----|
+| Queue palette | `graphite.q = ['#5ac37d','#67c1c9','#b393e6','#6f9fe0','#e08a9e']` | `#e0a34a,#3d8ef0,#4cc38a,#b57bff,#e5747a,#4bb8c4` | `--color-queue-1..5` = the prototype hues exactly; `--color-queue-6` = warm coral `#e0906a` (FNV-1a is `% 6`, needs a sixth slot distinct from accent + the five) with a code comment; all six pinned in the token spec |
+| Primary buttons | `.btn { background: var(--accent); color: var(--accent-ink) }` | `--color-primary: var(--color-ink)` → every button near-white | `--color-primary: var(--color-accent)`, `--color-primary-foreground: var(--color-accent-foreground)` → buttons follow the broker accent (amber RabbitMQ / blue Kafka) and stay neutral grey while disconnected (decision #167, intended) |
+| Field labels | `.lbl { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color: var(--muted) }` | no reusable class | new `.field-label` in `@layer components` with exactly those rules (`color: var(--color-muted-foreground)`); slices 2-5 apply it |
+| Header | top bar is a `.card` (`background: var(--panel); border: 1px solid var(--line); border-radius: 12px`, pad ~11px 15px, margin ~14px) | `border-b` strip, `bg-card/80` | `<header>` in `app.html` restyled: `rounded-xl border border-border bg-card px-[15px] py-[11px] m-4 sm:m-6`, still `sticky top-0`; `<main>` top padding dropped to avoid a double gap |
+
+### TDD Cycle Evidence
+
+| Step | Test | RED (observed) | GREEN |
+|------|------|----------------|-------|
+| C2-a queue palette | `styles.tokens.spec.ts` "queue hue tokens realize the prototype Graphite palette" — 6 pinned `it.each` rows | `expected '#e0a34a' to be '#5ac37d'` … `expected '#4bb8c4' to be '#e0906a'` (6 failing) | all 6 green after `styles.css` palette edit |
+| C2-b primary | `styles.tokens.spec.ts` "--color-primary follows the broker accent, not the near-white ink" + `--color-accent-foreground` semantic-alias row | `--color-primary: var(--color-accent)` regex false (1 failing) | green after `styles.css` primary edit |
+| C2-c field-label | `styles.tokens.spec.ts` ".field-label component class" — @layer membership + 4 rule assertions | `selector ".field-label" not found in styles.css` (2 failing) | green after `@layer components` block added |
+| C2-d header | none — style-only Tailwind classes on a component; existing `app.spec.ts` (h1 + panel presence) stays green, per the design "style-only surfaces covered by the suite staying green" rule | n/a | `app.spec.ts` 2/2 green |
+
+Total RED: 9 failing assertions, then 194/194 green.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npm test -- --watch=false` (from `frontend/`) → **11 files / 194 tests passed**, 0 failed (baseline 189 + 6 queue rows reshaped + 1 primary + 2 field-label + 1 accent-fg alias − prior 6-row generic queue test) |
+| Runtime harness | N/A — repo has no e2e/integration harness. `npm run build` succeeds; `styles` chunk 41.60 kB. Built `dist/frontend/browser/styles-*.css` verified: `.field-label{…}` emitted from `@layer components` even while unused (Tailwind v4 keeps hand-authored layer CSS), queue tokens + `--color-primary:var(--color-accent)` present. Initial-bundle 500 kB budget warning is pre-existing and unchanged. |
+| Rollback boundary | Revert commit `c723a75` — touches only `frontend/src/styles.css`, `frontend/src/styles.tokens.spec.ts`, `frontend/src/app/app.html`. No other slice touches these. |
+
+### Notes for slices 2-5 (prototype token/shell layer)
+
+- **Apply `.field-label`** to every form/section caption (prototype uses `.lbl` on send fields, "Envíos recientes", "Plantillas", connect-dialog field labels, drawer "Mensaje original" / "Correlation ID" / "Payload de respuesta"). It is now a plain class, no `@apply` needed.
+- **Primary buttons now inherit the accent automatically.** Anything mapped to `bg-primary` / the spartan default button variant becomes amber/blue/grey with no per-component work. The `Desconectar` button should stay on `--color-destructive` (`#e5484d`), matching the prototype's `#e06d6d`.
+- **Prototype card metrics**: `border-radius: 12px` (= `rounded-xl` here, all radii alias `--radius-base`), `border: 1px solid var(--line)`, `background: var(--panel)`. Inner card padding in the prototype is `18px` (`.card` panels), `22px` (connect popup, drawer). Grid gap `14px` (`gap-4` ≈ 16px is close).
+- **Prototype input** `.in`: height 34px, `radius 8px`, `background: var(--panel2)`, `border: 1px solid var(--line)`, `:focus` border → `var(--accent)`. Radii here are a single 12px scale, so an 8px input corner needs an arbitrary value or an accepted deviation.
+- **`.qpill`** (slice 4): prototype tints with `background: mix(hue, ground, .82)` and text = the hue; the 6px dot is solid. Current design uses `color-mix(in oklab, var(--queue-hue) 18%, transparent)` — close enough, keep.
+- **Status dots**: prototype connected `#57d9a3`, disconnected `#e06d6d`. Repo has `--color-status-ok`/`--color-status-error`; reuse those.
+
 ## Slices 2–5 — NOT STARTED
