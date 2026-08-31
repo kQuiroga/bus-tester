@@ -1,0 +1,478 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    .root {
+      position: relative; width: 1440px; min-height: 1020px; box-sizing: border-box;
+      font-family: "Public Sans", system-ui, sans-serif;
+      padding: 22px 30px 32px; overflow: hidden;
+      background: var(--ground, #161616); color: var(--ink, #ededed);
+    }
+    a { color: var(--accent, #e0a34a); } a:hover { filter: brightness(1.12); }
+    .disp { font-family: "Bricolage Grotesque", "Public Sans", sans-serif; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+    .card { background: var(--panel, #1f1f1f); border: 1px solid var(--line, #363636); border-radius: 12px; }
+    .lbl { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted, #9a9a9a); }
+    .in {
+      width: 100%; box-sizing: border-box; height: 34px; border-radius: 8px;
+      background: var(--panel2, #282828); border: 1px solid var(--line, #363636); color: var(--ink, #ededed);
+      padding: 0 10px; font-family: inherit; font-size: 13px; outline: none;
+    }
+    .in:focus { border-color: var(--accent, #e0a34a); }
+    textarea.in { height: 92px; padding: 8px 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; resize: none; line-height: 1.5; }
+    .btn { border: 0; border-radius: 9px; height: 38px; font-family: inherit; font-size: 13px; font-weight: 600; background: var(--accent, #e0a34a); color: var(--accent-ink, #161616); cursor: pointer; width: 100%; }
+    .btn-sm { border: 0; border-radius: 8px; height: 34px; padding: 0 14px; font-family: inherit; font-size: 12px; font-weight: 600; background: var(--accent, #e0a34a); color: var(--accent-ink, #161616); cursor: pointer; }
+    .ghost { border: 1px solid var(--line, #363636); background: var(--panel2, #282828); color: var(--ink, #ededed); border-radius: 7px; font-size: 11px; font-family: inherit; padding: 5px 9px; cursor: pointer; }
+    .qpill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .dot { width: 7px; height: 7px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line, #363636); background: var(--panel, #1f1f1f); color: var(--ink, #ededed); cursor: pointer; }
+    .msg { background: var(--panel2, #282828); border: 1px solid var(--line, #363636); border-radius: 9px; padding: 9px 11px; }
+    .x { background: transparent; border: 0; color: var(--muted, #9a9a9a); cursor: pointer; font-size: 11px; padding: 0 2px; line-height: 1; font-family: inherit; }
+    .empty { font-size: 12px; color: var(--muted, #9a9a9a); text-align: center; padding: 22px 12px; border: 1px dashed var(--line, #363636); border-radius: 9px; }
+  </style>
+</helmet>
+
+<div class="root" style="{{rootStyle}}">
+  <!-- top bar -->
+  <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:11px 15px; margin-bottom:14px;">
+    <div style="display:flex; align-items:baseline; gap:12px;">
+      <span class="disp" style="font-size:17px; font-weight:700;">BusTester</span>
+      <span class="mono" style="font-size:10px; color:var(--muted);">Tema: {{themeLabel}} · Bricolage Grotesque / Public Sans / JetBrains Mono</span>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <span class="pill mono" onClick="{{toggleBroker}}"><span class="dot" style="background:var(--accent);"></span>{{brokerLabel}}</span>
+      <span class="pill" onClick="{{openConnect}}"><span class="dot" style="{{statusDotStyle}}"></span>{{statusLabel}}</span>
+    </div>
+  </div>
+
+  <div style="position:relative; display:grid; grid-template-columns:1.05fr .95fr; gap:14px; border-radius:12px; overflow:hidden;">
+
+    <!-- SEND -->
+    <div class="card" style="padding:18px;">
+      <div class="disp" style="font-size:16px; font-weight:700; margin-bottom:13px;">Enviar mensaje</div>
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div><div class="lbl" style="margin-bottom:5px;">{{sendLabel1}}</div>
+          <input class="in" value="{{fExchange}}" onChange="{{setExchange}}" placeholder="{{sendPh1}}"></div>
+        <div><div class="lbl" style="margin-bottom:5px;">{{sendLabel2}}</div>
+          <input class="in" value="{{fRoutingKey}}" onChange="{{setRoutingKey}}" placeholder="{{sendPh2}}"></div>
+        <div><div class="lbl" style="margin-bottom:5px;">Payload</div>
+          <textarea class="in" value="{{fPayload}}" onChange="{{setPayload}}" placeholder='{ "id": "..." }'></textarea></div>
+        <button class="btn" onClick="{{send}}">Enviar</button>
+      </div>
+
+      <div style="border-top:1px solid var(--line); margin-top:16px; padding-top:13px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="lbl">Envíos recientes · {{recentCount}}</div>
+          <button class="x" onClick="{{clearRecent}}">Vaciar</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px;">
+          <sc-if value="{{noRecent}}" hint-placeholder-val="{{false}}">
+            <div style="font-size:11px; color:var(--muted);">Aún no hay envíos.</div>
+          </sc-if>
+          <sc-for list="{{recent}}" as="r" hint-placeholder-count="5">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; padding:6px 9px;">
+              <span class="mono" style="font-size:11px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{r.text}}</span>
+              <button class="ghost" onClick="{{r.load}}">Cargar</button>
+            </div>
+          </sc-for>
+        </div>
+        <div class="mono" style="font-size:10px; color:var(--muted); margin-top:8px;">últimos 5 · el resto se descarta de localStorage</div>
+      </div>
+
+      <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:13px;">
+        <div class="lbl" style="margin-bottom:8px;">Plantillas</div>
+        <div style="display:flex; gap:8px;">
+          <input class="in" value="{{templateName}}" onChange="{{setTemplateName}}" placeholder="Nombre de la plantilla">
+          <button class="btn-sm" style="white-space:nowrap;" onClick="{{saveTemplate}}">Guardar</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px;">
+          <sc-if value="{{noTemplates}}" hint-placeholder-val="{{false}}">
+            <div style="font-size:11px; color:var(--muted);">No hay plantillas guardadas.</div>
+          </sc-if>
+          <sc-for list="{{templates}}" as="t" hint-placeholder-count="2">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; padding:6px 9px;">
+              <span style="font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{t.name}}</span>
+              <span style="display:flex; gap:6px; flex-shrink:0;">
+                <button class="ghost" onClick="{{t.use}}">Cargar</button>
+                <button class="x" onClick="{{t.del}}">Eliminar</button>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE -->
+    <div class="card" style="padding:18px;">
+      <div class="disp" style="font-size:16px; font-weight:700; margin-bottom:12px;">Mensajes en vivo</div>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input class="in" value="{{subInput}}" onChange="{{setSub}}" placeholder="{{subPlaceholder}}">
+        <button class="btn-sm" style="white-space:nowrap;" onClick="{{subscribe}}">Suscribirse</button>
+      </div>
+      <div style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px; min-height:22px;">
+        <sc-if value="{{noQueues}}" hint-placeholder-val="{{false}}">
+          <span style="font-size:11px; color:var(--muted);">Ninguna cola suscrita.</span>
+        </sc-if>
+        <sc-for list="{{queues}}" as="q" hint-placeholder-count="3">
+          <span class="qpill" style="{{q.tagStyle}}">
+            <span class="dot" style="{{q.dotStyle}}"></span>{{q.name}} · {{q.count}}
+            <button class="x" onClick="{{q.unsub}}">✕</button>
+          </span>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input class="in" value="{{search}}" onChange="{{setSearch}}" placeholder="Buscar mensajes">
+        <button class="ghost" style="white-space:nowrap;" onClick="{{togglePause}}">{{pauseLabel}}</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; max-height:600px; overflow:auto;">
+        <sc-if value="{{hasEmptyMsg}}" hint-placeholder-val="{{false}}">
+          <div class="empty">{{emptyMsg}}</div>
+        </sc-if>
+        <sc-for list="{{messages}}" as="m" hint-placeholder-count="5">
+          <div class="msg">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;">
+                <span class="qpill" style="{{m.tagStyle}}"><span class="dot" style="{{m.dotStyle}}"></span>{{m.queue}}</span>
+                <span class="mono" style="font-size:12px; font-weight:500;">{{m.rk}}</span>
+              </div>
+              <sc-if value="{{m.hasReply}}" hint-placeholder-val="{{true}}">
+                <button class="ghost" style="color:var(--accent); flex-shrink:0;" onClick="{{m.reply}}">Responder</button>
+              </sc-if>
+            </div>
+            <div class="mono" style="font-size:10px; color:var(--muted); margin-top:5px;">{{m.meta}}</div>
+            <div class="mono" style="font-size:11px; color:var(--muted); margin-top:5px; word-break:break-word;">{{m.payload}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- REPLY DRAWER -->
+    <sc-if value="{{drawerOpen}}" hint-placeholder-val="{{true}}">
+      <div style="position:absolute; inset:0; background:rgba(8,9,12,.46); z-index:15;" onClick="{{closeDrawer}}"></div>
+      <div style="position:absolute; top:0; right:0; width:420px; height:100%; background:var(--panel); border-left:1px solid var(--line); box-shadow:-30px 0 60px -24px rgba(0,0,0,.55); padding:18px; box-sizing:border-box; z-index:16; overflow:auto;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div class="disp" style="font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px;"><span class="dot" style="{{drawerDotStyle}}"></span>Responder</div>
+          <button class="x" onClick="{{closeDrawer}}">✕</button>
+        </div>
+        <div style="background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:14px; {{drawerOrigStyle}}">
+          <div class="lbl" style="font-size:10px;">Mensaje original</div>
+          <div class="mono" style="font-size:12px; margin-top:5px;">{{drawerRk}}</div>
+          <div class="mono" style="font-size:10px; color:var(--muted); margin-top:4px;">{{drawerMeta}}</div>
+          <div class="mono" style="font-size:11px; color:var(--muted); margin-top:6px; word-break:break-word;">{{drawerPayload}}</div>
+        </div>
+        <div style="margin-top:14px;"><div class="lbl" style="margin-bottom:5px;">Correlation ID</div>
+          <input class="in mono" style="color:var(--muted);" value="{{drawerCorr}}" readonly></div>
+        <div style="margin-top:12px;"><div class="lbl" style="margin-bottom:5px;">Payload de respuesta</div>
+          <textarea class="in" style="height:120px;" value="{{replyPayload}}" onChange="{{setReply}}"></textarea></div>
+        <button class="btn" style="margin-top:14px;" onClick="{{sendReply}}">Enviar respuesta</button>
+        <div style="font-size:11px; color:var(--muted); margin-top:12px;">El panel de Enviar queda intacto con tu borrador.</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- CONNECT POPUP -->
+  <sc-if value="{{showConnect}}" hint-placeholder-val="{{true}}">
+    <div style="position:absolute; inset:0; background:rgba(8,9,12,.62); display:flex; align-items:center; justify-content:center; z-index:20;">
+      <div class="card" style="width:400px; padding:22px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="disp" style="font-size:18px; font-weight:700;">{{connectTitle}}</div>
+          <button class="x" onClick="{{closeConnect}}">✕</button>
+        </div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">{{connectHint}}</div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
+          <sc-for list="{{connectFields}}" as="f" hint-placeholder-count="4">
+            <div><div class="lbl" style="margin-bottom:4px;">{{f.label}}</div><input class="in" value="{{f.value}}" readonly></div>
+          </sc-for>
+        </div>
+        <sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}">
+          <button class="btn" style="margin-top:16px;" onClick="{{doConnect}}">Conectar</button>
+        </sc-if>
+        <sc-if value="{{connected}}" hint-placeholder-val="{{false}}">
+          <button class="btn" style="margin-top:16px; background:#e06d6d; color:#fff;" onClick="{{disconnect}}">Desconectar</button>
+        </sc-if>
+        <button class="ghost" style="width:100%; margin-top:8px; text-align:center; padding:8px;" onClick="{{toggleBroker}}">Cambiar a {{otherBrokerName}}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","default":"Graphite","options":["Graphite","Console","Slate","Nocturne","Teal","Daylight"]},"$preview":{"width":1440,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.THEMES = {
+      console:  { ground: '#14161c', panel: '#1c1f27', panel2: '#23262f', line: '#2e323d', ink: '#e8e9ee', muted: '#9a9fb1', accent: '#8b93e8', accentInk: '#14161c', q: ['#5eddc4', '#e7b15e', '#b79cf5', '#7cc4f5', '#e88fae'] },
+      slate:    { ground: '#0f141a', panel: '#171f29', panel2: '#1e2732', line: '#2b3846', ink: '#e7edf3', muted: '#93a1b0', accent: '#4c8dff', accentInk: '#ffffff', q: ['#56d4b8', '#f0b45e', '#a99bf5', '#63b3f0', '#f082a6'] },
+      graphite: { ground: '#161616', panel: '#1f1f1f', panel2: '#282828', line: '#363636', ink: '#ededed', muted: '#9a9a9a', accent: '#e0a34a', accentInk: '#161616', q: ['#5ac37d', '#67c1c9', '#b393e6', '#6f9fe0', '#e08a9e'] },
+      nocturne: { ground: '#15121d', panel: '#1e1a29', panel2: '#262133', line: '#332c44', ink: '#ece8f2', muted: '#a396b5', accent: '#c77dff', accentInk: '#160a1f', q: ['#5fd9c0', '#eab765', '#7cc4f5', '#9ae67d', '#ff8fa3'] },
+      teal:     { ground: '#0c1211', panel: '#131c1a', panel2: '#1a2523', line: '#27332f', ink: '#e3ede9', muted: '#8fa39c', accent: '#3ddc97', accentInk: '#07130d', q: ['#e6b15e', '#7cb8f0', '#c79bf0', '#ef8f9f', '#55c9c9'] },
+      daylight: { ground: '#f5f6f8', panel: '#ffffff', panel2: '#eef0f3', line: '#e0e3e9', ink: '#1b2028', muted: '#6b7280', accent: '#4c6ef5', accentInk: '#ffffff', q: ['#0d9488', '#b45309', '#7c3aed', '#1d4ed8', '#be185d'] }
+    };
+    this.state = {
+      showConnect: true,
+      connected: false,
+      broker: 'rabbitmq',
+      paused: false,
+      search: '',
+      subInput: '',
+      templateName: '',
+      form: { exchange: '', routingKey: '', payload: '' },
+      templates: [{ name: 'Pedido básico' }, { name: 'Pago rechazado' }],
+      queues: [
+        { name: 'pedidos.creados', count: 12 },
+        { name: 'pagos.confirmados', count: 7 },
+        { name: 'envios.despachados', count: 4 }
+      ],
+      messages: [
+        { id: 'm1', queue: 'pedidos.creados', rk: 'pedido.creado', exchange: 'ordenes.event', payload: '{ "pedidoId": "8842", "cliente": "ACME SA", "items": 3 }', corr: '9f2c-creado-8842', hasReply: true, rid: '8842' },
+        { id: 'm2', queue: 'pagos.confirmados', rk: 'pago.confirmado', exchange: 'pagos.event', payload: '{ "pedidoId": "8842", "monto": 149.90, "medio": "tarjeta" }', corr: '1a77-pago-8842', hasReply: true, rid: '8842' },
+        { id: 'm3', queue: 'envios.despachados', rk: 'envio.despachado', exchange: 'envios.event', payload: '{ "envioId": "ENV-8830", "carrier": "Andreani", "eta": "48h" }', corr: 'c3d0-envio-8830', hasReply: false, rid: 'ENV-8830' },
+        { id: 'm4', queue: 'pedidos.creados', rk: 'pedido.creado', exchange: 'ordenes.event', payload: '{ "pedidoId": "8843", "cliente": "Globex" }', corr: '9f2c-creado-8843', hasReply: true, rid: '8843' },
+        { id: 'm5', queue: 'pagos.confirmados', rk: 'pago.rechazado', exchange: 'pagos.event', payload: '{ "pedidoId": "8841", "motivo": "fondos insuficientes" }', corr: '1a77-pago-8841', hasReply: true, rid: '8841' }
+      ],
+      recent: [
+        'ordenes.event / orden.creada',
+        'pagos.cmd / pago.capturar',
+        'envios.event / envio.despachado',
+        'ordenes.event / orden.cancelada',
+        'stock.cmd / stock.reservar'
+      ],
+      drawer: null,
+      replyPayload: ''
+    };
+  }
+
+  _hx(h) {
+    h = (h || '').replace('#', '');
+    if (h.length === 3) { h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+    return [parseInt(h.substr(0, 2), 16) || 0, parseInt(h.substr(2, 2), 16) || 0, parseInt(h.substr(4, 2), 16) || 0];
+  }
+  _mix(a, b, t) {
+    var x = this._hx(a), y = this._hx(b);
+    return '#' + [0, 1, 2].map(function (i) {
+      var v = Math.round(x[i] + (y[i] - x[i]) * t);
+      v = Math.max(0, Math.min(255, v));
+      return ('0' + v.toString(16)).slice(-2);
+    }).join('');
+  }
+  _hash(str) {
+    var n = 0;
+    for (var i = 0; i < str.length; i++) { n = (n * 31 + str.charCodeAt(i)) % 100000; }
+    return n;
+  }
+
+  renderVals() {
+    var self = this;
+    var s = this.state;
+    var p = this.props;
+
+    var key = (p.theme || 'graphite').toLowerCase();
+    var T = this.THEMES[key] || this.THEMES.graphite;
+    var ground = T.ground, panel = T.panel, panel2 = T.panel2, line = T.line;
+    var ink = T.ink, muted = T.muted;
+    var qcols = T.q;
+
+    var isKafka = s.broker === 'kafka';
+    var accent = isKafka ? '#3d8ef0' : T.accent;
+    var accentInk = isKafka ? '#eaf1fb' : T.accentInk;
+    var endpoint = isKafka ? 'localhost:9092' : 'localhost:5672';
+
+    var rootStyle = '--ground:' + ground + ';--panel:' + panel + ';--panel2:' + panel2 +
+      ';--line:' + line + ';--ink:' + ink + ';--muted:' + muted + ';--accent:' + accent +
+      ';--accent-ink:' + accentInk + ';background:' + ground + ';color:' + ink;
+
+    function qc(name) {
+      var i = self.state.queues.findIndex(function (q) { return q.name === name; });
+      if (i < 0) i = 0;
+      var h = qcols[i % qcols.length];
+      return { dot: 'background:' + h, rail: h, tag: 'background:' + self._mix(h, ground, 0.82) + ';color:' + h };
+    }
+    function meta(m) {
+      if (!isKafka) return 'exchange: ' + m.exchange;
+      return 'partición ' + (self._hash(m.queue) % 3) + ' · offset ' + (10432 + self._hash(m.rk + m.rid) % 9000) + ' · key ' + (m.rid || '—');
+    }
+
+    var queues = s.queues.map(function (q) {
+      var c = qc(q.name);
+      return {
+        name: q.name, count: q.count, tagStyle: c.tag, dotStyle: c.dot,
+        unsub: function () {
+          self.setState({ queues: self.state.queues.filter(function (x) { return x.name !== q.name; }) });
+        }
+      };
+    });
+
+    var term = s.search.trim().toLowerCase();
+    var messages = s.messages
+      .filter(function (m) {
+        if (!term) return true;
+        return (m.rk + ' ' + m.payload + ' ' + m.queue).toLowerCase().indexOf(term) >= 0;
+      })
+      .map(function (m) {
+        var c = qc(m.queue);
+        return {
+          queue: m.queue, rk: m.rk, payload: m.payload, hasReply: m.hasReply, meta: meta(m),
+          tagStyle: c.tag, dotStyle: c.dot,
+          reply: function () {
+            self.setState({
+              drawer: m,
+              replyPayload: '{\n  "id": "' + (m.rid || '') + '",\n  "estado": "ACEPTADO"\n}'
+            });
+          }
+        };
+      });
+
+    var emptyMsg = '';
+    if (s.queues.length === 0) emptyMsg = 'Suscribite a una cola para ver mensajes en vivo.';
+    else if (s.messages.length === 0) emptyMsg = 'Esperando mensajes…';
+    else if (messages.length === 0) emptyMsg = 'Ningún mensaje coincide con la búsqueda.';
+
+    var recent = s.recent.map(function (text) {
+      return {
+        text: text,
+        load: function () {
+          var parts = text.split(' / ');
+          self.setState({ form: { exchange: parts[0] || '', routingKey: parts[1] || '', payload: self.state.form.payload } });
+        }
+      };
+    });
+
+    var templates = s.templates.map(function (t) {
+      return {
+        name: t.name,
+        use: function () {
+          self.setState({
+            form: {
+              exchange: self.state.form.exchange,
+              routingKey: self.state.form.routingKey,
+              payload: '{\n  "plantilla": "' + t.name + '"\n}'
+            }
+          });
+        },
+        del: function () {
+          self.setState({ templates: self.state.templates.filter(function (x) { return x.name !== t.name; }) });
+        }
+      };
+    });
+
+    var d = s.drawer;
+    var dcol = d ? qc(d.queue) : null;
+
+    return {
+      rootStyle: rootStyle,
+      themeLabel: key.charAt(0).toUpperCase() + key.slice(1),
+      brokerLabel: isKafka ? 'Kafka ▾' : 'RabbitMQ ▾',
+      brokerName: isKafka ? 'Apache Kafka' : 'RabbitMQ',
+      otherBrokerName: isKafka ? 'RabbitMQ' : 'Apache Kafka',
+      connectTitle: s.connected ? ('Conexión · ' + (isKafka ? 'Apache Kafka' : 'RabbitMQ')) : ('Conectar a ' + (isKafka ? 'Apache Kafka' : 'RabbitMQ')),
+      connectHint: s.connected
+        ? 'Conectado. Podés cambiar de broker o desconectar sin salir de la app.'
+        : 'No estás conectado. El acento sigue al broker: ámbar para RabbitMQ, azul para Kafka.',
+      connectFields: isKafka
+        ? [{ label: 'bootstrap.servers', value: 'localhost:9092' }, { label: 'Seguridad', value: 'PLAINTEXT' }, { label: 'Grupo de consumidor', value: 'bustester-ui' }]
+        : [{ label: 'Host del broker', value: 'localhost' }, { label: 'Puerto', value: '5672' }, { label: 'Usuario', value: 'guest' }, { label: 'Contraseña', value: 'guest' }],
+      showConnect: s.showConnect,
+      connected: s.connected,
+      notConnected: !s.connected,
+      statusLabel: s.connected ? ('Conectado · ' + endpoint) : 'Sin conexión',
+      statusDotStyle: s.connected ? 'background:#57d9a3' : 'background:#e06d6d',
+      pauseLabel: s.paused ? 'Reanudar' : 'Pausar',
+      subInput: s.subInput,
+      subPlaceholder: isKafka ? 'Nombre del topic' : 'Nombre de la cola',
+      search: s.search,
+      sendLabel1: isKafka ? 'Topic' : 'Exchange',
+      sendLabel2: isKafka ? 'Key (opcional)' : 'Clave de enrutamiento',
+      sendPh1: isKafka ? 'pedidos.creados' : 'ordenes.event',
+      sendPh2: isKafka ? '8842' : 'orden.creada',
+      fExchange: s.form.exchange,
+      fRoutingKey: s.form.routingKey,
+      fPayload: s.form.payload,
+      templateName: s.templateName,
+      templates: templates,
+      noTemplates: s.templates.length === 0,
+      recent: recent,
+      recentCount: s.recent.length,
+      noRecent: s.recent.length === 0,
+      queues: queues,
+      noQueues: s.queues.length === 0,
+      messages: messages,
+      emptyMsg: emptyMsg,
+      hasEmptyMsg: emptyMsg.length > 0,
+      drawerOpen: !!d,
+      drawerRk: d ? d.rk : '',
+      drawerMeta: d ? meta(d) : '',
+      drawerPayload: d ? d.payload : '',
+      drawerCorr: d ? d.corr : '',
+      drawerDotStyle: dcol ? dcol.dot : ('background:' + accent),
+      drawerOrigStyle: 'border-left:2px solid ' + (dcol ? dcol.rail : accent),
+      replyPayload: s.replyPayload,
+
+      openConnect: function () { self.setState({ showConnect: true }); },
+      doConnect: function () { self.setState({ showConnect: false, connected: true }); },
+      closeConnect: function () { self.setState({ showConnect: false }); },
+      disconnect: function () { self.setState({ connected: false }); },
+      toggleBroker: function () {
+        self.setState({
+          broker: self.state.broker === 'kafka' ? 'rabbitmq' : 'kafka',
+          connected: false,
+          showConnect: true,
+          drawer: null
+        });
+      },
+      setSub: function (e) { self.setState({ subInput: e.target.value }); },
+      subscribe: function () {
+        var n = (self.state.subInput || '').trim();
+        if (!n) return;
+        if (self.state.queues.some(function (q) { return q.name === n; })) { self.setState({ subInput: '' }); return; }
+        var ex = (n.split('.')[0] || 'bus') + '.event';
+        var msg = {
+          id: 'm' + Date.now(), queue: n, rk: n + '.recibido', exchange: ex,
+          payload: '{ "demo": true, "cola": "' + n + '" }',
+          corr: 'sub-' + Math.floor(Math.random() * 9000 + 1000), hasReply: true, rid: 'demo'
+        };
+        self.setState({
+          queues: self.state.queues.concat([{ name: n, count: 1 }]),
+          subInput: '',
+          messages: [msg].concat(self.state.messages)
+        });
+      },
+      togglePause: function () { self.setState({ paused: !self.state.paused }); },
+      setSearch: function (e) { self.setState({ search: e.target.value }); },
+      setExchange: function (e) { self.setState({ form: Object.assign({}, self.state.form, { exchange: e.target.value }) }); },
+      setRoutingKey: function (e) { self.setState({ form: Object.assign({}, self.state.form, { routingKey: e.target.value }) }); },
+      setPayload: function (e) { self.setState({ form: Object.assign({}, self.state.form, { payload: e.target.value }) }); },
+      setTemplateName: function (e) { self.setState({ templateName: e.target.value }); },
+      saveTemplate: function () {
+        var name = (self.state.templateName || '').trim();
+        if (!name) return;
+        if (self.state.templates.some(function (t) { return t.name === name; })) { self.setState({ templateName: '' }); return; }
+        self.setState({ templates: self.state.templates.concat([{ name: name }]), templateName: '' });
+      },
+      send: function () {
+        var f = self.state.form;
+        if (!f.exchange && !f.routingKey) return;
+        var line2 = (f.exchange || '(sin exchange)') + ' / ' + (f.routingKey || '(sin routing key)');
+        self.setState({
+          recent: [line2].concat(self.state.recent).slice(0, 5),
+          form: { exchange: '', routingKey: '', payload: '' }
+        });
+      },
+      clearRecent: function () { self.setState({ recent: [] }); },
+      closeDrawer: function () { self.setState({ drawer: null }); },
+      setReply: function (e) { self.setState({ replyPayload: e.target.value }); },
+      sendReply: function () { self.setState({ drawer: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
