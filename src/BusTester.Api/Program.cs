@@ -23,6 +23,7 @@ builder.Services.AddCors(options => options.AddPolicy(AngularDevCorsPolicy, poli
 builder.Services.AddSingleton<IBusPort, RabbitMqAdapter>();
 builder.Services.AddSingleton<IMessageBroadcaster, SignalRMessageBroadcaster>();
 builder.Services.AddSingleton<SubscriptionCoordinator>();
+builder.Services.AddTransient<GetBrokerCapabilitiesUseCase>();
 builder.Services.AddTransient<SendMessageUseCase>();
 builder.Services.AddTransient<SendMessageWithReplyUseCase>();
 builder.Services.AddTransient<SubscribeUseCase>();

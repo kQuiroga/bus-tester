@@ -10,7 +10,7 @@ namespace BusTester.Infrastructure.Tests;
 /// Integration tests (Testcontainers, Docker required) pinning the AMQP default-exchange
 /// behaviour the reply flow depends on: the broker refuses a passive declare of the default
 /// exchange, so <see cref="RabbitMqAdapter.SendAsync"/> must skip that round trip when
-/// <see cref="BusMessage.Exchange"/> is empty and still route by queue name.
+/// <see cref="BusMessage.Target"/> is empty and still route by queue name.
 /// </summary>
 [Collection(nameof(RabbitMqCollection))]
 public class DefaultExchangeTests : IAsyncLifetime
@@ -35,8 +35,8 @@ public class DefaultExchangeTests : IAsyncLifetime
         {
             HostName = config.Host,
             Port = config.Port,
-            UserName = config.Username,
-            Password = config.Password,
+            UserName = config.Username!,
+            Password = config.Password!,
         };
         _setupConnection = await factory.CreateConnectionAsync();
         _setupChannel = await _setupConnection.CreateChannelAsync();
@@ -67,7 +67,7 @@ public class DefaultExchangeTests : IAsyncLifetime
         await _setupChannel.QueueDeclareAsync(queue, durable: false, exclusive: false, autoDelete: true);
 
         await _adapter.SendAsync(new BusMessage(
-            exchange: string.Empty,
+            target: string.Empty,
             routingKey: queue,
             payload: "{\"reply\":true}",
             correlationId: "corr-default-123"));

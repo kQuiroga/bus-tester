@@ -1,21 +1,6 @@
-# bus-connection Specification
+# Delta for bus-connection
 
-## Purpose
-
-Broker connection lifecycle and the broker-agnostic `IBusPort` contract underlying all messaging use cases.
-
-## Requirements
-
-### Requirement: Broker-Agnostic Port Contract
-
-The Application layer MUST expose broker operations only through `IBusPort`. Domain and Application code MUST NOT reference any broker-specific types.
-
-#### Scenario: Adapter is swappable
-
-- GIVEN `SendMessage` and `Subscribe` use cases depend only on `IBusPort`
-- WHEN `RabbitMqAdapter` implements `IBusPort` in Infrastructure
-- THEN Domain/Application compile with no RabbitMQ.Client references
-- AND a fake `IBusPort` can replace the adapter in unit tests unchanged
+## MODIFIED Requirements
 
 ### Requirement: Establish and Maintain Connection
 
@@ -61,6 +46,8 @@ The system MUST let a developer connect to a broker by supplying a connection co
 - GIVEN an established connection
 - WHEN the process restarts
 - THEN no connection is restored automatically; the developer must reconnect
+
+## ADDED Requirements
 
 ### Requirement: Adapter Declares Broker Capabilities
 

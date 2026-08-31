@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using BusTester.Api.Tests.Testing;
+using BusTester.Application.Ports;
 using BusTester.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
@@ -21,7 +22,7 @@ public class MessagesControllerTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var sent = Assert.Single(factory.BusPort.SentMessages);
-        Assert.Equal("orders", sent.Exchange);
+        Assert.Equal("orders", sent.Target);
         Assert.Equal("{\"id\":1}", sent.Payload);
     }
 
@@ -140,7 +141,7 @@ public class MessagesControllerTests
         // publish target — a reply published via the Responder action relies on this.
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var sent = Assert.Single(factory.BusPort.SentMessages);
-        Assert.Equal("", sent.Exchange);
+        Assert.Equal("", sent.Target);
         Assert.Equal("orders.reply", sent.RoutingKey);
     }
 
@@ -177,6 +178,25 @@ public class MessagesControllerTests
         Assert.Equal(factory.BusPort.NextTemporaryQueueName, sent.ReplyTo);
         Assert.Equal(body.CorrelationId, sent.CorrelationId);
         Assert.Equal(1, factory.BusPort.DeclareTemporaryReplyQueueCallCount);
+    }
+
+    [Fact]
+    public async Task SendWithReply_WhenBrokerDoesNotSupportRequestReply_Returns409_AsProblemJson_AndNeverDeclaresAQueue()
+    {
+        await using var factory = new BusTesterApiFactory();
+        factory.BusPort.Capabilities = new BrokerCapabilities("Kafka", SupportsRequestReply: false);
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/messages/with-reply",
+            new { exchange = "orders", routingKey = "orders.created", payload = "{\"id\":1}" });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.Equal(409, problem!.Status);
+        Assert.Equal(0, factory.BusPort.DeclareTemporaryReplyQueueCallCount);
+        Assert.Empty(factory.BusPort.SentMessages);
     }
 
     [Fact]
