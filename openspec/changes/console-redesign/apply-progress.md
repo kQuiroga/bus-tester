@@ -245,3 +245,80 @@ No vendored output this slice. Well under the 800-line review budget (decision #
 ### Issues found
 
 - None.
+
+## Slice 4 — Messages feed cards + queue pill/dot (COMPLETE)
+
+**Branch**: `feat/console-redesign-s4-messages` (child of `feat/console-redesign-s3-send`)
+**Delivery**: feature-branch-chain, PR4 of 5 → targets `feat/console-redesign-s3-send`
+**Commit**: `f4bc7d7` feat(messages): identify queues with a deterministic tinted pill and dot
+
+| Task | Status |
+|------|--------|
+| 4.1 RED `queue-color.spec.ts` — `queueColorIndex` 1..6, deterministic, stable across resubscribe, int32 for long names | [x] |
+| 4.2 RED `messages.component.spec.ts` — feed row + chip render `[data-queue-color]` pill + 6px dot; same queue matches; different queues differ; no left rail | [x] |
+| 4.3 GREEN create `queue-color.ts` — pure FNV-1a (`Math.imul`) `% 6 + 1`, `QueueColor` type | [x] |
+| 4.4 GREEN `messages.component.{ts,html}` + `styles.css` — card restyle, queue pill + dot via `[data-queue-color='N']` → `--queue-hue` | [x] |
+| 4.5 REFACTOR no dynamic Tailwind hue class strings; DRY tint literals to component fields; suite green | [x] |
+
+### What changed (design D5)
+
+| File | Action | What |
+|---|---|---|
+| `frontend/src/app/features/messages/queue-color.ts` | Create | `queueColorIndex(queueName): QueueColor` — FNV-1a 32-bit over UTF-16 code units (`h = 0x811c9dc5`; per char `h ^= c; h = Math.imul(h, 0x01000193)`), `((h >>> 0) % 6) + 1`. Named constants `FNV_OFFSET_BASIS` / `FNV_PRIME` / `PALETTE_SLOTS`. Exported `QueueColor = 1|2|3|4|5|6`. Pure, zero deps. |
+| `frontend/src/app/features/messages/queue-color.spec.ts` | Create | 6 tests: range 1..6 (incl. `''` + a 53-char name), determinism (50 calls), resubscribe stability, 6 reference FNV-1a values (`orders`→3, `payments`→1, `shipping-queue`→4, `orders-queue`→5, `orders.created`→5, `orders.updated`→6), spread across all 6 slots for a realistic set, `Math.imul` int32 for 5000- and 2006-char names. |
+| `frontend/src/app/features/messages/messages.component.ts` | Modify | New `queueNameById` computed (`subscriptionId` → queue name map from `subscriptions()`); `queueNameOf(message)` resolves a row's queue; `queueColor(name)` delegates to `queueColorIndex`. Static `queuePillTint` (`color-mix(in oklab, var(--queue-hue) 18%, transparent)`) + `queueDotFill` (`var(--queue-hue)`) fields — hue arrives via the data attribute, not a class. |
+| `frontend/src/app/features/messages/messages.component.html` | Modify | Feed rows: `[data-testid="message-row"]`, `rounded-lg` surface card, header line holding a `[data-testid="queue-pill"]` (`[attr.data-queue-color]`, `[style.background-color]="queuePillTint"`) with a `[data-testid="queue-dot"]` `size-1.5` (6px) solid dot, then routing key + dimmed `(exchange)`, then Responder. Payload `<pre>` below. Subscription chips: same queue-pill + dot injected into the `hlmBadge`. No left colour rail added (design rejected it). |
+| `frontend/src/styles.css` | Modify | Added 6 rules `[data-queue-color='N'] { --queue-hue: var(--color-queue-N); }` after the `[data-broker]` map. The `--color-queue-1..6` tokens already existed from slice 1. |
+| `frontend/src/app/features/messages/messages.component.spec.ts` | Modify | +6 tests (`renderTwoQueueFeed` / `feedRowPills` helpers): per-row pill carries `data-queue-color = queueColorIndex(name)` + name text; 6px dot present per pill; two same-queue rows identical; two different-queue rows differ; subscription chips carry the matching `data-queue-color`; `[data-testid="queue-color-rail"]` absent. |
+
+### Stable DOM contracts asserted (not class strings)
+
+`[data-testid="message-row"]`, `[data-testid="queue-pill"]` with `[data-queue-color]` in `1..6` (string), `[data-testid="queue-dot"]`, `span[data-slot="badge"] [data-testid="queue-pill"]` for chips, absence of `[data-testid="queue-color-rail"]`.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.1 | `queue-color.spec.ts` | Unit (pure fn) | N/A (new) | ✅ `Cannot find module './queue-color'` | ✅ 6/6 after 4.3 | ✅ 6 cases — range, determinism, resubscribe, reference values, 6-slot spread, int32 long-name | ➖ constants extracted in 4.3 already |
+| 4.2 | `messages.component.spec.ts` | Unit (TestBed + jsdom DOM) | ✅ 34/34 pre-existing green | ✅ `Cannot find module './queue-color'` (compile gate) | ✅ 6/6 after 4.4 | ✅ same-queue-match + different-queue-differ + chip pill = distinct code paths | ➖ helpers minimal |
+| 4.3 | (driven by 4.1) | — | — | — | ✅ pure FNV-1a impl | ➖ | ➖ named constants, no magic numbers |
+| 4.4 | (driven by 4.2) | — | ✅ full suite pre-check | — | ✅ pill + dot + card restyle + styles.css hue map | ➖ | — |
+| 4.5 | full suite | Unit | n/a (refactor) | n/a | ✅ 14 files / 211 green | n/a | ✅ inline `color-mix` / `var(--queue-hue)` literals hoisted to `queuePillTint` / `queueDotFill`; `rg` confirms zero dynamic class interpolation / `[class]` / `ngClass` in the template |
+
+### Test Summary
+
+- Total tests written: 12 (queue-color 6, messages.component 6)
+- Total tests passing: 211 (14 files) — baseline 199 / 13 files
+- Layers used: Unit (12)
+- Approval tests: None — no refactoring of existing production logic
+- Pure functions created: 1 (`queueColorIndex`)
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npm test -- --watch false` (from `frontend/`) → **14 files / 211 tests passed**, 0 failed (baseline 13 / 199; net +12). Focused: `npm test -- --watch false --include 'src/app/features/messages/**/*.spec.ts'` → 3 files / 49 passed. |
+| Runtime harness | N/A — repo has no e2e/integration harness; Vitest is the only runner (confirmed in tasks + design). `npm run build` (from `frontend/`) succeeds; initial bundle 632.87 kB (was 630.24 kB after slice 3; +2.6 kB from the added markup + 6 CSS rules). The 500 kB budget warning is pre-existing from slice 2's vendored `@angular/cdk/overlay` (design D3), not a slice-4 regression. |
+| Rollback boundary | Revert commit `f4bc7d7`. Delete `frontend/src/app/features/messages/queue-color.{ts,spec.ts}`; restore `messages.component.{ts,html,spec.ts}`; drop the 6 `[data-queue-color='N']` rules from `frontend/src/styles.css`. Slice 5 also edits `messages.component.{ts,html}` but only the reply-drawer trigger / `data-replying` regions, which slice 4 did not touch. |
+
+### Changed-line count (this slice)
+
+| Bucket | Added | Deleted | Total |
+|---|---|---|---|
+| Authored — `queue-color.ts` + `.spec.ts` (new) | 112 | 0 | 112 |
+| Authored — `messages.component.{ts,html,spec.ts}` | 143 | 12 | 155 |
+| Authored — `styles.css` (6 hue-map rules + comment) | 11 | 0 | 11 |
+| SDD docs — `tasks.md` checkbox flips | 5 | 5 | 10 |
+| **Slice total** | **271** | **17** | **288** |
+
+Authored total ≈ 278 (SDD docs 10). No vendored output this slice. Under the 800-line review budget (decision #150) and near the 400 default (test-heavy, per strict TDD).
+
+### Deviations from design
+
+- None. `styles.css` gained the `[data-queue-color='N'] → --queue-hue` map exactly as design D5 / the slice-4 prompt describe ("CSS maps to `--color-queue-N`, those tokens already exist from slice 1"). The pill tint / dot fill are bound as constant inline `background-color` strings (not Tailwind arbitrary classes) so the hue stays in a custom property and no build-invisible class is generated — satisfies D5's "dynamic class strings are rejected" and task 4.5.
+- Design D5 shows `queueColorIndex` inline; realized 1:1 with named constants for the FNV basis/prime/slot count (strict-TDD "extract magic numbers").
+- Queue pill added to subscription chips as well as feed rows, matching the ui-presentation requirement ("Each message row **and each subscription chip** MUST identify its queue"). The tasks table named only `messages.component.*`, which is where the change lives.
+
+### Issues found
+
+- None. The `--include 'src/app/features/messages/**'` glob (without `/*.spec.ts`) makes the Angular test builder try to load `.html` as a spec — use `--include '…/**/*.spec.ts'` for focused runs.
