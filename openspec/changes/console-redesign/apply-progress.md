@@ -198,3 +198,30 @@ CDK overlay while `connectDialogOpen()`.
 ### Issues found (Slice 2)
 
 - None blocking. Bundle-size budget warning noted above. Prototype-fidelity gaps fixed in correction C3 (below).
+
+## Slice 2 correction C3 — prototype fidelity (connect popup + status pill + header)
+
+Branch `feat/console-redesign-s2-connect` | commit `4c9fda2`.
+Source of truth: `docs/redesign-prototype/Main.dc.html` top bar (lines ~44-54), CONNECT POPUP (lines ~181-204), `.pill` / `.in` / `.lbl` / `.btn` / `.ghost` style rules, and `renderVals()`. The shipped slice 2 worked but diverged from the approved prototype in four areas; all fixed RED-first (Strict TDD).
+
+| Gap | Fix |
+|-----|-----|
+| Header content | `app.html` header left is now `BusTester` (17px bold display) + a mono 10px muted caption, baseline-aligned. The broker + status pills sit on the right inside `app-connect`. |
+| Reserved broker-selector slot | `[data-testid="broker-selector-slot"]` kept for test continuity but rendered as the prototype's active-looking `.pill`: `rounded-full` panel chip, `bg-accent` 7px dot, text `RabbitMQ ▾`. Stays inert — `aria-hidden`, `aria-disabled="true"`, `tabindex="-1"`, `inert`, `pointer-events-none`. Comment points the Kafka track (#143) at wiring the click. |
+| Status pill styling | `status-pill.component` dropped `hlmBadge` + icons for a plain button styled as prototype `.pill` (`inline-flex`, `gap-[7px]`, `px-[11px] py-[5px]`, `rounded-full`, `border-border`, `bg-card`, `text-xs`). New 7px `rounded-[3px]` dot: `bg-status-ok` connected / `bg-status-error` disconnected / `bg-status-warn` on pending/hub churn. New `endpoint` input → connected label `Conectado · {host}:{port}` ("Sin conexión" unchanged). Tone text token (`text-status-*`) still applied for existing assertions. |
+| Connect dialog copy + layout | Title `Conectar a RabbitMQ` (disconnected) / `Conexión · RabbitMQ` (connected). Disconnected hint = prototype `No estás conectado. El acento sigue al broker: ámbar para RabbitMQ, azul para Kafka.` Four credential labels carry `.field-label`; inputs get `h-[34px] rounded-[8px] bg-muted` to match prototype `.in`. Full-width outline ghost `Cambiar a Apache Kafka` shown in both states, `disabled` + `title="Kafka llega en otro cambio"` — replaces the old functional `Cambiar broker` button (inert until Kafka track #143). `Desconectar` now `variant="destructive"`. Dialog card padding `p-[22px]`, content `gap-[14px]`. |
+
+### TDD evidence (C3)
+RED: 17 failing assertions — `status-pill.component.spec.ts` (endpoint input + `.pill` chrome + dot tint), `connect-dialog.component.spec.ts` (title / hint / `.field-label` / Kafka ghost disabled), `connect.component.spec.ts` (slot renders `RabbitMQ ▾` + accent dot + `aria-disabled`). GREEN after implementation: **13 files / 205 tests passed**, 0 failed (baseline 193). `npm run build` succeeds (`styles` 45.00 kB; pre-existing 500 kB initial-bundle budget warning at 628 kB, unchanged by this work). Built `dist/frontend/browser/styles-*.css` verified for `gap-[7px]`, `rounded-[3px]`, `rounded-[8px]`, `h-[34px]`, `px-[11px]`, `bg-card`, `bg-accent`, `field-label`.
+
+### Files (C3)
+`frontend/src/app/app.html`, `frontend/src/app/features/connect/status-pill.component.{ts,html,spec.ts}`, `frontend/src/app/features/connect/connect-dialog.component.{html,spec.ts}`, `frontend/src/app/features/connect/connect.component.{html,spec.ts}`. 8 files, +170 / -60 changed lines. Rollback = revert `4c9fda2`.
+
+### Deviations (C3)
+- **`Cambiar broker` → inert `Cambiar a Apache Kafka`**: the connection-status spec says activating the pill while connected "MUST offer disconnect or switch broker". The switch affordance is still *present* (visible, labelled) but `disabled` pending the Kafka track, per the fidelity-pass direction — matching the prototype, which shows the same ghost button as an inert broker toggle. `ConnectComponent.changeBroker()` and its `(changeBroker)` binding are retained (still unit-tested directly) so re-enabling the button is a one-line template change. Note for the Kafka track (#143).
+- Arbitrary Tailwind values (`h-[34px]`, `rounded-[8px]`, `px-[11px]`, `gap-[7px]`, `gap-[14px]`, `p-[22px]`, `text-[17px]`, `text-[10px]`) used because the token scale has no matching step (prototype uses 34/8/11/7/14/22/17/10 px literals). Consistent with slice 1 C2's `px-[15px] py-[11px]` header precedent.
+
+### Issues found (C3)
+- None.
+
+## STATUS: slices 1 and 2 at prototype fidelity. Slices 3-5 fidelity passes run after this (separate agents).
