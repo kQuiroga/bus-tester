@@ -1,150 +1,151 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-evidence_revision: sha256:3a119c50b62269c1e182cc79a7d430b3f52a7facc0ef534911ebc7282ed06026
+evidence_revision: sha256:1af9f3484a14e30a987091ed865a5b8baf6f65d3e053018bafc264f2450a2c5e
 verdict: pass_with_warnings
 blockers: 0
 critical_findings: 0
-requirements: 2/2
-scenarios: 5/5
+requirements: 1/1
+scenarios: 4/4
 test_command: npm test -- --watch false
 test_exit_code: 0
-test_output_hash: sha256:62c7c64f0e2d14be23e857c50ad1a260043e7876b16bb29b76d9997192565dfb
+test_output_hash: sha256:a45305f0e829acaef774553e8c06af4d8d69036bf2b5cd6d217324736db8f413
 build_command: npm run build
 build_exit_code: 0
-build_output_hash: sha256:aa4c62537019aeafc653c261bd17da9f082f92d830ff0c1c0a7e5ff97f86af88
+build_output_hash: sha256:96d7d15b07766907f559f398fc18008c74479826d71ec27416e1e83ea9421b93
 ```
 
-## Verification Report — console-redesign SLICE 2 only (PR2)
+## Verification Report — console-redesign SLICE 3 only (PR3)
 
 **Change**: console-redesign
-**Slice**: 2 — Connect popup + status pill + reserved broker-selector slot
-**Branch**: `feat/console-redesign-s2-connect` @ `8acd4ff` (child of `feat/console-redesign-s1-tokens`)
-**Version**: connection-status delta (ADDED: 2 requirements / 5 scenarios)
-**Mode**: Strict TDD (Vitest)
-**Verdict**: PASS WITH WARNINGS — slice 2 is ready to open as PR2 targeting `feat/console-redesign-s1-tokens`.
+**Slice**: 3 — Recent sends: cap 5, "Vaciar" control, first-load truncate-to-5 migration, layout rework
+**Branch**: `feat/console-redesign-s3-send` @ `a5ab95c` (child of `feat/console-redesign-s2-connect` @ `a2d1a35`)
+**Mode**: Strict TDD (Vitest) | **Verdict**: PASS WITH WARNINGS — ready to open as PR3 targeting `feat/console-redesign-s2-connect`.
+**Validator**: `gentle-ai sdd-verify-validate --requirements 1 --scenarios 4` → admitted, verdict pass_with_warnings.
+
+### Scope
+
+Slice-3 spec scope is exactly one ui-presentation requirement: **"Recent Sends Are Recorded, Capped, and Recallable"** (4 scenarios). The other ui-presentation requirements (Dark Mode, Graphite palette, Accent) were verified with slice 1; "Queues Are Identified by a Tinted Pill and Dot" belongs to slice 4. Slices 4–5 are not implemented and are not flagged as missing. The D7 reply-mode / unsaved-edits guard code in `send.component.ts` is deliberately retained for slice 5 (task 5.8) and is not flagged.
 
 ### Completeness
-| Metric | Value |
-|--------|-------|
-| Slice-2 tasks total | 5 (2.1-2.5) |
-| Slice-2 tasks complete | 5 |
-| Slice-2 tasks incomplete | 0 |
-| Slices 3-5 | Not started — out of scope for this verification |
 
-All of 2.1-2.5 are `[x]` in `tasks.md` and match code state:
-- 2.1 RED: `connect.component.spec.ts` (rewrite), `status-pill.component.spec.ts` (new), `connect-dialog.component.spec.ts` (new) — present, passing.
-- 2.2 GREEN: `frontend/libs/ui/dialog/` vendored (12 files) + `@spartan-ng/helm/dialog` path in `frontend/tsconfig.json` — present.
-- 2.3 GREEN: `features/connect/` split into container (`ConnectComponent`) + `ConnectDialogComponent` / `StatusPillComponent`; `connectDialogOpen` signal; body switches on `connected()`; `changeBroker()` runs `disconnect()` on `/api/connections` and keeps the popup open — present.
-- 2.4 GREEN: inert `[data-testid="broker-selector-slot"]` beside the pill — present.
-- 2.5 REFACTOR: permanent connect column removed from `app.html`; `<app-connect />` moved into `<header>`; `<main>` grid is 2-track — confirmed.
+| Task | State | Code match |
+|---|---|---|
+| 3.1 RED — service spec: cap 5 FIFO, `clearRecentSends()` memory+removeItem, `loadCapped()` truncate+rewrite | [x] | Yes — 5 new/rewritten tests in `send-history.service.spec.ts` |
+| 3.2 RED — component spec: `Vaciar` → `clearRecentSends()`, recall populates fields | [x] | Yes — 2 new tests + row-action count update in `send.component.spec.ts` |
+| 3.3 GREEN — `RECENT_SENDS_CAP = 5`, `loadCappedRecentSends()`, `clearRecentSends()` | [x] | Yes — `send-history.service.ts` |
+| 3.4 GREEN — recent-sends layout (≤5) + `Vaciar` wired | [x] | Yes — `send.component.{ts,html}` |
+| 3.5 REFACTOR — component delegates only, zero storage access | [x] | Yes — `clearRecent()` is a one-line delegate; `rg localStorage` on `send.component.ts` = 0 hits |
 
-### Build & Tests Execution
-**Build**: PASS — `npm run build` (from `frontend/`), exit 0.
-```text
-Initial total | 628.09 kB | 149.84 kB
-WARNING bundle initial exceeded maximum budget. Budget 500.00 kB was not met by 128.09 kB (total 628.09 kB).
-Application bundle generation complete. [exit 0]
+All slice-3 tasks 3.1–3.5 are `[x]` in `tasks.md` and consistent with the committed code. `apply-progress.md` slice-3 section (lines 184+) and Engram #163 match.
+
+### Build & Tests
+
+- `npm test -- --watch false` (frontend/) → **exit 0 · 13 files / 199 tests passed, 0 failed** (slice-2 baseline 13 / 193; net +6: service +4, component +2). Output hash `sha256:a45305f0…`.
+- `npm run build` (frontend/) → **exit 0**. Initial bundle 630.24 kB; the 500 kB budget WARNING is the pre-existing `@angular/cdk/overlay` cost introduced by slice 2's vendored dialog (design D3), not a slice-3 regression. Slice 3 adds ~2 kB (628.09 → 630.24). Output hash `sha256:96d7d15b…`.
+- Coverage: no coverage tool configured. No e2e/integration harness — Vitest unit/component layer only.
+
+### Spec Compliance — "Recent Sends Are Recorded, Capped, and Recallable" (1 requirement / 4 scenarios)
+
+| Scenario | Status | Covering test (passed at runtime) |
+|---|---|---|
+| Successful send added newest-first and capped at 5 (FIFO evict oldest) | COMPLIANT | `send-history.service.spec.ts` — "recordSend caps the list at 5 entries, evicting the oldest (FIFO)": records 6, asserts `length === 5`, `sends[0].routingKey === 'orders.5'`, `sends[4].routingKey === 'orders.1'` |
+| Recalling a recent send populates `exchange`, `routingKey`, `payload` | COMPLIANT | `send.component.spec.ts` — "useRecent(entry) populates exchange/routingKey/payload from a recent send" |
+| Vaciar clears the list AND deletes the persisted key; still empty after reload | COMPLIANT | `send-history.service.spec.ts` — "clearRecentSends empties the in-memory list AND removes the persisted localStorage key" (asserts `recentSends() === []` and `getItem(key) === null`) + "clearRecentSends keeps the list empty after a reload" (`TestBed.resetTestingModule()` + re-inject → `[]`). Component wiring: `send.component.spec.ts` "the 'Vaciar' control is shown only when recent sends exist and clears them via the service" |
+| Upgrade migration — persisted list >5 truncated to 5 most recent AND key rewritten on first init | COMPLIANT | `send-history.service.spec.ts` — "truncates a persisted list longer than 5 to the 5 most recent AND rewrites the key on first load": seeds an 8-entry array, `resetTestingModule()` + re-inject, asserts in-memory list is the first 5 AND `JSON.parse(localStorage.getItem(key))` is those same 5 |
+
+4/4 scenarios COMPLIANT, each with a covering test that passed at runtime.
+
+### Migration Edge Cases
+
+| Case | Behavior | Evidence |
+|---|---|---|
+| Empty / missing key | `readArray` → `[]`; `length 0 ≤ 5` → returned untouched, no write | "starts with empty recentSends…when localStorage is empty" |
+| Corrupted JSON | `readArray` catch → `[]`; no throw, no rewrite | "falls back to an empty recentSends list without throwing when its localStorage entry is corrupted JSON" (line 134) |
+| Exactly 5 entries | `length 5 ≤ 5` → returned untouched, `localStorage.setItem` not called | "leaves a persisted list of 5 or fewer entries untouched on load" (asserts stored list still length 5) |
+| Fewer than 5 | same untouched path | covered by empty-list + 2-entry newest-first tests; 5-or-fewer test name is inclusive |
+| More than 5 | `slice(0, 5)` + `setItem` rewrite | migration test above |
+
+### Correctness / Coherence (design D6)
+
+- `RECENT_SENDS_CAP` is `5` (`send-history.service.ts:5`). Was 20.
+- Construction-time migration: `_recentSends` signal initializer calls `loadCappedRecentSends()` (`:69`) — runs once at service instantiation, matching D6 "construction-time `loadCapped()`" and the spec's "first init after upgrade".
+- `loadCappedRecentSends()` (`:50`) truncates with `stored.slice(0, RECENT_SENDS_CAP)` (list is newest-first, so this keeps the 5 most recent) and `localStorage.setItem(RECENT_SENDS_KEY, …)` only when `stored.length > 5`. No preserve-and-hide. Matches decision #152.3.
+- `clearRecentSends()` (`:87`) = `_recentSends.set([])` + `localStorage.removeItem(RECENT_SENDS_KEY)`. Templates untouched. Matches decision #152.2.
+- `recordSend` already applies `.slice(0, RECENT_SENDS_CAP)` (`:77`), so cap-5 FIFO on new sends needs no extra code.
+- Component only delegates: `clearRecent()` (`send.component.ts:379`) is `this.history.clearRecentSends();` and nothing else. No `localStorage` reference anywhere in `send.component.ts` (task 3.5).
+- Deviation: D6 names the helper `loadCapped()`; implemented as module-level `loadCappedRecentSends()`, the same pattern as the existing `readArray` helper. Behaviourally identical; not a spec break.
+
+### Layout rework
+
+`send.component.html` recent-sends block: container `[data-testid="recent-sends"]`; header row with `Envíos recientes` + live `N/5` counter (shown only when entries exist); ghost `[data-testid="recent-sends-clear"]` "Vaciar" button with `lucideTrash2`, rendered only while `history.recentSends().length > 0`; two-line `[data-testid="recent-send-row"]` cards (exchange over routing key, `(intercambio predeterminado)` / `(sin clave de enrutamiento)` placeholders) on `bg-background/60` + `rounded-lg`; `@for` track changed from `recent.sentAt` to `$index`. "Cargar" recall button unchanged. No hardcoded radii or colors introduced — all Tailwind token classes.
+
+### No scope leak
+
+Slice-3 diff `a2d1a35..a5ab95c` touches only:
+
 ```
-The +128 kB over budget is `@angular/cdk/overlay`, pulled in by the vendored dialog. Expected cost of design D3, not an app-code regression. Baseline slice-1 warning was ~500 kB.
-
-**Tests**: PASS — `npm test -- --watch false` (from `frontend/`), exit 0.
-```text
-Test Files  13 passed (13)
-     Tests  193 passed (193)
+frontend/src/app/features/send/send-history.service.spec.ts | 70 +
+frontend/src/app/features/send/send-history.service.ts      | 32 +
+frontend/src/app/features/send/send.component.html          | 45 +
+frontend/src/app/features/send/send.component.spec.ts       | 35 +
+frontend/src/app/features/send/send.component.ts            |  6 +
+openspec/changes/console-redesign/apply-progress.md         | 65 +
+openspec/changes/console-redesign/tasks.md                  | 10 +
 ```
-Was 11 files / 189 (slice-1 baseline). Net +4: `status-pill.component.spec.ts` +7, `connect-dialog.component.spec.ts` +6, `connect.component.spec.ts` net -9 (about 10 obsolete permanent-column characterization tests removed, 9 container tests retained/added).
 
-**Coverage**: Not available — repo has no coverage tool configured; no e2e/integration harness (Vitest is the only runner, per design + tasks).
-
-### Spec Compliance Matrix (connection-status delta)
-| Requirement | Scenario | Test | Result |
-|-------------|----------|------|--------|
-| Connection UI Is a Load-Time Popup That Collapses to a Status Pill | Popup shows on load when not connected; no permanent column | `connect.component.spec.ts > auto-opens the connect popup on load while there is no broker connection` | COMPLIANT |
-| " | Popup collapses to the status pill after connecting | `connect.component.spec.ts > dismisses the popup and sets the RabbitMQ accent after a successful connect` | COMPLIANT |
-| " | Clicking the pill while connected offers disconnect and switch, not re-login | `connect.component.spec.ts > shows disconnect/switch controls and no credential fields once connected`; `connect-dialog.component.spec.ts > shows Desconectar and Cambiar broker with NO credential fields while connected` | COMPLIANT |
-| " | Clicking the pill while disconnected re-opens the popup | `connect.component.spec.ts > re-opens the same popup when the status pill is activated`; `status-pill.component.spec.ts > emits activate when the pill is clicked` | COMPLIANT |
-| Reserved Broker-Selector Slot | The slot is present but inert (no broker change, no request) | `connect.component.spec.ts > renders a reserved broker-selector slot beside the pill that is inert and non-focusable` | COMPLIANT |
-
-**Compliance summary**: 5/5 scenarios compliant.
-
-Bonus (behavior in the Engram spec artifact #153 but not in the authoritative delta file — see SUGGESTION S3): hub `reconnecting` renders inline in the pill — covered by `status-pill.component.spec.ts > renders the hub reconnecting state inline inside the pill, not as a separate banner`. COMPLIANT.
-
-### Correctness (Static Evidence)
-| Requirement | Status | Notes |
-|------------|--------|-------|
-| Load-time popup, one `connectDialogOpen` signal | Implemented | `connect.component.ts:44` signal starts `true`; `<hlm-dialog [state]>` bound in `connect.component.html`; auto-open verified. Matches D3. |
-| Popup collapses to always-visible pill | Implemented | `StatusPillComponent` always rendered in `connect.component.html` (not conditional on state); `connect()` success sets `connectDialogOpen.set(false)`. |
-| Pill reopens same dialog, state-agnostic | Implemented | `openConnectDialog()` sets the one signal; body switches on `connected()` in `connect-dialog.component.html`. |
-| Connected body = Desconectar / Cambiar broker, never re-login | Implemented | `connect-dialog.component.html` `@if (!connected())` guards the 4-field form; connected branch has zero inputs. |
-| "Cambiar broker" = disconnect then reconnect via `/api/connections`, no Kafka wiring | Implemented | `changeBroker()` -> `disconnect()` (DELETE `/api/connections`) + keeps popup open so the body reverts to the credentials form; tester re-submits `connect()`. No Kafka path. Matches D10 intent (see SUGGESTION S1 on literal wording). |
-| Reserved slot: `aria-hidden`, non-focusable, no wiring | Implemented | `connect.component.html`: `aria-hidden="true"`, `tabindex="-1"`, `inert`, `pointer-events-none`; click triggers no HTTP (tested). |
-| `BrokerAccentService` wiring (slice-1 handoff) | Implemented | `setBroker('rabbitmq')` on connect success (`connect.component.ts:62`); `setBroker(null)` in `settleDisconnect()` (`:84`), reached by both `disconnect()` and `changeBroker()`. Tested both directions. |
-| Hub ownership unchanged | Implemented | Container reads `busHub.connectionState` read-only; never starts the hub (tested: `never starts the SignalR hub`). |
-| Permanent connect column removed | Implemented | `app.html`: `<app-connect />` is in `<header>`; `<main>` grid is `lg:grid-cols-[minmax(320px,420px)_minmax(360px,1fr)]` — 2 tracks (`app-send`, `app-messages`). |
-
-### Coherence (Design)
-| Decision | Followed? | Notes |
-|----------|-----------|-------|
-| D3: vendored spartan `dialog`; `connectDialogOpen` auto-opens while `!connected()`; pill always in header; body switches on `connected()`; reserved slot `aria-hidden` non-focusable `[data-testid="broker-selector-slot"]` | Yes (1 documented sub-deviation) | Dialog vendored by hand from the CLI's own templates (`node_modules/@spartan-ng/cli/src/generators/ui/libs/dialog/files/**`) — the CLI generator is nx-only and cannot run in this plain Angular CLI project. Byte-compared all 12 files against the templates: identical except the documented `spartan-dialog-*` preset-class -> expanded-Tailwind substitution (same technique the existing vendored `button`/`card` libs use). Structure matches the other 10 `libs/ui/*` helm libs (`src/index.ts` + `src/lib/*.ts` + `HlmDialogImports` barrel). `frontend/tsconfig.json` has the `@spartan-ng/helm/dialog` path. |
-| D3 sub-deviation: dialog title/description | Deviation (acceptable) | `connect-dialog.component.html` uses plain `<h2>` / `<p>` instead of `hlmDialogTitle` / `hlmDialogDescription`. Those directives inject `BrnDialogRef` and throw when the presentational child is rendered in isolation (its own spec). Overlay, backdrop, focus trap and the close button all still come from `HlmDialog` / `HlmDialogContent` / `HlmDialogOverlay` (which host `BrnDialog` / `BrnDialogOverlay`) in the container — verified in source. Functional impact: none. A11y impact: the dialog has no `aria-labelledby` / `aria-describedby` association with its heading. See WARNING W1. |
-| D10: "Cambiar broker" = `disconnect()` then `connect()` against `/api/connections`, no Kafka wiring | Yes | Implemented as `disconnect()` + keep popup open; `connect()` fires on the tester's explicit re-submit rather than automatically. See SUGGESTION S1. |
-| Strict TDD RED-GREEN per slice | Yes | `apply-progress.md` has the slice-2 TDD Cycle Evidence table; RED = compile failure (missing child components / signal), GREEN = 23 slice-2 tests. Test files exist and pass on re-run. |
+Only `features/send/**` + SDD docs. No messages-feed, queue-color, reply-drawer, connect, or token changes. Reply-mode / dirty-guard regions of `send.component.ts` are untouched (the 6 added lines are the `clearRecent()` method only). No vendored output. Working tree clean at `a5ab95c`.
 
 ### TDD Compliance
-| Check | Result | Details |
-|-------|--------|---------|
-| TDD Evidence reported | Yes | Slice-2 table in `apply-progress.md` + Engram #163 |
-| All tasks have tests | Yes | 2.1-2.4 covered by the 3 spec files; 2.5 is a refactor covered by the full suite + `app.spec.ts` |
-| RED confirmed (tests exist) | Yes | 3/3 slice-2 spec files present on disk |
-| GREEN confirmed (tests pass) | Yes | 13 files / 193 tests pass on independent re-run |
-| Triangulation adequate | Yes | e.g. `input` count 4 (disconnected) vs 0 (connected); accent `rabbitmq` vs `null`; tone `warn`/`ok`/`error`/`neutral` |
-| Safety net for modified files | Yes | Slice-1 baseline suite (189) run before slice-2 edits; net +4 after |
 
-**TDD Compliance**: 6/6 checks passed.
+| Check | Result | Details |
+|---|---|---|
+| TDD evidence reported | Yes | apply-progress "TDD evidence" table, tasks 3.1–3.5 |
+| All tasks have tests | Yes | 3.1/3.2 are the test tasks; 3.3/3.4 driven by them; 3.5 refactor |
+| RED confirmed (tests exist) | Yes | all 7 new test cases present in the two spec files |
+| GREEN confirmed (tests pass) | Yes | 199/199 on fresh run |
+| Triangulation | Adequate | migration path has 3 distinct cases (>5 truncate+rewrite, exactly-5 untouched, empty); clear path has 2 (removeItem + reload persistence); assertions use varied expected values, not repeated empties |
+| Safety net for modified files | Yes | both spec files pre-existed; full suite (193) run green before the change per apply-progress |
+
+RED evidence is a compile-gate (`Property 'clearRecentSends' does not exist on type 'SendHistoryService'`) rather than a red assertion for tasks 3.1/3.2 — acceptable for an additive API in a typed codebase; the behavioural assertions that follow are substantive.
+
+### Assertion Quality Audit
+
+New/changed test files: `send-history.service.spec.ts`, `send.component.spec.ts`.
+
+| File | Line | Assertion | Issue | Severity |
+|---|---|---|---|---|
+| `send.component.spec.ts` | 223 | `expect(clearSpy).toHaveBeenCalledTimes(1)` (delegation-only test) | Mock call-count assertion with no behavioural companion in the same test | SUGGESTION |
+| `send.component.spec.ts` | 416 | `expect(buttons.length).toBe(6)` | DOM element-count coupling (pre-existing pattern in this file, bumped 5→6) | SUGGESTION |
+
+No tautologies, no assertions without a production-code call, no ghost loops, no orphan empty-array checks (every `toEqual([])` has a companion assertion of non-empty state or a prior `recordSend`). The delegation concern is mitigated by the sibling test "the 'Vaciar' control is shown only when recent sends exist…" which asserts real show/hide DOM behaviour + click wiring, and by the service-level `clearRecentSends` tests that assert the actual `[]` + `removeItem` outcome.
+
+**Assertion quality**: 0 CRITICAL, 0 WARNING, 2 SUGGESTION.
 
 ### Test Layer Distribution
-| Layer | Tests | Files | Tools |
-|-------|-------|-------|-------|
-| Unit (TestBed + jsdom, incl. CDK overlay) | ~22 slice-2 | 3 | Vitest 4.1.11 |
-| Integration | 0 | 0 | not installed |
+
+| Layer | Tests | Files | Tool |
+|---|---|---|---|
+| Unit (service, isolated) | 9 (`send-history.service.spec.ts`) | 1 | Vitest + TestBed |
+| Component (TestBed `createComponent` + DOM queries) | remainder of `send.component.spec.ts` | 1 | Vitest + Angular TestBed |
 | E2E | 0 | 0 | not installed |
-| Total (whole suite) | 193 | 13 | |
+| **Total (suite)** | **199** | **13** | |
 
-### Assertion Quality
-Scanned `connect.component.spec.ts`, `connect-dialog.component.spec.ts`, `status-pill.component.spec.ts`.
-- No tautologies, no ghost loops, no orphan empty-collection checks (the `querySelectorAll('input').length === 0` connected assertion has a companion `=== 4` disconnected assertion).
-- Every assertion follows a production-code call (`connect()`, `changeBroker()`, `pill.click()`, `setInput`, form submit) or a real DOM/HTTP expectation (`httpMock.expectNone`, `expectOne`).
-- Minor: a few assertions check token CSS classes (`className` contains `text-status-warn` / `text-status-ok`). These are semantic design tokens, consistent with the design's `data-*` + token-class contract strategy — not churn-prone utility strings. Not flagged.
+### Issues
 
-**Assertion quality**: All assertions verify real behavior. 0 CRITICAL, 0 WARNING.
+**CRITICAL**: none.
 
-### Quality Metrics
-**Linter**: Not run (no lint script wired into this verification; `ng build` AOT + strict TS compiled clean).
-**Type Checker**: No errors — `ng build` and `ng test` both compile under strict TS with exit 0.
-
-### Scope Leak Check (slices 3-5)
-`git diff --stat 938e732..8acd4ff` (slice-2-only range) touches only: `frontend/libs/ui/dialog/**`, `frontend/src/app/features/connect/*`, `frontend/src/app/app.html`, `frontend/tsconfig.json`, and the SDD docs (`apply-progress.md`, `tasks.md`). No changes to `send-history.service`, `send.component`, `messages.component`, `queue-color`, `reply/*`, `reply-draft.service`, or `specs/ui-presentation`. No scope leak. Working tree is clean.
-
-### Coverage-Parity Check (removed permanent-column tests)
-The obsolete `connect.component.spec.ts` (-268 lines) characterized the removed always-visible connect column. Behavior that still matters migrated and is covered:
-- credential form fields / `Conectar` submit -> `connect-dialog.component.spec.ts`
-- connect POST `/api/connections` + success/error handling -> `connect.component.spec.ts`
-- disconnect DELETE -> `connect.component.spec.ts`
-- hub never started -> `connect.component.spec.ts`
-- pill states / labels / hub-inline -> `status-pill.component.spec.ts`
-Tests that only asserted the permanent-column layout are legitimately dead (that UI was removed by design). No real coverage loss.
-
-### Issues Found
-**CRITICAL**: None.
-
-**WARNING**:
-- W1 — Dialog heading not associated for a11y. `connect-dialog.component.html` uses plain `<h2>`/`<p>` instead of `hlmDialogTitle`/`hlmDialogDescription`, so the CDK dialog has no `aria-labelledby`/`aria-describedby`. Overlay/focus-trap/close-button are unaffected (they come from the container's `HlmDialog`/`HlmDialogContent`/`HlmDialogOverlay`). Documented and justified (the directives throw in isolated child specs). Not a spec break; recommend restoring labelling in a later slice via manual `aria-labelledby` or by hoisting the title into the container.
-- W2 — Slice-2 changed-line ledger is ~1341 (926+/415-), over the 800 review budget. ACCEPTED as `size:exception` by the maintainer (objective reset). Inflation: 272 vendored dialog lib + the mandated task-2.1 RED spec rewrite (-268 obsolete permanent-column spec) + the mandated task-2.5 column deletion + ~109 lines of SDD progress docs. Net-new authored logic ~270. Recorded here as context only — not a blocker to PR2.
+**WARNING**: none.
 
 **SUGGESTION**:
-- S1 — D10 literal wording vs implementation. D10 says "Cambiar broker = `disconnect()` then `connect()`". The implementation runs `disconnect()` and returns the tester to the credentials form to re-submit `connect()` explicitly, rather than auto-firing it. This is arguably better UX (the tester can change host/vhost) and stays within D10's "re-target of the same RabbitMQ flow" intent. Consider tightening the D10 text.
-- S2 — No `App`-level test asserts "no permanent column". `app.spec.ts` only checks `app-connect` exists. The popup-vs-column behavior is verified at the component level and structurally in `app.html`. Consider an assertion that no connect form renders inline outside the overlay while disconnected.
-- S3 — Spec artifact drift. Engram `sdd/console-redesign/spec` (#153) lists a 5th scenario for the popup requirement ("Hub `reconnecting` renders inline within the pill, not as a full-width banner") that is absent from the authoritative delta file `openspec/changes/console-redesign/specs/connection-status/spec.md`. The behavior is implemented and tested. Reconcile the delta file to include that scenario before archive.
+- S1: `clearRecent()` delegation test (`send.component.spec.ts:215`) asserts only `spy.toHaveBeenCalledTimes(1)`. Consider asserting the observable outcome (list emptied in the rendered DOM) so the test survives a refactor of the delegation target's name.
+- S2: The exactly-5 migration test asserts the persisted list still has length 5 but does not assert `localStorage.setItem` was *not* called. The code path is correct (early return before any write); an explicit "no rewrite" spy assertion would lock it in.
+- S3: `expect(buttons.length).toBe(6)` couples a test to the total button count of the panel; a future control added elsewhere in `send.component.html` will break it for an unrelated reason.
+- S4 (carried from slice 2): initial bundle remains over the 500 kB Angular budget (630.24 kB). Pre-existing `@angular/cdk/overlay` cost from slice 2; slice 3 adds ~2 kB. Not a slice-3 regression — resolve the budget globally (raise the budget or lazy-load the dialog) at chain end.
 
 ### Verdict
-**PASS WITH WARNINGS** — All 5 connection-status scenarios have passing covering tests; build and full suite green (13 files / 193 tests, exit 0); tasks 2.1-2.5 complete and consistent with code; no scope leak into slices 3-5. The two warnings (a11y labelling deviation W1, accepted size:exception W2) do not block. Slice 2 is ready to open as PR2 targeting `feat/console-redesign-s1-tokens`.
+
+**PASS WITH WARNINGS** (0 blockers, 0 critical, 0 warning, 4 suggestions).
+
+Slice 3 is **ready to open as PR3 targeting `feat/console-redesign-s2-connect`**. The spec requirement and all 4 scenarios are implemented and covered by passing tests, the design D6 contract is met, TDD was followed, and the diff is scope-clean. The build budget warning is a pre-existing slice-2 artifact, not a slice-3 regression.
+
+**Next recommended**: `sdd-apply` for slice 4 (or open PR3 first per the feature-branch chain). No `sdd-archive` until all 5 slices land.
