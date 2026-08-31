@@ -555,3 +555,30 @@ RED: 13 failing in `messages.component.spec.ts`. GREEN: **14 files / 235 tests p
 - Prototype row chrome = `rounded-[7px] border-border bg-muted px-[9px] py-[6px]`.
 - Slice 5's D7 removal deletes `replyMode`/`correlationId`/dirty-guard from `send.component.{ts,html}` — `recentSummary` (added in C4) stays.
 - `.qpill` pattern now: `inline-flex items-center gap-1.5 rounded-full px-[9px] py-[3px] text-[11px] font-semibold` + `[style.background-color]="queuePillTint"` + `[style.color]="queuePillText"`; dot `size-1.5 shrink-0 rounded-[3px]`. Drawer dot + `MENSAJE ORIGINAL` `border-left` should reuse `queueDotFill` / `--queue-hue`.
+
+## SLICE 5 — correction C6: prototype fidelity (reply drawer)
+
+Branch `feat/console-redesign-s5-reply-drawer`, commit `efc7a7d`. Source of truth: prototype reply drawer (~157-178). Strict TDD in `reply-drawer.component.spec.ts`: 12 → 17 tests (RED = compile failure on `origin.queue`, then 5 new assertions GREEN).
+
+| Gap | Fix |
+|-----|-----|
+| Sheet chrome | `hlm-sheet-content` → `bg-card p-[18px] sm:max-w-[420px]`; `[showCloseButton]="false"` (own `.x`). `bg-popover`/`border-l`/`shadow-lg ring-1` already = panel. |
+| Header | `[● dot Responder]` — dot `size-1.5 rounded-[3px]` `[style.background-color]="var(--queue-hue)"`; title `text-[15px] font-bold` (h2 already Bricolage); plain `✕` close button `data-testid="reply-close"`. |
+| Mensaje original box | `rounded-[8px] border border-border border-l-2 bg-muted px-3 py-2.5` + `[style.border-left-color]="var(--queue-hue)"`; `.field-label` + mono rk + mono meta (`originMeta()` → `exchange: … / (intercambio predeterminado)`) + mono payload. |
+| Correlation ID | Always-rendered readonly `.in` (`h-[34px] rounded-[8px] bg-muted font-mono text-muted-foreground`), `data-testid="reply-correlation-id"`. Dropped the `@if (correlationId())` and the separate routing-key input + exchange chip + Cancelar button. |
+| Payload | `.field-label` + textarea `min-h-[120px] rounded-[8px] bg-muted`. |
+| Send + caption | full-width `hlmBtn` `h-[38px] rounded-[9px]` "Enviar respuesta"; muted `text-[11px]` caption "El panel de Enviar queda intacto con tu borrador." |
+
+Hue plumbing: `ReplyTarget.origin` gains `queue`; `MessagesComponent.respond()` fills it via `queueNameOf(message)`; drawer `queueColor()` = `queueColorIndex(origin.queue)` bound as `[attr.data-queue-color]` on the sheet content.
+
+### C6 evidence
+RED: compile failure (`queue` not on `origin`) + 5 pending assertions. GREEN: focused `--include 'src/app/features/reply/**/*.spec.ts'` → **1 file / 17 passed**. Full suite **15 files / 244 passed**, 0 failed. `npm run build` OK (styles 48.84 kB; pre-existing 500 kB bundle-budget warning at 644.62 kB, unchanged). Built CSS carries `420px`, `120px`, `18px`, `9px`, `border-l-2`.
+
+### Files (C6)
+`reply-drawer.component.{ts,html,spec.ts}`, `reply-draft.service.ts` (+`queue` on `origin`), `messages.component.ts` (one line in `respond()`). `styles.css` NOT touched. Rollback = revert `efc7a7d`.
+
+### Deviations (C6)
+- None. `origin.queue` is an additive optional-object field (D4 additive-extension precedent).
+- Arbitrary px utilities where the token scale has no step — S1–S4 precedent.
+
+## STATUS: all 5 slices at prototype fidelity.
