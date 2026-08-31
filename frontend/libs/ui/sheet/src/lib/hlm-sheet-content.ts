@@ -1,0 +1,66 @@
+import type { BooleanInput } from '@angular/cdk/coercion';
+import {
+	booleanAttribute,
+	ChangeDetectionStrategy,
+	Component,
+	effect,
+	ElementRef,
+	inject,
+	input,
+	Renderer2,
+	signal,
+} from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideX } from '@ng-icons/lucide';
+import { injectExposedSideProvider, injectExposesStateProvider } from '@spartan-ng/brain/core';
+import { HlmButton } from '@spartan-ng/helm/button';
+
+import { classes } from '@spartan-ng/helm/utils';
+import { HlmSheetClose } from './hlm-sheet-close';
+
+@Component({
+	selector: 'hlm-sheet-content',
+	imports: [HlmButton, HlmSheetClose, NgIcon],
+	providers: [provideIcons({ lucideX })],
+	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: {
+		'data-slot': 'sheet-content',
+		'[attr.data-side]': '_sideProvider.side()',
+		'[attr.data-state]': 'state()',
+	},
+	template: `
+		<ng-content />
+
+		@if (showCloseButton()) {
+			<button hlmBtn variant="ghost" size="icon-sm" class="absolute end-3 top-3" hlmSheetClose>
+				<span class="sr-only">Close</span>
+				<ng-icon name="lucideX" />
+			</button>
+		}
+	`,
+})
+export class HlmSheetContent {
+	private readonly _stateProvider = injectExposesStateProvider({ host: true });
+	protected readonly _sideProvider = injectExposedSideProvider({ host: true });
+	public readonly state = this._stateProvider.state ?? signal('closed');
+	private readonly _renderer = inject(Renderer2);
+	private readonly _element = inject(ElementRef);
+
+	public readonly showCloseButton = input<boolean, BooleanInput>(true, { transform: booleanAttribute });
+
+	constructor() {
+		classes(() => [
+			// Expanded from the spartan `spartan-sheet-content` preset; animation utilities are
+			// dropped to match the already-vendored `dialog` lib (this project ships no
+			// tw-animate-css / tailwindcss-animate).
+			'bg-popover text-popover-foreground ring-foreground/10 fixed z-50 flex flex-col gap-4 bg-clip-padding text-sm shadow-lg ring-1 outline-none',
+			'data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t',
+			'data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:sm:max-w-sm',
+			'data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:sm:max-w-sm',
+			'data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b',
+		]);
+		effect(() => {
+			this._renderer.setAttribute(this._element.nativeElement, 'data-state', this.state());
+		});
+	}
+}

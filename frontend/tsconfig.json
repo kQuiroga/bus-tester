@@ -37,6 +37,9 @@
       "@spartan-ng/helm/dialog": [
         "./libs/ui/dialog/src/index.ts"
       ],
+      "@spartan-ng/helm/sheet": [
+        "./libs/ui/sheet/src/index.ts"
+      ],
       "@spartan-ng/helm/sonner": [
         "./libs/ui/sonner/src/index.ts"
       ],
