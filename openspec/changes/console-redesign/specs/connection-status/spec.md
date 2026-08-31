@@ -31,6 +31,13 @@ On app load with no active broker connection, `ConnectComponent` MUST present it
 - WHEN the tester activates the status pill
 - THEN the connect popup re-opens with the connect form
 
+#### Scenario: Hub reconnecting renders inline within the pill
+
+- GIVEN the broker is connected and the SignalR hub enters `reconnecting`
+- WHEN the status pill renders
+- THEN the reconnecting state is shown inline within the pill (e.g. `[data-testid="hub-state-inline"]`)
+- AND it is NOT rendered as a full-width banner
+
 ### Requirement: Reserved Broker-Selector Slot
 
 The header/connection area MUST reserve visible layout space for a future broker selector. In this change the slot MUST be inert: it MUST NOT switch brokers, MUST NOT expose Kafka options as functional, and MUST carry no wiring behind it.
