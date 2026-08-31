@@ -3,24 +3,15 @@
   <form class="mt-3 flex flex-col gap-3" (ngSubmit)="send()">
     <label hlmLabel class="flex flex-col items-start gap-1">
       Exchange
-      @if (replyMode()) {
-        <span
-          data-testid="reply-exchange-chip"
-          class="inline-flex items-center rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-        >
-          (intercambio predeterminado)
-        </span>
-      } @else {
-        <input
-          hlmInput
-          name="exchange"
-          [ngModel]="exchange()"
-          (ngModelChange)="onExchangeInput($event)"
-          (blur)="onBlur('exchange')"
-        />
-        @if (touched().has('exchange') && exchangeError()) {
-          <p class="text-xs font-medium text-destructive">{{ exchangeError() }}</p>
-        }
+      <input
+        hlmInput
+        name="exchange"
+        [ngModel]="exchange()"
+        (ngModelChange)="exchange.set($event)"
+        (blur)="onBlur('exchange')"
+      />
+      @if (touched().has('exchange') && exchangeError()) {
+        <p class="text-xs font-medium text-destructive">{{ exchangeError() }}</p>
       }
     </label>
     <label hlmLabel class="flex flex-col items-start gap-1">
@@ -29,25 +20,13 @@
         hlmInput
         name="routingKey"
         [ngModel]="routingKey()"
-        (ngModelChange)="onRoutingKeyInput($event)"
+        (ngModelChange)="routingKey.set($event)"
         (blur)="onBlur('routingKey')"
       />
       @if (touched().has('routingKey') && routingKeyError()) {
         <p class="text-xs font-medium text-destructive">{{ routingKeyError() }}</p>
       }
     </label>
-    @if (replyMode()) {
-      <label hlmLabel class="flex flex-col items-start gap-1">
-        Correlation ID
-        <input
-          hlmInput
-          name="correlationId"
-          [ngModel]="correlationId()"
-          (ngModelChange)="correlationId.set($event)"
-          [ngModelOptions]="{ standalone: true }"
-        />
-      </label>
-    }
     <label hlmLabel class="flex flex-col items-start gap-1">
       Payload
       <textarea
