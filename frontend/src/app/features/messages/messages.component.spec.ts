@@ -604,7 +604,9 @@ describe('MessagesComponent', () => {
     findResponder(root)!.click();
     fixture.detectChanges();
 
-    expect(requestSpy).toHaveBeenCalledWith({ routingKey: 'amq.gen-reply-xyz', correlationId: 'corr-9' });
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ routingKey: 'amq.gen-reply-xyz', correlationId: 'corr-9' }),
+    );
   });
 
   it('clicking a row Responder passes correlationId null when the message has no correlationId (3.2)', () => {
@@ -615,7 +617,60 @@ describe('MessagesComponent', () => {
     findResponder(root)!.click();
     fixture.detectChanges();
 
-    expect(requestSpy).toHaveBeenCalledWith({ routingKey: 'amq.gen-reply-abc', correlationId: null });
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ routingKey: 'amq.gen-reply-abc', correlationId: null }),
+    );
+  });
+
+  it('clicking a row Responder hands the source message as the pinned origin (5.2)', () => {
+    const replyDraft = TestBed.inject(ReplyDraftService);
+    const requestSpy = vi.spyOn(replyDraft, 'request');
+    const { fixture, root } = renderFeed([
+      msg(0, { exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}', replyTo: 'amq.gen-reply-xyz' }),
+    ]);
+
+    findResponder(root)!.click();
+    fixture.detectChanges();
+
+    const arg = requestSpy.mock.calls[0][0];
+    expect(arg.origin).toBeDefined();
+    expect(arg.origin).toEqual(
+      expect.objectContaining({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' }),
+    );
+    expect(typeof arg.origin!.receivedAt).toBe('string');
+  });
+
+  it('marks the source row [data-replying="true"] while its reply is active, and clears it when the draft clears (5.2)', () => {
+    const replyDraft = TestBed.inject(ReplyDraftService);
+    const { fixture, root } = renderFeed([msg(0, { replyTo: 'amq.gen-reply-xyz', correlationId: 'corr-9' })]);
+
+    expect(root.querySelector('[data-testid="message-row"][data-replying="true"]')).toBeNull();
+
+    findResponder(root)!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('[data-testid="message-row"][data-replying="true"]')).not.toBeNull();
+
+    replyDraft.clear();
+    fixture.detectChanges();
+    expect(root.querySelector('[data-testid="message-row"][data-replying="true"]')).toBeNull();
+  });
+
+  it('the Responder action works even when not subscribed to the source queue (5.2)', () => {
+    const replyDraft = TestBed.inject(ReplyDraftService);
+    const requestSpy = vi.spyOn(replyDraft, 'request');
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+
+    component.respond(msg(0, { replyTo: 'amq.gen-reply-solo', correlationId: 'corr-1' }));
+
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ routingKey: 'amq.gen-reply-solo', correlationId: 'corr-1' }),
+    );
+  });
+
+  it('hosts the reply drawer inside the feed (5.7)', () => {
+    const { root } = renderFeed([]);
+    expect(root.querySelector('app-reply-drawer')).not.toBeNull();
   });
 
   /** Subscribes to two queues and pushes one message on each, so cross-queue colour

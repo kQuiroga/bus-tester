@@ -1,4 +1,4 @@
-import { Component, computed, inject, linkedSignal, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePause, lucidePlay, lucideSearch, lucideX } from '@ng-icons/lucide';
@@ -10,6 +10,7 @@ import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { ReplyDraftService } from '../../core/reply-draft.service';
+import { ReplyDrawerComponent } from '../reply/reply-drawer.component';
 import { JsonPrettyPipe } from './json-pretty.pipe';
 import { queueColorIndex, QueueColor } from './queue-color';
 
@@ -47,7 +48,7 @@ interface Subscription {
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [FormsModule, JsonPrettyPipe, HlmButton, HlmInput, HlmLabel, HlmBadge, NgIcon],
+  imports: [FormsModule, JsonPrettyPipe, HlmButton, HlmInput, HlmLabel, HlmBadge, NgIcon, ReplyDrawerComponent],
   providers: [provideIcons({ lucidePause, lucidePlay, lucideSearch, lucideX })],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './messages.component.html',
@@ -63,6 +64,19 @@ export class MessagesComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly searchTerm = signal('');
   readonly paused = signal(false);
+
+  /** `seq` of the feed row whose reply drawer is currently open, so that row can render an accent
+   *  ring + `[data-replying="true"]` (design D4 — "anchored to the message"). Cleared by the effect
+   *  below as soon as the drawer clears the shared reply draft. */
+  readonly replyingSeq = signal<number | null>(null);
+
+  constructor() {
+    effect(() => {
+      if (this.replyDraft.draft() === null) {
+        this.replyingSeq.set(null);
+      }
+    });
+  }
 
   /** Blocks re-subscribing to a queue that already has an active chip (message-consumption
    *  spec: "Duplicate queueName is blocked"). */
@@ -165,9 +179,10 @@ export class MessagesComponent {
     this.paused.update((p) => !p);
   }
 
-  /** Hands the message's reply target to the Send panel via {@link ReplyDraftService}
-   *  (request-reply spec: "Responder Action Pre-Fills the Reply Target Into the Send Panel").
-   *  Only reachable from a row whose `replyTo` is non-null (template `@if`). */
+  /** Opens the reply drawer for this message via {@link ReplyDraftService} (request-reply spec:
+   *  "Responder Action Opens a Reply Drawer Anchored to the Message"). Pins the source message as
+   *  the drawer's `origin` and marks this row as the active reply. Works regardless of subscription
+   *  state. Only reachable from a row whose `replyTo` is non-null (template `@if`). */
   respond(message: ReceivedMessage): void {
     if (!message.replyTo) {
       return;
@@ -175,7 +190,20 @@ export class MessagesComponent {
     this.replyDraft.request({
       routingKey: message.replyTo,
       correlationId: message.correlationId ?? null,
+      origin: {
+        exchange: message.exchange,
+        routingKey: message.routingKey,
+        payload: message.payload,
+        // ReceivedMessage carries no receipt timestamp; stamp when the drawer is opened.
+        receivedAt: new Date().toISOString(),
+      },
     });
+    this.replyingSeq.set(message.seq);
+  }
+
+  /** True while this row's reply drawer is open (design D4 — "anchored to the message"). */
+  isReplying(message: ReceivedMessage): boolean {
+    return this.replyingSeq() === message.seq;
   }
 
   isNewRow(message: ReceivedMessage): boolean {

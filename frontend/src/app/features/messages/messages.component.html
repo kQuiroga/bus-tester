@@ -116,6 +116,10 @@
         data-testid="message-row"
         class="flex flex-col gap-2 rounded-lg border border-border bg-panel-2/40 px-3 py-2.5 shadow-sm transition-colors hover:border-border"
         [class.animate-message-enter]="isNewRow(message)"
+        [class.ring-2]="isReplying(message)"
+        [class.ring-accent]="isReplying(message)"
+        [class.border-accent]="isReplying(message)"
+        [attr.data-replying]="isReplying(message) ? 'true' : null"
       >
         <div class="flex items-start justify-between gap-2">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -155,4 +159,6 @@
       </li>
     }
   </ul>
+
+  <app-reply-drawer />
 </section>

@@ -1,0 +1,86 @@
+<hlm-sheet side="right" [state]="open() ? 'open' : 'closed'" (stateChanged)="onStateChange($event)">
+  <hlm-sheet-content
+    *hlmSheetPortal
+    data-testid="reply-drawer"
+    class="w-full gap-0 overflow-y-auto p-0 sm:max-w-md"
+  >
+    <div hlmSheetHeader class="border-b border-border">
+      <h2 hlmSheetTitle>Responder mensaje</h2>
+      <p class="text-xs text-muted-foreground">La respuesta se publica por el exchange predeterminado (AMQP).</p>
+    </div>
+
+    @if (origin(); as o) {
+      <section
+        data-testid="reply-origin"
+        class="flex flex-col gap-2 border-b border-border bg-panel-2/40 p-4 text-xs"
+      >
+        <h3 class="text-[0.7rem] font-semibold tracking-wide text-muted-foreground uppercase">Mensaje original</h3>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+          <dt class="text-muted-foreground">Exchange</dt>
+          <dd class="font-mono break-all text-foreground">{{ o.exchange || '(intercambio predeterminado)' }}</dd>
+          <dt class="text-muted-foreground">Clave de enrutamiento</dt>
+          <dd class="font-mono break-all text-foreground">{{ o.routingKey }}</dd>
+          <dt class="text-muted-foreground">Recibido</dt>
+          <dd class="font-mono break-all text-foreground">{{ o.receivedAt }}</dd>
+        </dl>
+        <pre
+          data-testid="reply-origin-payload"
+          class="mt-1 max-h-40 overflow-y-auto rounded-md border border-border bg-background/60 p-2 font-mono whitespace-pre-wrap text-foreground"
+        >{{ o.payload | jsonPretty }}</pre>
+      </section>
+    }
+
+    <form class="flex flex-col gap-3 p-4" (ngSubmit)="send()">
+      <label hlmLabel class="flex flex-col items-start gap-1">
+        Exchange
+        <span
+          data-testid="reply-exchange"
+          class="inline-flex items-center rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
+        >
+          (intercambio predeterminado)
+        </span>
+      </label>
+
+      <label hlmLabel class="flex flex-col items-start gap-1">
+        Clave de enrutamiento
+        <input
+          hlmInput
+          data-testid="reply-routing-key"
+          name="routingKey"
+          class="w-full"
+          [value]="routingKey()"
+          readonly
+        />
+      </label>
+
+      @if (correlationId()) {
+        <label hlmLabel class="flex flex-col items-start gap-1">
+          Correlation ID
+          <input hlmInput name="correlationId" class="w-full" [value]="correlationId()" readonly />
+        </label>
+      }
+
+      <label hlmLabel class="flex flex-col items-start gap-1">
+        Payload
+        <textarea
+          hlmTextarea
+          data-testid="reply-payload"
+          name="payload"
+          class="w-full"
+          [ngModel]="payload()"
+          (ngModelChange)="payload.set($event)"
+          (blur)="payloadTouched.set(true)"
+          [ngModelOptions]="{ standalone: true }"
+        ></textarea>
+        @if (payloadTouched() && payloadError()) {
+          <p class="text-xs font-medium text-destructive">{{ payloadError() }}</p>
+        }
+      </label>
+
+      <div class="flex items-center justify-end gap-2">
+        <button hlmBtn variant="ghost" type="button" (click)="close()">Cancelar</button>
+        <button hlmBtn type="submit" data-testid="reply-send">Enviar respuesta</button>
+      </div>
+    </form>
+  </hlm-sheet-content>
+</hlm-sheet>
