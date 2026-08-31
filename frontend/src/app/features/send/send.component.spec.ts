@@ -212,6 +212,37 @@ describe('SendComponent', () => {
     expect(component.payload()).toBe('{"id":2}');
   });
 
+  it('clearRecent() delegates to SendHistoryService.clearRecentSends()', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    const component = fixture.componentInstance;
+    const history = TestBed.inject(SendHistoryService);
+    const clearSpy = vi.spyOn(history, 'clearRecentSends');
+
+    component.clearRecent();
+
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('the "Vaciar" control is shown only when recent sends exist and clears them via the service', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    const history = TestBed.inject(SendHistoryService);
+    const clearSpy = vi.spyOn(history, 'clearRecentSends');
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    expect(root.querySelector('[data-testid="recent-sends-clear"]')).toBeNull();
+
+    history.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    fixture.detectChanges();
+
+    const clearButton = root.querySelector('[data-testid="recent-sends-clear"]') as HTMLButtonElement | null;
+    expect(clearButton).not.toBeNull();
+    expect(clearButton?.textContent?.trim()).toContain('Vaciar');
+
+    clearButton?.click();
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('saveTemplate() persists the current form under templateName in SendHistoryService', () => {
     const fixture = TestBed.createComponent(SendComponent);
     const component = fixture.componentInstance;
@@ -381,8 +412,8 @@ describe('SendComponent', () => {
     const root: HTMLElement = fixture.nativeElement;
 
     const buttons = Array.from(root.querySelectorAll('button[data-slot="button"]'));
-    // Enviar + Guardar plantilla (default) + Cargar (recent) + Cargar (template) + Eliminar (template)
-    expect(buttons.length).toBe(5);
+    // Enviar + Guardar plantilla (default) + Vaciar (recent) + Cargar (recent) + Cargar (template) + Eliminar (template)
+    expect(buttons.length).toBe(6);
     const rowActionButtons = buttons.filter((button) => button.textContent?.trim().includes('Cargar') || button.textContent?.trim().includes('Eliminar'));
     expect(rowActionButtons.length).toBe(3);
     for (const button of rowActionButtons) {

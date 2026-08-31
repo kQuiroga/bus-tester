@@ -60,11 +60,11 @@ Strict TDD: every slice runs RED → GREEN → REFACTOR against `npm test -- --w
 
 ## Phase 3 — Slice 3: Send panel recent sends (deps: S1)
 
-- [ ] 3.1 RED: `send-history.service.spec.ts` — record caps at 5 with FIFO eviction; `clearRecentSends()` empties memory AND calls `removeItem('send-panel.recent-sends')`; `loadCapped()` truncates a >5 stored array and rewrites the key.
-- [ ] 3.2 RED: `send.component.spec.ts` — `Vaciar` calls `clearRecentSends()`; recall populates `exchange` / `routingKey` / `payload`.
-- [ ] 3.3 GREEN: `send-history.service.ts` — `RECENT_SENDS_CAP = 5`, `loadCapped()` truncate+rewrite migration, `clearRecentSends()`.
-- [ ] 3.4 GREEN: `send.component.{ts,html}` — recent-sends layout (≤5) + `Vaciar` control wired to the service; suite green.
-- [ ] 3.5 REFACTOR: component delegates to the service only, no storage access in the component; suite green.
+- [x] 3.1 RED: `send-history.service.spec.ts` — record caps at 5 with FIFO eviction; `clearRecentSends()` empties memory AND calls `removeItem('send-panel.recent-sends')`; `loadCapped()` truncates a >5 stored array and rewrites the key.
+- [x] 3.2 RED: `send.component.spec.ts` — `Vaciar` calls `clearRecentSends()`; recall populates `exchange` / `routingKey` / `payload`.
+- [x] 3.3 GREEN: `send-history.service.ts` — `RECENT_SENDS_CAP = 5`, `loadCapped()` truncate+rewrite migration, `clearRecentSends()`.
+- [x] 3.4 GREEN: `send.component.{ts,html}` — recent-sends layout (≤5) + `Vaciar` control wired to the service; suite green.
+- [x] 3.5 REFACTOR: component delegates to the service only, no storage access in the component; suite green.
 
 ## Phase 4 — Slice 4: Messages feed cards + queue pill/dot (deps: S1)
 

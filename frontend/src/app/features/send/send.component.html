@@ -186,16 +186,47 @@
     <button hlmBtn type="submit">Enviar</button>
   </form>
 
-  <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-    <h3 class="text-sm font-medium text-card-foreground">Envíos recientes</h3>
+  <div class="mt-4 flex flex-col gap-2 border-t border-border pt-4" data-testid="recent-sends">
+    <div class="flex items-center justify-between gap-2">
+      <h3 class="text-sm font-medium text-card-foreground">
+        Envíos recientes
+        @if (history.recentSends().length > 0) {
+          <span class="ml-1 text-xs font-normal text-card-foreground/50">{{ history.recentSends().length }}/5</span>
+        }
+      </h3>
+      @if (history.recentSends().length > 0) {
+        <button
+          hlmBtn
+          variant="ghost"
+          size="sm"
+          type="button"
+          class="text-muted-foreground"
+          data-testid="recent-sends-clear"
+          (click)="clearRecent()"
+        >
+          <ng-icon name="lucideTrash2" />
+          Vaciar
+        </button>
+      }
+    </div>
     @if (history.recentSends().length === 0) {
       <p class="text-xs text-card-foreground/60">Aún no hay envíos.</p>
     } @else {
-      <ul class="flex flex-col gap-1">
-        @for (recent of history.recentSends(); track recent.sentAt) {
-          <li class="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs">
-            <span class="truncate">{{ recent.exchange }} / {{ recent.routingKey || '(sin clave de enrutamiento)' }}</span>
-            <button hlmBtn variant="ghost" size="sm" type="button" (click)="useRecent(recent)">
+      <ul class="flex flex-col gap-1.5">
+        @for (recent of history.recentSends(); track $index) {
+          <li
+            class="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/60 px-2.5 py-1.5 text-xs"
+            data-testid="recent-send-row"
+          >
+            <span class="flex min-w-0 flex-col leading-tight">
+              <span class="truncate font-medium text-card-foreground">
+                {{ recent.exchange || '(intercambio predeterminado)' }}
+              </span>
+              <span class="truncate text-card-foreground/60">
+                {{ recent.routingKey || '(sin clave de enrutamiento)' }}
+              </span>
+            </span>
+            <button hlmBtn variant="ghost" size="sm" type="button" class="shrink-0" (click)="useRecent(recent)">
               <ng-icon name="lucideDownload" />
               Cargar
             </button>

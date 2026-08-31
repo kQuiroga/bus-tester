@@ -180,3 +180,68 @@ PR-time `ask-on-risk` review-workload decision.
 ### Issues found
 
 - None blocking. Bundle-size budget warning noted above.
+
+## Slice 3 — Send panel recent sends: cap 5, Vaciar, first-load migration (COMPLETE)
+
+**Branch**: `feat/console-redesign-s3-send` (child of `feat/console-redesign-s2-connect`)
+**Delivery**: feature-branch-chain, PR3 of 5 → targets `feat/console-redesign-s2-connect`
+**Commit**: `feat(send): cap recent sends at 5 with Vaciar control and first-load migration`
+
+| Task | Status |
+|------|--------|
+| 3.1 RED `send-history.service.spec.ts` — cap 5 FIFO, `clearRecentSends()` memory + `removeItem`, first-load truncate+rewrite | [x] |
+| 3.2 RED `send.component.spec.ts` — `Vaciar` → `clearRecentSends()`, recall populates exchange/routingKey/payload | [x] |
+| 3.3 GREEN `send-history.service.ts` — `RECENT_SENDS_CAP = 5`, `loadCappedRecentSends()` migration, `clearRecentSends()` | [x] |
+| 3.4 GREEN `send.component.{ts,html}` — recent-sends layout rework + `Vaciar` control wired to the service | [x] |
+| 3.5 REFACTOR component delegates to the service only, no storage access in the component | [x] |
+
+### What changed (design D6, decisions #152.2 / #152.3)
+
+| File | Action | What |
+|---|---|---|
+| `frontend/src/app/features/send/send-history.service.ts` | Modify | `RECENT_SENDS_CAP` 20 → 5. New module fn `loadCappedRecentSends()` — reads the persisted list; when `length > 5` truncates to the first 5 (newest-first) AND rewrites `send-panel.recent-sends`, otherwise returns it untouched. `_recentSends` signal now initializes from it. New `clearRecentSends()` — `_recentSends.set([])` + `localStorage.removeItem('send-panel.recent-sends')`. `recordSend` already `.slice(0, CAP)`, so cap-5 FIFO is automatic. Templates untouched. |
+| `frontend/src/app/features/send/send-history.service.spec.ts` | Modify | "caps at 20" test rewritten to cap 5 (6 records → 5, `orders.5`..`orders.1`). Added: `clearRecentSends` empties memory + removes key; stays empty after reload; oversized (8-entry) persisted list truncated to 5 most recent + key rewritten on first inject; ≤5 list left untouched. |
+| `frontend/src/app/features/send/send.component.ts` | Modify | Added thin `clearRecent()` delegating to `history.clearRecentSends()` (mirrors existing `deleteTemplate`). No storage access in the component (3.5). Reply-mode / dirty-guard code (D7) left untouched — that is slice 5. |
+| `frontend/src/app/features/send/send.component.html` | Modify | Recent-sends block reworked: header row with `Envíos recientes` + live `N/5` count + a `[data-testid="recent-sends-clear"]` ghost `Vaciar` button (`lucideTrash2`) shown only while entries exist; rows are two-line (`exchange` over `routingKey`, `(intercambio predeterminado)` placeholder for empty exchange) `[data-testid="recent-send-row"]` cards on `bg-background/60` + `rounded-lg`; `track recent.sentAt` → `track $index`. Load button (`lucideDownload` + "Cargar") unchanged. Container gets `[data-testid="recent-sends"]`. |
+| `frontend/src/app/features/send/send.component.spec.ts` | Modify | Added: `clearRecent()` delegates to the service; `Vaciar` control hidden with no entries, shown with entries, click calls `clearRecentSends()`. Updated the row-actions button count 5 → 6 (Vaciar added; row-action filter by "Cargar"/"Eliminar" text still 3). |
+
+### Stable DOM contracts asserted (not class strings)
+
+`[data-testid="recent-sends"]`, `[data-testid="recent-sends-clear"]` (button, text `Vaciar`, only while `recentSends().length > 0`), `[data-testid="recent-send-row"]`, `button` text `Cargar` + `ng-icon[name="lucideDownload"]`.
+
+### TDD Cycle Evidence
+
+| Task | Test File(s) | Layer | RED | GREEN | REFACTOR |
+|------|--------------|-------|-----|-------|----------|
+| 3.1 | `send-history.service.spec.ts` | Unit (TestBed, jsdom localStorage) | ✅ compile failure — `Property 'clearRecentSends' does not exist on type 'SendHistoryService'` | ✅ 4 new + 1 rewritten service test green after 3.3 | ➖ module fn mirrors existing `readArray` helper |
+| 3.2 | `send.component.spec.ts` | Unit (TestBed + jsdom DOM) | ✅ same compile gate (`clearRecent` / `clearRecentSends` absent) | ✅ `clearRecent()` delegate + `Vaciar` show/hide/click tests green after 3.4 | ➖ |
+| 3.3 | `send-history.service.ts` | — | (driven by 3.1) | ✅ cap 5, `loadCappedRecentSends()`, `clearRecentSends()` | ➖ |
+| 3.4 | `send.component.{ts,html}` | — | (driven by 3.2) | ✅ layout rework + `Vaciar` wired | ➖ |
+| 3.5 | full suite | Unit | n/a (refactor) | ✅ 13 files / 199 tests green; `rg localStorage src/app/features/send/send.component.*` → no matches (component holds zero storage access) | ✅ nothing to extract — component already delegates |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npm test -- --watch false` (from `frontend/`) → **13 files / 199 tests passed**, 0 failed (baseline 13 / 193; net +6: service +4, component +2) |
+| Runtime harness | N/A — repo has no e2e/integration harness; Vitest is the only runner (confirmed in tasks + design). `npm run build` (from `frontend/`) succeeds; initial bundle 630.24 kB (was ~628 kB after slice 2; +~2 kB from the reworked template). The 500 kB budget warning is pre-existing from slice 2's vendored `@angular/cdk/overlay` (design D3), not a slice-3 regression. |
+| Rollback boundary | Revert the single slice-3 commit. Files: `frontend/src/app/features/send/send-history.service.{ts,spec.ts}` and `frontend/src/app/features/send/send.component.{ts,html,spec.ts}` — no other slice touches the recent-sends block or `SendHistoryService`. Slice 5 also edits `send.component.{ts,html}` but only the reply-mode / dirty-guard regions, which slice 3 did not touch. |
+
+### Changed-line count (this slice)
+
+| Bucket | Added | Deleted | Total |
+|---|---|---|---|
+| Authored (`frontend/src/app/features/send/**`) | 173 | 15 | 188 |
+| SDD docs (`tasks.md` checkbox flips) | 5 | 5 | 10 |
+| **Slice total** | **178** | **20** | **198** |
+
+No vendored output this slice. Well under the 800-line review budget (decision #150) and even the 400 default.
+
+### Deviations from design
+
+- None. `loadCapped()` is realized as a module-level function `loadCappedRecentSends()` (same pattern as the existing `readArray` helper) rather than a service method — behavior is identical and it runs at construction time via the `_recentSends` signal initializer, matching D6 ("construction-time `loadCapped()`") and the spec scenario ("WHEN the send panel initializes for the first time after the upgrade").
+- D7 reply-mode / unsaved-edits guard code in `send.component.ts` was left fully intact — that removal is slice 5 (task 5.8), out of scope here.
+
+### Issues found
+
+- None.

@@ -35,16 +35,78 @@ describe('SendHistoryService', () => {
     expect(sends[1].routingKey).toBe('orders.created');
   });
 
-  it('recordSend caps the list at 20 entries, evicting the oldest (FIFO)', () => {
-    for (let i = 0; i < 21; i++) {
+  it('recordSend caps the list at 5 entries, evicting the oldest (FIFO)', () => {
+    for (let i = 0; i < 6; i++) {
       service.recordSend({ exchange: 'orders', routingKey: `orders.${i}`, payload: `{"id":${i}}` });
     }
 
     const sends = service.recentSends();
 
-    expect(sends.length).toBe(20);
-    expect(sends[0].routingKey).toBe('orders.20');
+    expect(sends.length).toBe(5);
+    expect(sends[0].routingKey).toBe('orders.5');
     expect(sends[sends.length - 1].routingKey).toBe('orders.1');
+  });
+
+  it('clearRecentSends empties the in-memory list AND removes the persisted localStorage key', () => {
+    service.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    expect(service.recentSends().length).toBe(1);
+    expect(localStorage.getItem(RECENT_SENDS_KEY)).not.toBeNull();
+
+    service.clearRecentSends();
+
+    expect(service.recentSends()).toEqual([]);
+    expect(localStorage.getItem(RECENT_SENDS_KEY)).toBeNull();
+  });
+
+  it('clearRecentSends keeps the list empty after a reload (fresh service instance)', () => {
+    service.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    service.clearRecentSends();
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+
+    expect(TestBed.inject(SendHistoryService).recentSends()).toEqual([]);
+  });
+
+  it('truncates a persisted list longer than 5 to the 5 most recent AND rewrites the key on first load', () => {
+    const oversized = Array.from({ length: 8 }, (_, i) => ({
+      exchange: 'orders',
+      routingKey: `orders.${i}`,
+      payload: `{"id":${i}}`,
+      sentAt: `2026-01-0${i + 1}T00:00:00.000Z`,
+    }));
+    localStorage.setItem(RECENT_SENDS_KEY, JSON.stringify(oversized));
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    const reloaded = TestBed.inject(SendHistoryService);
+
+    expect(reloaded.recentSends().map((s) => s.routingKey)).toEqual([
+      'orders.0',
+      'orders.1',
+      'orders.2',
+      'orders.3',
+      'orders.4',
+    ]);
+    const persisted = JSON.parse(localStorage.getItem(RECENT_SENDS_KEY) as string) as Array<{ routingKey: string }>;
+    expect(persisted.map((s) => s.routingKey)).toEqual(['orders.0', 'orders.1', 'orders.2', 'orders.3', 'orders.4']);
+  });
+
+  it('leaves a persisted list of 5 or fewer entries untouched on load', () => {
+    const five = Array.from({ length: 5 }, (_, i) => ({
+      exchange: 'orders',
+      routingKey: `orders.${i}`,
+      payload: `{"id":${i}}`,
+      sentAt: `2026-01-0${i + 1}T00:00:00.000Z`,
+    }));
+    localStorage.setItem(RECENT_SENDS_KEY, JSON.stringify(five));
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    const reloaded = TestBed.inject(SendHistoryService);
+
+    expect(reloaded.recentSends()).toHaveLength(5);
+    expect(JSON.parse(localStorage.getItem(RECENT_SENDS_KEY) as string)).toHaveLength(5);
   });
 
   it('saveTemplate dedupes by name, overwriting the existing entry', () => {

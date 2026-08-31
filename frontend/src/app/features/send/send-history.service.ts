@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 const RECENT_SENDS_KEY = 'send-panel.recent-sends';
 const TEMPLATES_KEY = 'send-panel.templates';
-const RECENT_SENDS_CAP = 20;
+const RECENT_SENDS_CAP = 5;
 
 /** A previously-sent message, newest-first in {@link SendHistoryService.recentSends}.
  *  `headers` is optional so pre-existing persisted entries without it restore cleanly
@@ -40,6 +40,24 @@ function readArray<T>(key: string): T[] {
 }
 
 /**
+ * Reads the persisted recent-sends list and enforces {@link RECENT_SENDS_CAP} on first load.
+ * When a list from a prior version holds more than 5 entries, it is truncated to the 5 most
+ * recent (the list is newest-first) AND the persisted key is rewritten with just those 5,
+ * discarding the older entries — no preserve-and-hide (ui-presentation spec: "Upgrade migration
+ * truncates a longer persisted list"; decisions #152.3, design D6). A list already within the
+ * cap is returned untouched and the key is left as-is.
+ */
+function loadCappedRecentSends(): RecentSend[] {
+  const stored = readArray<RecentSend>(RECENT_SENDS_KEY);
+  if (stored.length <= RECENT_SENDS_CAP) {
+    return stored;
+  }
+  const capped = stored.slice(0, RECENT_SENDS_CAP);
+  localStorage.setItem(RECENT_SENDS_KEY, JSON.stringify(capped));
+  return capped;
+}
+
+/**
  * `localStorage`-backed recent-sends and templates for the send panel
  * (ui-presentation spec: "Recent Sends Are Recorded, Capped, and Recallable",
  * "Named Templates Can Be Saved, Loaded, and Deleted", "History and Templates
@@ -48,7 +66,7 @@ function readArray<T>(key: string): T[] {
  */
 @Injectable({ providedIn: 'root' })
 export class SendHistoryService {
-  private readonly _recentSends = signal<RecentSend[]>(readArray<RecentSend>(RECENT_SENDS_KEY));
+  private readonly _recentSends = signal<RecentSend[]>(loadCappedRecentSends());
   private readonly _templates = signal<SendTemplate[]>(readArray<SendTemplate>(TEMPLATES_KEY));
 
   readonly recentSends = this._recentSends.asReadonly();
@@ -59,6 +77,16 @@ export class SendHistoryService {
     const next = [withTimestamp, ...this._recentSends()].slice(0, RECENT_SENDS_CAP);
     this._recentSends.set(next);
     localStorage.setItem(RECENT_SENDS_KEY, JSON.stringify(next));
+  }
+
+  /**
+   * Clears every in-memory recent send AND deletes the persisted `localStorage` key so the list
+   * stays empty after a reload (ui-presentation spec: "Vaciar clears the list and its persisted
+   * key"; decision #152.2). Templates are untouched.
+   */
+  clearRecentSends(): void {
+    this._recentSends.set([]);
+    localStorage.removeItem(RECENT_SENDS_KEY);
   }
 
   saveTemplate(template: SendTemplate): void {

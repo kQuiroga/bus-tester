@@ -375,6 +375,12 @@ export class SendComponent {
     this.history.deleteTemplate(name);
   }
 
+  /** "Vaciar" action: delegates to the service, which clears memory and the persisted key
+   *  (ui-presentation spec: "Vaciar clears the list and its persisted key"). */
+  clearRecent(): void {
+    this.history.clearRecentSends();
+  }
+
   /** Splits a recalled `RecentSend`/`SendTemplate`'s `headers` back into the 5 fixed Comunes
    *  signals by exact key match; leftover keys become Adicionales rows. `headersEnabled` toggles
    *  on iff headers is non-empty (send-custom-headers spec: "Resolved Headers Persist Through
