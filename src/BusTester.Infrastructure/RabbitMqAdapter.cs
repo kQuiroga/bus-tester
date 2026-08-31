@@ -21,15 +21,35 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
     private readonly SemaphoreSlim _subscriptionsLock = new(1, 1);
     private IConnection? _connection;
 
+    /// <summary>Test hook: the adapter's current live connection, or null when disconnected.</summary>
+    internal IConnection? CurrentConnection => _connection;
+
+    /// <summary>Test hook: snapshot of the channels backing the adapter's live subscriptions.</summary>
+    internal IReadOnlyCollection<IChannel> SubscriptionChannels => _subscriptionChannels.Values.ToArray();
+
     public async Task ConnectAsync(BusConnectionConfig config, CancellationToken ct = default)
     {
+        // Issue #34: a reconnect while already connected must release the prior connection and
+        // every live subscription channel first so no orphaned AMQP resource survives. Existing
+        // subscriptions are intentionally lost across a reconnect (documented behaviour).
+        await TeardownAsync(ct);
+
+        var server = config.Servers[0];
         var factory = new ConnectionFactory
         {
-            HostName = config.Host,
-            Port = config.Port,
-            UserName = config.Username,
-            Password = config.Password,
+            HostName = server.Host,
+            Port = server.Port,
         };
+
+        if (config.Username is not null)
+        {
+            factory.UserName = config.Username;
+        }
+
+        if (config.Password is not null)
+        {
+            factory.Password = config.Password;
+        }
 
         try
         {
@@ -37,18 +57,49 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
         }
         catch (Exception ex) when (ex is BrokerUnreachableException or SocketException or TimeoutException)
         {
-            throw new BusConnectionException($"Could not connect to RabbitMQ at {config.Host}:{config.Port}.", ex);
+            throw new BusConnectionException($"Could not connect to RabbitMQ at {server.Host}:{server.Port}.", ex);
         }
     }
 
-    public async Task DisconnectAsync(CancellationToken ct = default)
+    public Task DisconnectAsync(CancellationToken ct = default) => TeardownAsync(ct);
+
+    /// <summary>
+    /// Closes and disposes every live subscription channel and the connection itself, then nulls
+    /// them. Idempotent: safe to call with nothing connected. Shared by <see cref="ConnectAsync"/>
+    /// (reconnect), <see cref="DisconnectAsync"/>, and <see cref="DisposeAsync"/>.
+    /// </summary>
+    private async Task TeardownAsync(CancellationToken ct)
     {
+        await _subscriptionsLock.WaitAsync(ct);
+        try
+        {
+            foreach (var channel in _subscriptionChannels.Values)
+            {
+                if (channel.IsOpen)
+                {
+                    await channel.CloseAsync(ct);
+                }
+
+                await channel.DisposeAsync();
+            }
+
+            _subscriptionChannels.Clear();
+        }
+        finally
+        {
+            _subscriptionsLock.Release();
+        }
+
         if (_connection is null)
         {
             return;
         }
 
-        await _connection.CloseAsync(ct);
+        if (_connection.IsOpen)
+        {
+            await _connection.CloseAsync(ct);
+        }
+
         await _connection.DisposeAsync();
         _connection = null;
     }
@@ -231,14 +282,13 @@ public sealed class RabbitMqAdapter : IBusPort, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var channel in _subscriptionChannels.Values)
+        try
         {
-            await channel.DisposeAsync();
+            await TeardownAsync(CancellationToken.None);
         }
-
-        if (_connection is not null)
+        catch
         {
-            await _connection.DisposeAsync();
+            // Dispose must not throw: a broker-side drop during teardown is not actionable here.
         }
     }
 

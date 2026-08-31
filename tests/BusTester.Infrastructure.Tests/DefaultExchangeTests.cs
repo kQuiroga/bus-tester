@@ -35,8 +35,8 @@ public class DefaultExchangeTests : IAsyncLifetime
         {
             HostName = config.Host,
             Port = config.Port,
-            UserName = config.Username,
-            Password = config.Password,
+            UserName = config.Username!,
+            Password = config.Password!,
         };
         _setupConnection = await factory.CreateConnectionAsync();
         _setupChannel = await _setupConnection.CreateChannelAsync();
