@@ -49,6 +49,35 @@ The system MUST record each successful send into a newest-first "recent sends" l
 - WHEN the send panel initializes for the first time after the upgrade
 - THEN only the 5 most recent entries are kept and the persisted key is rewritten with just those 5
 
+### Requirement: Send Panel Validates Exchange and Payload as Required
+
+The `SendComponent` MUST treat both `exchange` and `payload` as required, non-blank fields, rejecting empty or whitespace-only values with an inline error. There is no reply mode and no default-exchange exception in the Send panel: replying to a message is done entirely in the dedicated reply drawer, which owns its own validation and accepts its own exactly-empty Exchange as the AMQP default exchange (design D7/D9). The Exchange field is always an editable input.
+(Previously: `exchange` was required **except** in a Send-panel "reply mode" entered via the Responder pre-fill, where an exactly-empty Exchange was accepted and the field rendered read-only. Reply mode and its unsaved-edits confirmation guard are removed; the reply drawer replaces them.)
+
+#### Scenario: Blank or whitespace payload is rejected
+
+- GIVEN `payload` is empty or whitespace-only
+- WHEN the field is evaluated
+- THEN it is marked invalid with an inline error
+
+#### Scenario: Blank or whitespace exchange is rejected
+
+- GIVEN `exchange` is empty or whitespace-only
+- WHEN the field is evaluated
+- THEN it is marked invalid with an inline error
+
+#### Scenario: Non-blank exchange and payload are accepted
+
+- GIVEN `exchange` and `payload` both contain non-blank values
+- WHEN evaluated
+- THEN neither shows an inline error
+
+#### Scenario: The Send panel exposes no reply mode
+
+- GIVEN the Send panel is rendered
+- WHEN inspected for a reply-mode Exchange chip, a reply Correlation ID field, or an unsaved-edits confirmation prompt
+- THEN none is present, and the Exchange field is always an editable input governed by the unconditional required rule
+
 ## ADDED Requirements
 
 ### Requirement: Graphite Palette, Typography, and Radii

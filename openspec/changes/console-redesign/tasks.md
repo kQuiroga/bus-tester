@@ -76,13 +76,13 @@ Strict TDD: every slice runs RED → GREEN → REFACTOR against `npm test -- --w
 
 ## Phase 5 — Slice 5: Reply drawer + send-panel reply removal + spec amendment (deps: S3 file-level, S4 behavior)
 
-- [ ] 5.1 RED: `reply-drawer.component.spec.ts` — opens on `respond()` with `origin` pinned at top; RK read-only = `replyTo`, CID = `correlationId` (blank when absent), Exchange empty (AMQP default, accepted), payload empty; `close()` calls `ReplyDraftService.clear()`; drawer validates its own empty exchange; POST `/api/messages` + recent-sends recording.
-- [ ] 5.2 RED: `messages.component.spec.ts` — source row gets `[data-replying="true"]` while drawer open; Responder hidden when `replyTo` null; works while not subscribed.
-- [ ] 5.3 RED: `send.component.spec.ts` — no reply UI / `reply-exchange-chip` / `window.confirm`; Exchange unconditionally required (empty → `exchangeError`).
-- [ ] 5.4 GREEN: vendor `frontend/libs/ui/sheet` via spartan CLI + add `tsconfig.json` path.
-- [ ] 5.5 GREEN: `reply-draft.service.ts` — add optional `origin?: { exchange; routingKey; payload; receivedAt }` to `ReplyTarget` (additive; existing spec stays green).
-- [ ] 5.6 GREEN: create `frontend/src/app/features/reply/reply-drawer.component.{ts,html}` — right `sheet`, pinned original message, minimal reply form with its own send + validation.
-- [ ] 5.7 GREEN: `messages.component.{ts,html}` — `respond(msg)` calls `request({ routingKey, correlationId, origin })`, opens the drawer, sets `data-replying`.
-- [ ] 5.8 GREEN: strip D7 code from `send.component.{ts,html}`: `replyMode`, `correlationId`, `lastAppliedDraftSeq`, `applyReplyDraft`, `confirmOverwrite`, `replyDraft` effect, reply-exit branches in `onExchangeInput` / `onRoutingKeyInput`, `reply-exchange-chip` block, dead `isDirty` / `currentSnapshot` / `lastAppliedSnapshot` / `snapshotKey` / `EMPTY_SNAPSHOT` / `FormSnapshot`, reply branch in `exchangeError`; suite green.
-- [ ] 5.9 GREEN: add a `MODIFIED Requirements` entry for "Send Panel Validates Exchange and Payload as Required" to `openspec/changes/console-redesign/specs/ui-presentation/spec.md` — remove the reply-mode scenarios, restore the unconditional Exchange-required rule (D9).
-- [ ] 5.10 REFACTOR: no dead reply code or unused imports in `send.component.ts`; full suite green.
+- [x] 5.1 RED: `reply-drawer.component.spec.ts` — opens on `respond()` with `origin` pinned at top; RK read-only = `replyTo`, CID = `correlationId` (blank when absent), Exchange empty (AMQP default, accepted), payload empty; `close()` calls `ReplyDraftService.clear()`; drawer validates its own empty exchange; POST `/api/messages` + recent-sends recording.
+- [x] 5.2 RED: `messages.component.spec.ts` — source row gets `[data-replying="true"]` while drawer open; Responder hidden when `replyTo` null; works while not subscribed.
+- [x] 5.3 RED: `send.component.spec.ts` — no reply UI / `reply-exchange-chip` / `window.confirm`; Exchange unconditionally required (empty → `exchangeError`).
+- [x] 5.4 GREEN: vendor `frontend/libs/ui/sheet` via spartan CLI + add `tsconfig.json` path.
+- [x] 5.5 GREEN: `reply-draft.service.ts` — add optional `origin?: { exchange; routingKey; payload; receivedAt }` to `ReplyTarget` (additive; existing spec stays green).
+- [x] 5.6 GREEN: create `frontend/src/app/features/reply/reply-drawer.component.{ts,html}` — right `sheet`, pinned original message, minimal reply form with its own send + validation.
+- [x] 5.7 GREEN: `messages.component.{ts,html}` — `respond(msg)` calls `request({ routingKey, correlationId, origin })`, opens the drawer, sets `data-replying`.
+- [x] 5.8 GREEN: strip D7 code from `send.component.{ts,html}`: `replyMode`, `correlationId`, `lastAppliedDraftSeq`, `applyReplyDraft`, `confirmOverwrite`, `replyDraft` effect, reply-exit branches in `onExchangeInput` / `onRoutingKeyInput`, `reply-exchange-chip` block, dead `isDirty` / `currentSnapshot` / `lastAppliedSnapshot` / `snapshotKey` / `EMPTY_SNAPSHOT` / `FormSnapshot`, reply branch in `exchangeError`; suite green.
+- [x] 5.9 GREEN: add a `MODIFIED Requirements` entry for "Send Panel Validates Exchange and Payload as Required" to `openspec/changes/console-redesign/specs/ui-presentation/spec.md` — remove the reply-mode scenarios, restore the unconditional Exchange-required rule (D9).
+- [x] 5.10 REFACTOR: no dead reply code or unused imports in `send.component.ts`; full suite green.

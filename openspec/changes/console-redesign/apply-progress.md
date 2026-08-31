@@ -322,3 +322,153 @@ Authored total ≈ 278 (SDD docs 10). No vendored output this slice. Under the 8
 ### Issues found
 
 - None. The `--include 'src/app/features/messages/**'` glob (without `/*.spec.ts`) makes the Angular test builder try to load `.html` as a spec — use `--include '…/**/*.spec.ts'` for focused runs.
+
+---
+
+## Slice 5 — Reply drawer + send-panel reply removal + D9 spec amendment (COMPLETE)
+
+**Branch**: `feat/console-redesign-s5-reply-drawer` (child of `feat/console-redesign-s4-messages`) → PR5 of 5, targets `feat/console-redesign-s4-messages`.
+
+| Task | Status |
+|------|--------|
+| 5.1 RED `reply-drawer.component.spec.ts` | [x] |
+| 5.2 RED `messages.component.spec.ts` (data-replying, origin, not-subscribed, drawer host) | [x] |
+| 5.3 RED `send.component.spec.ts` (no reply UI / no window.confirm / unconditional Exchange) | [x] |
+| 5.4 GREEN vendor `frontend/libs/ui/sheet` + `tsconfig.json` path | [x] |
+| 5.5 GREEN `reply-draft.service.ts` additive `origin?` on `ReplyTarget` | [x] |
+| 5.6 GREEN create `reply-drawer.component.{ts,html}` | [x] |
+| 5.7 GREEN `messages.component.{ts,html}` respond() → drawer + `data-replying` | [x] |
+| 5.8 GREEN strip D7 code from `send.component.{ts,html}` | [x] |
+| 5.9 GREEN D9 amend `specs/ui-presentation/spec.md` | [x] |
+| 5.10 REFACTOR no dead reply code / unused imports in `send.component.ts` | [x] |
+
+### How `libs/ui/sheet` was vendored (task 5.4)
+
+The `@spartan-ng/cli` `ui-sheet` generator is Nx-only and cannot run in this plain Angular CLI
+project (same situation as `dialog` in slice 2). Hand-vendored from
+`node_modules/@spartan-ng/cli/src/generators/ui/libs/sheet/files/**/*.template` (CLI 1.3.3):
+
+- Copied all 11 files verbatim (`index.ts` + `lib/hlm-sheet{,-close,-content,-description,-footer,-header,-overlay,-portal,-title,-trigger}.ts`).
+- Replaced every `<%- importAlias %>` placeholder with `@spartan-ng/helm` (→ `@spartan-ng/helm/button`, `@spartan-ng/helm/utils`).
+- Expanded the CLI preset utility classes (`spartan-sheet-*`) into real Tailwind, taken from the
+  CLI's own nova style-map (`style-nova.css` `.spartan-sheet-*` `@apply` rules — exactly what
+  `createStyleMap` inlines during a real generate), and **dropped the animation utilities**
+  (`data-open:animate-in`, `data-closed:animate-out`, `slide-*`, `fade-*`, `zoom-*`) to match the
+  already-vendored `dialog` lib — this project ships no `tw-animate-css` / `tailwindcss-animate`,
+  so those classes do not exist. Result per slot:
+  - content: `bg-popover text-popover-foreground ring-foreground/10 fixed z-50 flex flex-col gap-4 bg-clip-padding text-sm shadow-lg ring-1 outline-none` + the four `data-[side=…]` positioning groups (`data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:sm:max-w-sm`, etc.)
+  - overlay: `fixed inset-0 z-50 bg-black/50 supports-backdrop-filter:backdrop-blur-xs` (mirrors the vendored `hlm-dialog-overlay`)
+  - header `flex flex-col gap-0.5 p-4`, footer `mt-auto flex flex-col gap-2 p-4`, title `text-foreground text-base font-medium`, description `text-muted-foreground text-sm`, close `absolute end-3 top-3`
+- Added `"@spartan-ng/helm/sheet": ["./libs/ui/sheet/src/index.ts"]` to `frontend/tsconfig.json`
+  (`tsconfig.app.json` / `tsconfig.spec.json` both `extends` it — no other path map to touch).
+- `@spartan-ng/brain/sheet` 1.3.3 export check: `BrnSheet, BrnSheetClose, BrnSheetContent,
+  BrnSheetDescription, BrnSheetOverlay, BrnSheetTitle, BrnSheetTrigger` — matches the CLI templates
+  1:1. `@spartan-ng/brain/core` provides `injectExposedSideProvider` / `injectExposesStateProvider`
+  used by `hlm-sheet-content`. No interactive input required; generator was never invoked.
+
+### Reply drawer (tasks 5.5–5.7, design D3/D4/D9)
+
+- **`ReplyTarget`** gains optional `origin?: { exchange; routingKey; payload; receivedAt }` — additive,
+  `reply-draft.service.spec.ts` untouched and green.
+- **`ReplyDrawerComponent`** (`app-reply-drawer`, new `features/reply/`): right-side `hlm-sheet`
+  (`side="right"`), driven by `[state]="open() ? 'open' : 'closed'"` off `ReplyDraftService.draft()`
+  (mirrors the `connect` dialog pattern). Pins `origin` at the top (`[data-testid="reply-origin"]`).
+  Minimal form: Routing Key read-only input (`[data-testid="reply-routing-key"]`, `readonly`),
+  Correlation ID read-only (only when present), Exchange is a static "(intercambio predeterminado)"
+  chip, payload editable. `exchangeError` accepts `''` (AMQP default) and rejects whitespace;
+  `payloadError` unconditional. `send()` issues its **own** `POST /api/messages`
+  (`{ exchange: '', routingKey, payload, headers: {}, correlationId? }`), toasts, calls
+  `SendHistoryService.recordSend(...)`, then `close()`. `close()` / `onStateChange('closed')` call
+  `ReplyDraftService.clear()`. A `seq`-keyed `effect` resets a stale payload on a new target.
+  Hosted at the end of `messages.component.html` (`<app-reply-drawer />`), inside slice 5's declared
+  touch set — `app.*` untouched.
+- **`MessagesComponent.respond(msg)`** now sends `{ routingKey, correlationId, origin }` where
+  `origin` = `{ message.exchange, message.routingKey, message.payload, receivedAt }` and sets
+  `replyingSeq`. `isReplying(msg)` drives `[data-replying="true"]` + accent ring
+  (`ring-2 ring-accent border-accent`) on the source `[data-testid="message-row"]`. A constructor
+  `effect` clears `replyingSeq` as soon as `ReplyDraftService.draft()` goes null (drawer close).
+
+### D7 removal from `send.component.*` (task 5.8)
+
+Removed: `replyMode`, `correlationId` signal, `lastAppliedDraftSeq`, `applyReplyDraft`,
+`confirmOverwrite`, the `replyDraft` `effect` + `ReplyDraftService`/`ReplyTarget` imports + injection,
+`onExchangeInput` / `onRoutingKeyInput` (Exchange/RK now bind straight to `signal.set`), the
+`reply-exchange-chip` + reply Correlation ID template blocks, and the dead dirty-check machinery
+(`isDirty`, `currentSnapshot`, `lastAppliedSnapshot`, `snapshotKey`, `captureSnapshot`,
+`EMPTY_SNAPSHOT`, `FormSnapshot`). Unused imports dropped: `effect`, `untracked`. `exchangeError` is
+now the unconditional `value.trim() === '' → error`. `useRecent` / `useTemplate` / `send()` lost
+their `captureSnapshot()` / `replyMode.set(false)` calls. Constructor is gone entirely.
+`send.component.spec.ts` lost the `reply mode (Responder pre-fill)` + `dirty-check and overwrite
+confirmation` describe blocks (~19 tests) and the `ReplyDraftService` import; gained a
+`reply composition has fully left the Send panel (D7)` block (4 tests).
+
+### D9 spec amendment (task 5.9)
+
+Appended a `## MODIFIED Requirements` entry to
+`openspec/changes/console-redesign/specs/ui-presentation/spec.md` for **"Send Panel Validates
+Exchange and Payload as Required"**: Exchange + payload are both unconditionally required in the Send
+panel; the reply-mode scenarios ("Reply-mode empty exchange is accepted", "Editing exchange or
+routing key leaves reply mode") are gone; a new scenario asserts the Send panel exposes no reply-mode
+surface. The drawer owns its own empty-Exchange acceptance.
+
+### TDD Cycle Evidence
+
+| Task | RED (test first, observed failing) | GREEN | REFACTOR |
+|---|---|---|---|
+| 5.1 | `reply-drawer.component.spec.ts` — `TS2307 Cannot find module './reply-drawer.component'` + `TS2353 'origin' does not exist in type 'ReplyTarget'` (build failed) | 12/12 green after 5.5/5.6 | — |
+| 5.2 | `messages.component.spec.ts` — same build gate (`origin` type, missing drawer) | +6 messages tests green | — |
+| 5.3 | `send.component.spec.ts` — new D7 block failing (`replyMode` chip still rendered, `window.confirm` still wired) | 4 D7 tests green after 5.8 | — |
+| 5.4 | n/a (infra) — enables 5.6 compile | `@spartan-ng/helm/sheet` resolves, `hlm-sheet` renders in the overlay | — |
+| 5.5 | driven by 5.1/5.2 | `ReplyTarget.origin?` added; `reply-draft.service.spec.ts` still 6/6 green | — |
+| 5.6 | driven by 5.1 | 12/12 reply-drawer tests green | — |
+| 5.7 | driven by 5.2 | messages spec green (49 → focused 3 files) | — |
+| 5.8 | driven by 5.3 | send spec green | — |
+| 5.10 | n/a refactor | `rg` confirms no `replyMode|replyDraft|snapshot|confirmOverwrite|onExchangeInput` in `send.component.{ts,html}`; build has zero NG unused-import / NG8113 warnings | full suite 15 files / 215 green |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npm test -- --watch false --include 'src/app/features/send/send.component.spec.ts' --include 'src/app/features/messages/messages.component.spec.ts' --include 'src/app/features/reply/reply-drawer.component.spec.ts'` → **3 files / 95 tests passed**, 0 failed. |
+| Full suite | `npm test -- --watch false` (from `frontend/`) → **15 files / 215 tests passed**, 0 failed (baseline slice 4: 14 / 211; net +4 tests, +1 spec file). |
+| Runtime harness | N/A — repo has no e2e/integration harness; Vitest is the only runner. `npm run build` (from `frontend/`) succeeds; initial bundle 644.93 kB (was ~632.87 kB after slice 4; +~12 kB from the vendored sheet lib + drawer). The 500 kB budget warning is pre-existing from slice 2's vendored `@angular/cdk/overlay` (design D3), not a slice-5 regression. |
+| Rollback boundary | Revert the 4 slice-5 commits. Delete `frontend/libs/ui/sheet/**` and its `tsconfig.json` path; delete `frontend/src/app/features/reply/**`; revert `reply-draft.service.ts` (`origin?` line), `messages.component.{ts,html,spec.ts}` (respond origin, `replyingSeq`/`isReplying`, `data-replying`, `<app-reply-drawer />`, spec updates), `send.component.{ts,html,spec.ts}` (restore D7 reply mode + dirty guard), and the `ui-presentation` delta MODIFIED entry. No other slice touches `features/reply/**` or `libs/ui/sheet/**`. |
+
+### Changed-line count (this slice, `git diff --stat` vs `feat/console-redesign-s4-messages` @ a633f2f)
+
+| Bucket | Files | ~Added | ~Deleted | ~Total |
+|---|---|---|---|---|
+| Vendored — `libs/ui/sheet/**` (11 files) + `tsconfig.json` path | 12 | 244 | 0 | 244 |
+| Authored app — `reply-drawer.component.{ts,html}`, `reply-draft.service.ts`, `messages.component.{ts,html}`, `send.component.{ts,html}` | 8 | ~290 | ~135 | ~425 |
+| Test — `reply-drawer.component.spec.ts` (new), `messages.component.spec.ts`, `send.component.spec.ts` | 3 | ~300 | ~205 | ~505 |
+| SDD docs — `specs/ui-presentation/spec.md`, `tasks.md`, `apply-progress.md` | 3 | ~29 + progress | ~10 | — |
+| **Total (`git diff --stat`)** | **24** | **874** | **389** | **1263** |
+
+**Budget**: 1263 changed lines is over the change's 800-line review budget (decision #150). This was
+called out in the slice-5 prompt as expected (vendored sheet lib + the large D7 spec-mandated
+deletions across `send.component.*` + both spec-mandated spec rewrites + verbose progress doc). The
+`sdd-attempt settle` is filed honestly with `outcome: passed` and the real line count; the
+maintainer decision (raise budget / accept `size:exception` / reset) is handled by the orchestrator,
+same as slice 2 (Engram #179). Commits are valid strict-TDD work units and should stay.
+
+### Deviations from design
+
+- **`origin.receivedAt`**: design D4 types it as a required `string`, but `ReceivedMessage` carries
+  no receipt timestamp (checked `bus-hub.service.ts` — only `seq`). `respond()` stamps
+  `new Date().toISOString()` at drawer-open time and the drawer labels it "Recibido". No spec
+  scenario asserts the value; the field shape matches D4.
+- **Drawer host**: mounted inside `messages.component.html` (`<app-reply-drawer />`) rather than
+  `app.html`. Keeps the change inside slice 5's declared touch set (`app.*` was slice 1's rollback
+  boundary) and matches "anchored to the message". `app.html` already carried a "reply drawer
+  (slice 5)" comment on the toaster host; left as-is.
+- **`data-replying` mechanism**: design says "source row gets `[data-replying="true"]` with an accent
+  ring while its reply is active". Realized with a `replyingSeq` signal set in `respond()` and
+  cleared by an `effect` watching `ReplyDraftService.draft()` — `origin` carries no `seq`, so matching
+  on `seq` locally is cleaner than comparing the whole origin object.
+- Sheet animation utilities dropped (see vendoring note) — consistent with the vendored `dialog`.
+
+### Issues found
+
+- None blocking. `vi.mock('@spartan-ng/brain/sonner')` emits a Vitest "not at top level" hoist
+  warning in `reply-drawer.component.spec.ts` — identical to the pre-existing pattern in
+  `send.component.spec.ts`, harmless, hoisting still happens first.
