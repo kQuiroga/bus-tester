@@ -7,6 +7,7 @@ import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { ReplyDraftService } from '../../core/reply-draft.service';
 import { MessagesComponent } from './messages.component';
+import { queueColorIndex } from './queue-color';
 
 function msg(seq: number, overrides: Partial<ReceivedMessage> = {}): ReceivedMessage {
   return {
@@ -615,5 +616,87 @@ describe('MessagesComponent', () => {
     fixture.detectChanges();
 
     expect(requestSpy).toHaveBeenCalledWith({ routingKey: 'amq.gen-reply-abc', correlationId: null });
+  });
+
+  /** Subscribes to two queues and pushes one message on each, so cross-queue colour
+   *  assertions have distinct source rows. */
+  function renderTwoQueueFeed() {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+    component.queueName.set('shipping-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-2' });
+    fakeBusHubService.messagesSignal.set([
+      msg(0, { subscriptionId: 'sub-1' }),
+      msg(1, { subscriptionId: 'sub-2' }),
+    ]);
+    fixture.detectChanges();
+    return { fixture, component, root: fixture.nativeElement as HTMLElement };
+  }
+
+  function feedRowPills(root: HTMLElement): HTMLElement[] {
+    return Array.from(
+      root.querySelectorAll<HTMLElement>('[data-testid="message-row"] [data-testid="queue-pill"]'),
+    );
+  }
+
+  it('renders a queue pill on each feed row carrying the queue name and its deterministic data-queue-color (4.2)', () => {
+    const { root } = renderFeed([msg(0), msg(1)]);
+
+    const pills = feedRowPills(root);
+    expect(pills).toHaveLength(2);
+    for (const pill of pills) {
+      expect(pill.getAttribute('data-queue-color')).toBe(String(queueColorIndex('orders-queue')));
+      expect(pill.textContent).toContain('orders-queue');
+    }
+  });
+
+  it('renders a 6px colour dot inside each feed-row queue pill (4.2)', () => {
+    const { root } = renderFeed([msg(0)]);
+
+    const pill = feedRowPills(root)[0];
+    expect(pill).toBeDefined();
+    const dot = pill.querySelector('[data-testid="queue-dot"]');
+    expect(dot).not.toBeNull();
+  });
+
+  it('gives two rows received on the same queue the identical data-queue-color (4.2)', () => {
+    const { root } = renderFeed([msg(0), msg(1)]);
+
+    const [a, b] = feedRowPills(root).map((p) => p.getAttribute('data-queue-color'));
+    expect(a).toBe(b);
+    expect(a).toBe(String(queueColorIndex('orders-queue')));
+  });
+
+  it('gives rows on different queues different data-queue-color values (4.2)', () => {
+    const { root } = renderTwoQueueFeed();
+
+    const colors = feedRowPills(root).map((p) => p.getAttribute('data-queue-color'));
+    expect(colors).toEqual([
+      String(queueColorIndex('orders-queue')),
+      String(queueColorIndex('shipping-queue')),
+    ]);
+    expect(colors[0]).not.toBe(colors[1]);
+  });
+
+  it('renders a matching queue pill with data-queue-color on each subscription chip (4.2)', () => {
+    const { root } = renderTwoQueueFeed();
+
+    const chipPills = Array.from(
+      root.querySelectorAll<HTMLElement>('span[data-slot="badge"] [data-testid="queue-pill"]'),
+    );
+    expect(chipPills.map((p) => p.getAttribute('data-queue-color'))).toEqual([
+      String(queueColorIndex('orders-queue')),
+      String(queueColorIndex('shipping-queue')),
+    ]);
+  });
+
+  it('renders no left-side per-queue colour rail on the feed (4.2)', () => {
+    const { root } = renderFeed([msg(0)]);
+
+    expect(root.querySelector('[data-testid="queue-color-rail"]')).toBeNull();
   });
 });

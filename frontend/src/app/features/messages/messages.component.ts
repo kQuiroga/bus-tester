@@ -11,6 +11,7 @@ import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
 import { ReplyDraftService } from '../../core/reply-draft.service';
 import { JsonPrettyPipe } from './json-pretty.pipe';
+import { queueColorIndex, QueueColor } from './queue-color';
 
 /** One row of the reply panel: a pending send-with-reply subscription plus every message
  *  delivered on it so far, matched by `correlationId` (request-reply spec: "Reply Panel
@@ -84,6 +85,32 @@ export class MessagesComponent {
     const activeIds = new Set(this.subscriptions().map((s) => s.id));
     return this.busHub.messages().filter((m) => activeIds.has(m.subscriptionId));
   });
+
+  /** `subscriptionId` → queue name, so a feed row can label itself with the queue it
+   *  arrived on (the row DTO carries only `subscriptionId`). */
+  private readonly queueNameById = computed(() => {
+    const byId = new Map<string, string>();
+    for (const s of this.subscriptions()) {
+      byId.set(s.id, s.queueName);
+    }
+    return byId;
+  });
+
+  /** Queue name a feed row belongs to; empty only if its subscription was just torn down. */
+  queueNameOf(message: ReceivedMessage): string {
+    return this.queueNameById().get(message.subscriptionId) ?? '';
+  }
+
+  /** Palette slot (1..6) for a queue's tinted pill and dot (ui-presentation: "Queues Are
+   *  Identified by a Tinted Pill and Dot"; design D5). Deterministic per name. */
+  queueColor(queueName: string): QueueColor {
+    return queueColorIndex(queueName);
+  }
+
+  /** Pill fill and solid-dot fill. The hue itself arrives through `--queue-hue`, set by
+   *  the `[data-queue-color='N']` rule in styles.css — never a dynamic Tailwind class. */
+  readonly queuePillTint = 'color-mix(in oklab, var(--queue-hue) 18%, transparent)';
+  readonly queueDotFill = 'var(--queue-hue)';
 
   /** Freezes rows while paused, resyncs instantly on resume, and diffs which `seq`s are new
    *  since the last unpaused render — see design.md decision #2. */

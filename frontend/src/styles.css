@@ -119,6 +119,17 @@
   --broker-accent: var(--color-broker-kafka);
 }
 
+/* Per-queue hue selection (design D5). `queueColorIndex()` writes `data-queue-color`
+   (1..6) onto the queue pill; each slot resolves one Graphite queue hue into
+   `--queue-hue`, which the pill tint (`color-mix`) and the solid 6px dot both consume.
+   The hue travels through a custom property, never a dynamic Tailwind class. */
+[data-queue-color='1'] { --queue-hue: var(--color-queue-1); }
+[data-queue-color='2'] { --queue-hue: var(--color-queue-2); }
+[data-queue-color='3'] { --queue-hue: var(--color-queue-3); }
+[data-queue-color='4'] { --queue-hue: var(--color-queue-4); }
+[data-queue-color='5'] { --queue-hue: var(--color-queue-5); }
+[data-queue-color='6'] { --queue-hue: var(--color-queue-6); }
+
 @layer base {
   html {
     color-scheme: dark;

@@ -68,11 +68,11 @@ Strict TDD: every slice runs RED → GREEN → REFACTOR against `npm test -- --w
 
 ## Phase 4 — Slice 4: Messages feed cards + queue pill/dot (deps: S1)
 
-- [ ] 4.1 RED: create `frontend/src/app/features/messages/queue-color.spec.ts` — `queueColorIndex` returns 1..6, deterministic, stable across resubscribe; same queue name → same index.
-- [ ] 4.2 RED: `messages.component.spec.ts` — row renders `[data-queue-color]` pill + 6px dot of the same hue; two same-queue rows match; no left color rail.
-- [ ] 4.3 GREEN: create `frontend/src/app/features/messages/queue-color.ts` — pure FNV-1a (`Math.imul`) `% 6 + 1`, `QueueColor` type.
-- [ ] 4.4 GREEN: `messages.component.{ts,html}` — card restyle on surface tokens; queue pill + dot via `[data-queue-color='N']` → `--queue-hue`; remove left rail; suite green.
-- [ ] 4.5 REFACTOR: no dynamic Tailwind hue class strings; suite green.
+- [x] 4.1 RED: create `frontend/src/app/features/messages/queue-color.spec.ts` — `queueColorIndex` returns 1..6, deterministic, stable across resubscribe; same queue name → same index.
+- [x] 4.2 RED: `messages.component.spec.ts` — row renders `[data-queue-color]` pill + 6px dot of the same hue; two same-queue rows match; no left color rail.
+- [x] 4.3 GREEN: create `frontend/src/app/features/messages/queue-color.ts` — pure FNV-1a (`Math.imul`) `% 6 + 1`, `QueueColor` type.
+- [x] 4.4 GREEN: `messages.component.{ts,html}` — card restyle on surface tokens; queue pill + dot via `[data-queue-color='N']` → `--queue-hue`; remove left rail; suite green.
+- [x] 4.5 REFACTOR: no dynamic Tailwind hue class strings; suite green.
 
 ## Phase 5 — Slice 5: Reply drawer + send-panel reply removal + spec amendment (deps: S3 file-level, S4 behavior)
 
