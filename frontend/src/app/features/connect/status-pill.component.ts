@@ -1,7 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCircleCheck, lucideCircleX, lucideLoaderCircle } from '@ng-icons/lucide';
-import { HlmBadge } from '@spartan-ng/helm/badge';
 import type { HubConnectionState } from '../../core/bus-hub.service';
 
 /** Inline hub-state copy shown next to the broker label. `null` hides the segment
@@ -14,23 +11,27 @@ const HUB_INLINE_LABELS: Record<HubConnectionState, string | null> = {
   disconnected: 'Hub caído',
 };
 
+/** Prototype `.pill` status tone → text color + dot fill token pair. The prototype
+ *  status dot is green (`--color-status-ok`) when connected and red
+ *  (`--color-status-error`) otherwise; pending / hub churn borrow the warn amber. */
 const TONE = {
-  warn: 'bg-status-warn-bg text-status-warn',
-  ok: 'bg-status-ok-bg text-status-ok',
-  error: 'bg-status-error-bg text-status-error',
-  neutral: 'bg-muted text-muted-foreground',
+  warn: { text: 'text-status-warn', dot: 'bg-status-warn' },
+  ok: { text: 'text-status-ok', dot: 'bg-status-ok' },
+  error: { text: 'text-status-error', dot: 'bg-status-error' },
+  neutral: { text: 'text-muted-foreground', dot: 'bg-status-error' },
 } as const;
 
 /**
  * Always-visible, always-clickable connection status pill (connection-status spec:
  * "Connection UI Is a Load-Time Popup That Collapses to a Status Pill"). Purely
  * presentational — it emits {@link activate} and the container owns the popup.
+ *
+ * Chrome matches the approved prototype `.pill` (docs/redesign-prototype/Main.dc.html):
+ * a rounded-full panel-surface chip with a 7px status dot and 12px label.
  */
 @Component({
   selector: 'app-status-pill',
   standalone: true,
-  imports: [HlmBadge, NgIcon],
-  providers: [provideIcons({ lucideCircleCheck, lucideCircleX, lucideLoaderCircle })],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './status-pill.component.html',
 })
@@ -39,6 +40,8 @@ export class StatusPillComponent {
   readonly pending = input(false);
   readonly errorMessage = input<string | null>(null);
   readonly hubState = input<HubConnectionState>('idle');
+  /** `host:port` of the active broker session, shown next to "Conectado" in the pill. */
+  readonly endpoint = input('localhost:5672');
 
   readonly activate = output<void>();
 
@@ -46,12 +49,12 @@ export class StatusPillComponent {
     if (this.pending()) {
       return this.connected() ? 'Desconectando…' : 'Conectando…';
     }
-    return this.connected() ? 'Conectado' : 'Sin conexión';
+    return this.connected() ? `Conectado · ${this.endpoint()}` : 'Sin conexión';
   });
 
   readonly hubInlineLabel = computed(() => HUB_INLINE_LABELS[this.hubState()]);
 
-  readonly toneClass = computed(() => {
+  private readonly tone = computed(() => {
     if (this.pending() || this.hubState() === 'reconnecting' || this.hubState() === 'connecting') {
       return TONE.warn;
     }
@@ -63,4 +66,7 @@ export class StatusPillComponent {
     }
     return TONE.neutral;
   });
+
+  readonly toneClass = computed(() => this.tone().text);
+  readonly dotClass = computed(() => this.tone().dot);
 }

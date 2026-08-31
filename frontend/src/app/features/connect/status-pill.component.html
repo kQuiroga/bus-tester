@@ -1,18 +1,15 @@
 <button
   type="button"
-  hlmBadge
-  variant="outline"
   data-testid="broker-status-pill"
+  class="inline-flex items-center gap-[7px] rounded-full border border-border bg-card px-[11px] py-[5px] text-xs"
   [class]="toneClass()"
   (click)="activate.emit()"
 >
-  @if (pending()) {
-    <ng-icon name="lucideLoaderCircle" />
-  } @else if (connected()) {
-    <ng-icon name="lucideCircleCheck" />
-  } @else {
-    <ng-icon name="lucideCircleX" />
-  }
+  <span
+    data-testid="broker-status-pill-dot"
+    class="inline-block h-[7px] w-[7px] shrink-0 rounded-[3px]"
+    [class]="dotClass()"
+  ></span>
   <span data-testid="broker-status-pill-label">{{ brokerLabel() }}</span>
   @if (hubInlineLabel(); as hub) {
     <span data-testid="hub-state-inline" class="opacity-80">· {{ hub }}</span>

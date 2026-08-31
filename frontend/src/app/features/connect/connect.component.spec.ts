@@ -113,7 +113,7 @@ describe('ConnectComponent (container)', () => {
     expect(body).not.toBeNull();
     expect(body!.querySelectorAll('input').length).toBe(0);
     expect(body!.textContent).toContain('Desconectar');
-    expect(body!.textContent).toContain('Cambiar broker');
+    expect(body!.textContent).toContain('Cambiar a Apache Kafka');
   });
 
   it('changeBroker() drops the connection (DELETE) and keeps the popup open for re-entry', () => {
@@ -165,6 +165,23 @@ describe('ConnectComponent (container)', () => {
 
     slot!.click();
     httpMock.expectNone(() => true);
+  });
+
+  it('renders the reserved slot as the prototype broker pill: "RabbitMQ ▾", accent dot, inert', () => {
+    const fixture = TestBed.createComponent(ConnectComponent);
+    fixture.detectChanges();
+
+    const slot = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+      '[data-testid="broker-selector-slot"]',
+    );
+    expect(slot).not.toBeNull();
+    expect(slot!.textContent).toContain('RabbitMQ');
+    expect(slot!.textContent).toContain('▾');
+    expect(slot!.getAttribute('aria-disabled')).toBe('true');
+    expect(slot!.className).toContain('rounded-full');
+    const dot = slot!.querySelector<HTMLElement>('[data-testid="broker-selector-slot-dot"]');
+    expect(dot).not.toBeNull();
+    expect(dot!.className).toContain('bg-accent');
   });
 
   it('never starts the SignalR hub — ownership stays with MessagesComponent', () => {
