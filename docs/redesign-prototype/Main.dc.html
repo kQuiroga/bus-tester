@@ -1,0 +1,650 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    .root {
+      position: relative; width: 1440px; min-height: 1020px; box-sizing: border-box;
+      display: flex; flex-direction: column;
+      font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+      font-size: 13px; padding: 20px 28px 18px; overflow: hidden;
+      background: #161616; color: #ededed;
+    }
+    a { color: var(--accent, #9a9a9a); } a:hover { filter: brightness(1.12); }
+    .disp { font-family: "Bricolage Grotesque", "Public Sans", sans-serif; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .card { background: #1f1f1f; border: 1px solid #363636; border-radius: 12px; }
+    .lbl { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #9a9a9a; }
+    .in {
+      width: 100%; box-sizing: border-box; height: 30px; border-radius: 8px;
+      background: #282828; border: 1px solid #363636; color: #ededed;
+      padding: 0 9px; font-family: inherit; font-size: 12px; outline: none;
+    }
+    .in:focus { border-color: var(--accent, #9a9a9a); }
+    textarea.in { height: 68px; padding: 7px 9px; font-family: "JetBrains Mono", monospace; font-size: 11px; resize: none; line-height: 1.5; }
+    .btn {
+      border: 0; border-radius: 8px; height: 32px; width: 100%;
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      background: var(--accent, #9a9a9a); color: var(--accent-ink, #161616); cursor: pointer;
+    }
+    .ghost {
+      border: 1px solid #363636; background: #282828; color: #ededed;
+      border-radius: 7px; font-size: 11px; font-family: inherit; padding: 5px 9px; cursor: pointer;
+    }
+    .x { background: transparent; border: 0; color: #9a9a9a; cursor: pointer; font-size: 11px; padding: 0 2px; line-height: 1; font-family: inherit; }
+    .tab { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .dot { width: 7px; height: 7px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #363636; background: #1f1f1f; color: #ededed; cursor: pointer; }
+    .row {
+      display: grid; grid-template-columns: 74px 146px 130px minmax(0,1fr) 34px;
+      gap: 8px; align-items: center; padding: 6px 12px; border-bottom: 1px solid #232323;
+      cursor: pointer;
+    }
+    .row:hover { background: #1c1c1c; }
+    .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .seg {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      height: 38px; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600;
+      cursor: pointer; background: #282828;
+    }
+  </style>
+</helmet>
+
+<div class="root" style="{{rootStyle}}">
+
+  <div style="{{stageStyle}}">
+
+    <!-- TOOLBAR -->
+    <div class="card" style="display:flex; align-items:center; gap:9px; padding:8px 12px; margin-bottom:10px;">
+      <span class="disp" style="font-size:15px; font-weight:700;">BusTester</span>
+      <span style="color:#5c5c5c;">/</span>
+      <span style="color:#9a9a9a; font-size:11px;">Console</span>
+
+      <sc-for list="{{queues}}" as="q" hint-placeholder-count="3">
+        <span class="tab" style="{{q.tagStyle}}">
+          <span class="dot" style="{{q.dotStyle}}"></span>{{q.name}} · {{q.count}}
+          <button class="x" onClick="{{q.unsub}}">✕</button>
+        </span>
+      </sc-for>
+
+      <span style="display:flex; gap:6px; margin-left:4px;">
+        <input class="in mono" style="width:150px; height:26px; font-size:11px;" value="{{subInput}}" onChange="{{setSub}}" placeholder="{{subPlaceholder}}">
+        <button class="ghost" onClick="{{subscribe}}">Suscribir</button>
+      </span>
+
+      <span style="margin-left:auto; display:flex; gap:10px; align-items:center; font-size:12px;">
+        <span style="color:{{statusColor}}; display:inline-flex; align-items:center; gap:6px;"><span class="dot" style="background:{{statusColor}};"></span>{{statusLabel}}</span>
+        <span class="pill mono" onClick="{{openConnect}}">{{brokerLabel}}</span>
+      </span>
+    </div>
+
+    <!-- SEARCH / PAUSE BAR -->
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+      <input class="in" style="max-width:280px;" value="{{search}}" onChange="{{setSearch}}" placeholder="Buscar en payload, routing key o cola">
+      <button class="ghost" onClick="{{togglePause}}">{{pauseLabel}}</button>
+      <span class="mono" style="margin-left:auto; font-size:11px; color:#9a9a9a;">{{matchCountLabel}}</span>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div style="display:grid; grid-template-columns:264px minmax(0,1fr) 384px; gap:12px; height:812px;">
+
+      <!-- SEND -->
+      <div class="card" style="padding:14px; overflow:auto;">
+        <div class="lbl" style="margin-bottom:10px;">Enviar</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div><div class="lbl" style="margin-bottom:4px;">{{sendLabel1}}</div>
+            <input class="in" value="{{fExchange}}" onChange="{{setExchange}}" placeholder="{{sendPh1}}"></div>
+          <div><div class="lbl" style="margin-bottom:4px;">{{sendLabel2}}</div>
+            <input class="in" value="{{fRoutingKey}}" onChange="{{setRoutingKey}}" placeholder="{{sendPh2}}"></div>
+          <div><div class="lbl" style="margin-bottom:4px;">Payload</div>
+            <textarea class="in" value="{{fPayload}}" onChange="{{setPayload}}" placeholder='{ "id": "..." }'></textarea></div>
+          <button class="btn" onClick="{{send}}">Enviar</button>
+        </div>
+
+        <div style="border-top:1px solid #363636; margin-top:14px; padding-top:11px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="lbl">Recientes · {{recentCount}}</div>
+            <button class="x" onClick="{{clearRecent}}">Vaciar</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+            <sc-if value="{{noRecent}}" hint-placeholder-val="{{false}}">
+              <div style="font-size:11px; color:#9a9a9a;">Aún no hay envíos.</div>
+            </sc-if>
+            <sc-for list="{{recent}}" as="r" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; background:#282828; border:1px solid #363636; border-radius:7px; padding:5px 8px;">
+                <span class="mono trunc" style="font-size:10px;">{{r.text}}</span>
+                <button class="ghost" onClick="{{r.load}}">Cargar</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #363636; margin-top:12px; padding-top:11px;">
+          <div class="lbl" style="margin-bottom:7px;">Plantillas</div>
+          <div style="display:flex; gap:6px;">
+            <input class="in" value="{{templateName}}" onChange="{{setTemplateName}}" placeholder="Nombre">
+            <button class="ghost" style="white-space:nowrap;" onClick="{{saveTemplate}}">Guardar</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+            <sc-if value="{{noTemplates}}" hint-placeholder-val="{{false}}">
+              <div style="font-size:11px; color:#9a9a9a;">Sin plantillas guardadas.</div>
+            </sc-if>
+            <sc-for list="{{templates}}" as="t" hint-placeholder-count="2">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; background:#282828; border:1px solid #363636; border-radius:7px; padding:5px 8px;">
+                <span class="trunc" style="font-size:11px;">{{t.name}}</span>
+                <span style="display:flex; gap:5px; flex-shrink:0;">
+                  <button class="ghost" onClick="{{t.use}}">Cargar</button>
+                  <button class="x" onClick="{{t.del}}">Eliminar</button>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- MESSAGE TABLE -->
+      <div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
+        <div class="mono" style="display:grid; grid-template-columns:74px 146px 130px minmax(0,1fr) 34px; gap:8px; padding:8px 12px; border-bottom:1px solid #363636; font-size:9px; color:#9a9a9a; letter-spacing:.1em; text-transform:uppercase;">
+          <span>hora</span><span>cola</span><span>routing key</span><span>payload</span><span></span>
+        </div>
+        <div style="flex:1; overflow:auto;">
+          <sc-if value="{{hasEmptyMsg}}" hint-placeholder-val="{{false}}">
+            <div style="font-size:12px; color:#9a9a9a; text-align:center; padding:40px 16px;">{{emptyMsg}}</div>
+          </sc-if>
+          <sc-for list="{{messages}}" as="m" hint-placeholder-count="6">
+            <div class="row" style="{{m.rowStyle}}" onClick="{{m.pick}}">
+              <span class="mono" style="font-size:10px; color:#9a9a9a;">{{m.time}}</span>
+              <span class="trunc" style="color:{{m.hue}}; font-size:11px; display:flex; align-items:center; gap:6px;"><span class="dot" style="{{m.dotStyle}}"></span>{{m.queue}}</span>
+              <span class="mono trunc" style="font-size:11px;">{{m.rk}}</span>
+              <span class="mono trunc" style="font-size:11px; color:#9a9a9a;">{{m.payload}}</span>
+              <span style="text-align:right;">
+                <sc-if value="{{m.hasReply}}" hint-placeholder-val="{{true}}">
+                  <button class="x" style="color:var(--accent); font-size:13px;" onClick="{{m.pick}}">↩</button>
+                </sc-if>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- REPLY RAIL -->
+      <div class="card" style="padding:14px; border-color:{{railBorder}}; overflow:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="disp" style="font-weight:700; font-size:13px;">Responder</span>
+          <sc-if value="{{hasDrawer}}" hint-placeholder-val="{{false}}">
+            <button class="x" onClick="{{closeDrawer}}">✕ cerrar</button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{noDrawer}}" hint-placeholder-val="{{true}}">
+          <div style="margin-top:18px; padding:18px 12px; border:1px dashed #363636; border-radius:9px; font-size:12px; color:#9a9a9a; text-align:center; line-height:1.6;">
+            Elegí un mensaje de la tabla y tocá <span style="color:var(--accent);">↩</span> para responderlo. Tu borrador de Enviar queda intacto.
+          </div>
+        </sc-if>
+
+        <sc-if value="{{hasDrawer}}" hint-placeholder-val="{{true}}">
+          <div class="mono" style="background:#282828; border:1px solid #363636; border-left:2px solid {{drawerHue}}; border-radius:6px; padding:9px 11px; margin-top:12px; font-size:11px;">
+            <div style="color:#ededed;">{{drawerRk}}</div>
+            <div style="color:#9a9a9a; margin-top:4px;">{{drawerMeta}}</div>
+            <div style="color:#9a9a9a; margin-top:6px; word-break:break-word;">{{drawerPayload}}</div>
+          </div>
+          <div style="margin-top:12px;"><div class="lbl" style="margin-bottom:4px;">Correlation ID</div>
+            <input class="in mono" style="color:#9a9a9a; font-size:10px;" value="{{drawerCorr}}" readonly></div>
+          <div style="margin-top:10px;"><div class="lbl" style="margin-bottom:4px;">Payload de respuesta</div>
+            <textarea class="in" style="height:150px;" value="{{replyPayload}}" onChange="{{setReply}}"></textarea></div>
+          <button class="btn" style="margin-top:12px;" onClick="{{sendReply}}">Enviar respuesta</button>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="card mono" style="margin-top:12px; padding:7px 14px; font-size:11px; color:#9a9a9a; display:flex; gap:20px; align-items:center;">
+      <span>{{queueCount}} colas · {{messageCount}} mensajes</span>
+      <span>hub: <span style="color:#4cc38a;">{{hubLabel}}</span></span>
+      <span>pausa: {{pauseState}}</span>
+      <span style="margin-left:auto;">{{endpoint}}</span>
+    </div>
+
+  </div>
+
+  <!-- CONNECT / CONNECTION MODAL -->
+  <sc-if value="{{showConnect}}" hint-placeholder-val="{{false}}">
+    <div style="position:absolute; inset:0; background:rgba(8,9,12,.66); display:flex; align-items:center; justify-content:center; z-index:20;">
+
+      <sc-if value="{{connected}}" hint-placeholder-val="{{false}}">
+        <div class="card" style="width:420px; padding:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="disp" style="font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px;">
+              <span class="dot" style="width:9px; height:9px; background:#4cc38a;"></span>Conectado a {{brokerName}}
+            </div>
+            <button class="x" onClick="{{closeConnect}}">✕</button>
+          </div>
+          <div class="mono" style="margin-top:12px; background:#282828; border:1px solid #363636; border-radius:8px; padding:10px 12px; font-size:11px; color:#9a9a9a;">
+            <div style="color:#ededed;">{{endpoint}}</div>
+            <div style="margin-top:4px;">{{activeMeta}}</div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="ghost" style="flex:1; padding:8px; text-align:center;" onClick="{{reconfigure}}">Cambiar de broker</button>
+            <button class="btn" style="flex:1; background:#e5484d; color:#fff;" onClick="{{disconnect}}">Desconectar</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}">
+        <div class="card" style="width:448px; padding:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="disp" style="font-size:16px; font-weight:700;">Conectar a un broker</div>
+            <button class="x" onClick="{{closeConnect}}">✕</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+            <button class="seg" style="{{rabbitSegStyle}}" onClick="{{pickRabbit}}">
+              <span class="dot" style="width:8px; height:8px; background:#e0a34a;"></span>RabbitMQ
+            </button>
+            <button class="seg" style="{{kafkaSegStyle}}" onClick="{{pickKafka}}">
+              <span class="dot" style="width:8px; height:8px; background:#3d8ef0;"></span>Apache Kafka
+            </button>
+          </div>
+          <div style="font-size:11px; color:#9a9a9a; margin-top:7px; line-height:1.5;">{{brokerBlurb}}</div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:9px; margin-top:14px;">
+            <sc-for list="{{connFields}}" as="f" hint-placeholder-count="4">
+              <div style="{{f.wrap}}">
+                <div class="lbl" style="margin-bottom:3px;">{{f.label}}</div>
+                <input class="in" value="{{f.value}}" onChange="{{f.set}}" placeholder="{{f.ph}}">
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{hasRecentConns}}" hint-placeholder-val="{{true}}">
+            <div style="margin-top:12px;">
+              <div class="lbl" style="margin-bottom:5px;">Conexiones recientes</div>
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <sc-for list="{{recentConns}}" as="rc" hint-placeholder-count="2">
+                  <button class="ghost" style="display:flex; justify-content:space-between; align-items:center; text-align:left; width:100%; padding:6px 9px;" onClick="{{rc.use}}">
+                    <span class="mono" style="font-size:10px;">{{rc.label}}</span>
+                    <span style="font-size:10px; color:#9a9a9a;">{{rc.broker}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{hasConnMsg}}" hint-placeholder-val="{{false}}">
+            <div style="margin-top:12px; font-size:11px; color:{{connMsgColor}}; display:flex; align-items:center; gap:6px;">
+              <span class="dot" style="width:6px; height:6px; background:{{connMsgColor}};"></span>{{connMsg}}
+            </div>
+          </sc-if>
+
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="ghost" style="flex:1; padding:9px; text-align:center;" onClick="{{probe}}">Probar conexión</button>
+            <button class="btn" style="flex:2;" onClick="{{doConnect}}">Conectar</button>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.QCOLORS = ['#5ac37d', '#67c1c9', '#b393e6', '#6f9fe0', '#e08a9e', '#e0906a'];
+    this.state = {
+      showConnect: true,
+      connected: false,
+      connState: 'idle',
+      broker: 'rabbitmq',
+      conn: {
+        host: 'localhost', port: '5672', user: 'guest', pass: 'guest',
+        bootstrap: 'localhost:9092', security: 'PLAINTEXT', group: 'bustester-ui'
+      },
+      recentConns: [
+        { label: 'localhost:5672 · guest', broker: 'RabbitMQ', b: 'rabbitmq', patch: { host: 'localhost', port: '5672', user: 'guest', pass: 'guest' } },
+        { label: 'rabbit.staging:5672 · svc-bus', broker: 'RabbitMQ', b: 'rabbitmq', patch: { host: 'rabbit.staging', port: '5672', user: 'svc-bus', pass: '••••••' } },
+        { label: 'localhost:9092 · bustester-ui', broker: 'Kafka', b: 'kafka', patch: { bootstrap: 'localhost:9092', security: 'PLAINTEXT', group: 'bustester-ui' } }
+      ],
+      paused: false,
+      search: '',
+      subInput: '',
+      templateName: '',
+      form: { exchange: '', routingKey: '', payload: '' },
+      templates: [{ name: 'Pedido básico' }, { name: 'Pago rechazado' }],
+      queues: [
+        { name: 'pedidos.creados', count: 12 },
+        { name: 'pagos.confirmados', count: 7 },
+        { name: 'envios.despachados', count: 4 }
+      ],
+      messages: [
+        { id: 'm1', time: '12:04:41', queue: 'pedidos.creados', rk: 'pedido.creado', exchange: 'ordenes.event', payload: '{ "pedidoId": "8842", "cliente": "ACME SA", "items": 3 }', corr: '9f2c-creado-8842', hasReply: true, rid: '8842' },
+        { id: 'm2', time: '12:04:39', queue: 'pagos.confirmados', rk: 'pago.confirmado', exchange: 'pagos.event', payload: '{ "pedidoId": "8842", "monto": 149.90, "medio": "tarjeta" }', corr: '1a77-pago-8842', hasReply: true, rid: '8842' },
+        { id: 'm3', time: '12:04:38', queue: 'envios.despachados', rk: 'envio.despachado', exchange: 'envios.event', payload: '{ "envioId": "ENV-8830", "carrier": "Andreani", "eta": "48h" }', corr: 'c3d0-envio-8830', hasReply: false, rid: 'ENV-8830' },
+        { id: 'm4', time: '12:04:35', queue: 'pedidos.creados', rk: 'pedido.creado', exchange: 'ordenes.event', payload: '{ "pedidoId": "8843", "cliente": "Globex" }', corr: '9f2c-creado-8843', hasReply: true, rid: '8843' },
+        { id: 'm5', time: '12:04:31', queue: 'pagos.confirmados', rk: 'pago.rechazado', exchange: 'pagos.event', payload: '{ "pedidoId": "8841", "motivo": "fondos insuficientes" }', corr: '1a77-pago-8841', hasReply: true, rid: '8841' },
+        { id: 'm6', time: '12:04:22', queue: 'envios.despachados', rk: 'envio.despachado', exchange: 'envios.event', payload: '{ "envioId": "ENV-8829", "carrier": "OCA", "eta": "72h" }', corr: 'c3d0-envio-8829', hasReply: false, rid: 'ENV-8829' }
+      ],
+      recent: [
+        'ordenes.event / orden.creada',
+        'pagos.cmd / pago.capturar',
+        'envios.event / envio.despachado',
+        'ordenes.event / orden.cancelada'
+      ],
+      drawerId: null,
+      replyPayload: ''
+    };
+  }
+
+  _hx(h) {
+    h = (h || '').replace('#', '');
+    if (h.length === 3) { h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+    return [parseInt(h.substr(0, 2), 16) || 0, parseInt(h.substr(2, 2), 16) || 0, parseInt(h.substr(4, 2), 16) || 0];
+  }
+  _mix(a, b, t) {
+    var x = this._hx(a), y = this._hx(b);
+    return '#' + [0, 1, 2].map(function (i) {
+      var v = Math.round(x[i] + (y[i] - x[i]) * t);
+      v = Math.max(0, Math.min(255, v));
+      return ('0' + v.toString(16)).slice(-2);
+    }).join('');
+  }
+  _hash(str) {
+    var n = 0;
+    for (var i = 0; i < str.length; i++) { n = (n * 31 + str.charCodeAt(i)) % 100000; }
+    return n;
+  }
+  _patchConn(patch) {
+    this.setState({ conn: Object.assign({}, this.state.conn, patch), connState: 'idle' });
+  }
+  _invalid() {
+    var c = this.state.conn;
+    return this.state.broker === 'kafka' ? !String(c.bootstrap || '').trim() : (!String(c.host || '').trim() || !String(c.port || '').trim());
+  }
+
+  renderVals() {
+    var self = this;
+    var s = this.state;
+    var c = s.conn;
+
+    var isKafka = s.broker === 'kafka';
+    var accent = s.connected ? (isKafka ? '#3d8ef0' : '#e0a34a') : '#9a9a9a';
+    var accentInk = (s.connected && isKafka) ? '#eaf1fb' : '#161616';
+
+    var endpoint = isKafka
+      ? ((c.bootstrap || '—') + '  ·  ' + (c.security || 'PLAINTEXT'))
+      : ('amqp://' + (c.user || '') + '@' + (c.host || '') + ':' + (c.port || ''));
+
+    var rootStyle = '--accent:' + accent + ';--accent-ink:' + accentInk + ';background:#161616;color:#ededed';
+    var firstRun = s.showConnect && !s.connected;
+    var stageStyle = 'display:flex; flex-direction:column; flex:1;'
+      + (firstRun ? ' filter:blur(3px); opacity:.5; pointer-events:none;' : '');
+
+    function hueFor(name) {
+      var i = self.state.queues.findIndex(function (q) { return q.name === name; });
+      if (i < 0) i = self._hash(name) % 6;
+      return self.QCOLORS[i % self.QCOLORS.length];
+    }
+    function tagStyle(name) {
+      var h = hueFor(name);
+      return 'background:' + self._mix(h, '#161616', 0.82) + ';color:' + h;
+    }
+    function meta(m) {
+      if (!isKafka) return 'exchange: ' + m.exchange;
+      return 'part. ' + (self._hash(m.queue) % 3) + ' · off. ' + (10432 + self._hash(m.rk + m.rid) % 9000) + ' · key ' + (m.rid || '—');
+    }
+
+    var queues = s.queues.map(function (q) {
+      return {
+        name: q.name, count: q.count,
+        tagStyle: tagStyle(q.name),
+        dotStyle: 'background:' + hueFor(q.name),
+        unsub: function () {
+          self.setState({ queues: self.state.queues.filter(function (x) { return x.name !== q.name; }) });
+        }
+      };
+    });
+
+    var term = s.search.trim().toLowerCase();
+    var filtered = s.messages.filter(function (m) {
+      if (!term) return true;
+      return (m.rk + ' ' + m.payload + ' ' + m.queue).toLowerCase().indexOf(term) >= 0;
+    });
+
+    var messages = filtered.map(function (m) {
+      var sel = m.id === self.state.drawerId;
+      return {
+        time: m.time, queue: m.queue, rk: m.rk, payload: m.payload, hasReply: m.hasReply,
+        hue: hueFor(m.queue),
+        dotStyle: 'background:' + hueFor(m.queue),
+        rowStyle: sel
+          ? 'background:#282828; box-shadow:inset 2px 0 0 ' + accent + ';'
+          : 'background:transparent;',
+        pick: function () {
+          self.setState({
+            drawerId: m.id,
+            replyPayload: '{\n  "id": "' + (m.rid || '') + '",\n  "estado": "ACEPTADO"\n}'
+          });
+        }
+      };
+    });
+
+    var emptyMsg = '';
+    if (s.queues.length === 0) emptyMsg = 'Suscribite a una cola para ver mensajes en vivo.';
+    else if (s.messages.length === 0) emptyMsg = 'Esperando mensajes…';
+    else if (filtered.length === 0) emptyMsg = 'Ningún mensaje coincide con la búsqueda.';
+
+    var recent = s.recent.map(function (text) {
+      return {
+        text: text,
+        load: function () {
+          var parts = text.split(' / ');
+          self.setState({ form: { exchange: parts[0] || '', routingKey: parts[1] || '', payload: self.state.form.payload } });
+        }
+      };
+    });
+
+    var templates = s.templates.map(function (t) {
+      return {
+        name: t.name,
+        use: function () {
+          self.setState({
+            form: {
+              exchange: self.state.form.exchange,
+              routingKey: self.state.form.routingKey,
+              payload: '{\n  "plantilla": "' + t.name + '"\n}'
+            }
+          });
+        },
+        del: function () {
+          self.setState({ templates: self.state.templates.filter(function (x) { return x.name !== t.name; }) });
+        }
+      };
+    });
+
+    var d = s.messages.find(function (m) { return m.id === s.drawerId; }) || null;
+
+    var connFields = isKafka
+      ? [
+        { label: 'bootstrap.servers', value: c.bootstrap, ph: 'host:9092,host2:9092', wrap: 'flex:1 1 100%;', set: function (e) { self._patchConn({ bootstrap: e.target.value }); } },
+        { label: 'Seguridad', value: c.security, ph: 'PLAINTEXT', wrap: 'flex:1 1 45%;', set: function (e) { self._patchConn({ security: e.target.value }); } },
+        { label: 'Grupo de consumidor', value: c.group, ph: 'bustester-ui', wrap: 'flex:1 1 45%;', set: function (e) { self._patchConn({ group: e.target.value }); } }
+      ]
+      : [
+        { label: 'Host', value: c.host, ph: 'localhost', wrap: 'flex:1 1 60%;', set: function (e) { self._patchConn({ host: e.target.value }); } },
+        { label: 'Puerto', value: c.port, ph: '5672', wrap: 'flex:1 1 30%;', set: function (e) { self._patchConn({ port: e.target.value }); } },
+        { label: 'Usuario', value: c.user, ph: 'guest', wrap: 'flex:1 1 45%;', set: function (e) { self._patchConn({ user: e.target.value }); } },
+        { label: 'Contraseña', value: c.pass, ph: 'guest', wrap: 'flex:1 1 45%;', set: function (e) { self._patchConn({ pass: e.target.value }); } }
+      ];
+
+    var recentConns = s.recentConns.map(function (rc) {
+      return {
+        label: rc.label, broker: rc.broker,
+        use: function () {
+          self.setState({
+            broker: rc.b,
+            conn: Object.assign({}, self.state.conn, rc.patch),
+            connState: 'idle'
+          });
+        }
+      };
+    });
+
+    var segBase = 'display:flex; align-items:center; justify-content:center; gap:7px; height:38px; border-radius:8px; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; background:#282828;';
+    function segStyle(active, col) {
+      return segBase + (active
+        ? ' color:#ededed; border:1px solid ' + col + '; box-shadow:inset 0 0 0 1px ' + col + ';'
+        : ' color:#9a9a9a; border:1px solid #363636;');
+    }
+
+    var connMsg = '', connMsgColor = '#9a9a9a';
+    if (s.connState === 'probing') { connMsg = 'Probando conexión…'; connMsgColor = '#9a9a9a'; }
+    else if (s.connState === 'ok') { connMsg = 'El broker respondió. Ya podés conectar.'; connMsgColor = '#4cc38a'; }
+    else if (s.connState === 'error') {
+      connMsg = isKafka ? 'Sin respuesta en bootstrap.servers. Revisá el host y el puerto.' : 'No hay respuesta en ese host:puerto. Revisá que el broker esté arriba.';
+      connMsgColor = '#e5747a';
+    }
+
+    return {
+      rootStyle: rootStyle,
+      stageStyle: stageStyle,
+      brokerLabel: isKafka ? 'Apache Kafka ▾' : 'RabbitMQ ▾',
+      brokerName: isKafka ? 'Apache Kafka' : 'RabbitMQ',
+      subPlaceholder: isKafka ? '+ topic' : '+ cola',
+      sendLabel1: isKafka ? 'Topic' : 'Exchange',
+      sendLabel2: isKafka ? 'Key (opcional)' : 'Clave de enrutamiento',
+      sendPh1: isKafka ? 'pedidos.creados' : 'ordenes.event',
+      sendPh2: isKafka ? '8842' : 'orden.creada',
+      endpoint: endpoint,
+
+      showConnect: s.showConnect,
+      connected: s.connected,
+      notConnected: !s.connected,
+
+      rabbitSegStyle: segStyle(!isKafka, '#e0a34a'),
+      kafkaSegStyle: segStyle(isKafka, '#3d8ef0'),
+      brokerBlurb: isKafka
+        ? 'Conexión a un clúster de Kafka por bootstrap.servers. El acento pasa a azul al conectar.'
+        : 'Conexión AMQP a un broker RabbitMQ. El acento pasa a ámbar al conectar.',
+      connFields: connFields,
+      recentConns: recentConns,
+      hasRecentConns: s.recentConns.length > 0,
+      hasConnMsg: connMsg.length > 0,
+      connMsg: connMsg,
+      connMsgColor: connMsgColor,
+      activeMeta: isKafka ? (c.security + ' · grupo ' + c.group) : ('usuario ' + c.user + ' · vhost /'),
+
+      statusLabel: s.connected ? 'conectado' : 'sin conexión',
+      statusColor: s.connected ? '#4cc38a' : '#9a9a9a',
+
+      pauseLabel: s.paused ? 'Reanudar' : 'Pausar',
+      pauseState: s.paused ? 'on' : 'off',
+      hubLabel: s.connected ? (s.paused ? 'en pausa' : 'live') : 'off',
+
+      subInput: s.subInput,
+      search: s.search,
+      matchCountLabel: term ? (filtered.length + ' de ' + s.messages.length) : (s.messages.length + ' mensajes'),
+
+      fExchange: s.form.exchange,
+      fRoutingKey: s.form.routingKey,
+      fPayload: s.form.payload,
+      templateName: s.templateName,
+      templates: templates,
+      noTemplates: s.templates.length === 0,
+      recent: recent,
+      recentCount: s.recent.length,
+      noRecent: s.recent.length === 0,
+
+      queues: queues,
+      queueCount: s.queues.length,
+      messageCount: s.messages.length,
+
+      messages: messages,
+      emptyMsg: emptyMsg,
+      hasEmptyMsg: emptyMsg.length > 0,
+
+      hasDrawer: !!d,
+      noDrawer: !d,
+      railBorder: d ? accent : '#363636',
+      drawerRk: d ? d.rk : '',
+      drawerMeta: d ? meta(d) : '',
+      drawerPayload: d ? d.payload : '',
+      drawerCorr: d ? d.corr : '',
+      drawerHue: d ? hueFor(d.queue) : accent,
+      replyPayload: s.replyPayload,
+
+      openConnect: function () { self.setState({ showConnect: true }); },
+      closeConnect: function () { self.setState({ showConnect: false }); },
+      pickRabbit: function () { self.setState({ broker: 'rabbitmq', connState: 'idle' }); },
+      pickKafka: function () { self.setState({ broker: 'kafka', connState: 'idle' }); },
+      probe: function () {
+        var bad = self._invalid();
+        self.setState({ connState: 'probing' });
+        setTimeout(function () { self.setState({ connState: bad ? 'error' : 'ok' }); }, 650);
+      },
+      doConnect: function () {
+        if (self._invalid()) { self.setState({ connState: 'error' }); return; }
+        self.setState({ connState: 'probing' });
+        setTimeout(function () { self.setState({ showConnect: false, connected: true, connState: 'idle' }); }, 550);
+      },
+      disconnect: function () { self.setState({ connected: false, connState: 'idle' }); },
+      reconfigure: function () { self.setState({ connected: false, connState: 'idle' }); },
+
+      setSub: function (e) { self.setState({ subInput: e.target.value }); },
+      subscribe: function () {
+        var n = (self.state.subInput || '').trim();
+        if (!n) return;
+        if (self.state.queues.some(function (q) { return q.name === n; })) { self.setState({ subInput: '' }); return; }
+        var ex = (n.split('.')[0] || 'bus') + '.event';
+        var msg = {
+          id: 'm' + Date.now(), time: '12:05:0' + (self.state.messages.length % 10),
+          queue: n, rk: n + '.recibido', exchange: ex,
+          payload: '{ "demo": true, "cola": "' + n + '" }',
+          corr: 'sub-' + Math.floor(Math.random() * 9000 + 1000), hasReply: true, rid: 'demo'
+        };
+        self.setState({
+          queues: self.state.queues.concat([{ name: n, count: 1 }]),
+          subInput: '',
+          messages: [msg].concat(self.state.messages)
+        });
+      },
+      togglePause: function () { self.setState({ paused: !self.state.paused }); },
+      setSearch: function (e) { self.setState({ search: e.target.value }); },
+      setExchange: function (e) { self.setState({ form: Object.assign({}, self.state.form, { exchange: e.target.value }) }); },
+      setRoutingKey: function (e) { self.setState({ form: Object.assign({}, self.state.form, { routingKey: e.target.value }) }); },
+      setPayload: function (e) { self.setState({ form: Object.assign({}, self.state.form, { payload: e.target.value }) }); },
+      setTemplateName: function (e) { self.setState({ templateName: e.target.value }); },
+      saveTemplate: function () {
+        var name = (self.state.templateName || '').trim();
+        if (!name) return;
+        if (self.state.templates.some(function (t) { return t.name === name; })) { self.setState({ templateName: '' }); return; }
+        self.setState({ templates: self.state.templates.concat([{ name: name }]), templateName: '' });
+      },
+      send: function () {
+        var f = self.state.form;
+        if (!f.exchange && !f.routingKey) return;
+        var line2 = (f.exchange || '(sin exchange)') + ' / ' + (f.routingKey || '(sin routing key)');
+        self.setState({
+          recent: [line2].concat(self.state.recent).slice(0, 5),
+          form: { exchange: '', routingKey: '', payload: '' }
+        });
+      },
+      clearRecent: function () { self.setState({ recent: [] }); },
+      closeDrawer: function () { self.setState({ drawerId: null }); },
+      setReply: function (e) { self.setState({ replyPayload: e.target.value }); },
+      sendReply: function () { self.setState({ drawerId: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
