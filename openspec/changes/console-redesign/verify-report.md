@@ -1,151 +1,69 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-evidence_revision: sha256:1af9f3484a14e30a987091ed865a5b8baf6f65d3e053018bafc264f2450a2c5e
+evidence_revision: sha256:c25f9862b9ce897a6d32fb2021804a1abc0ac5230b29d4c36863d946501fdec8
 verdict: pass_with_warnings
 blockers: 0
 critical_findings: 0
 requirements: 1/1
-scenarios: 4/4
+scenarios: 3/3
 test_command: npm test -- --watch false
 test_exit_code: 0
-test_output_hash: sha256:a45305f0e829acaef774553e8c06af4d8d69036bf2b5cd6d217324736db8f413
+test_output_hash: sha256:ee0148e390d1c3309742c68d2f5037deb47543bc3b5793fd60924f4894b1ea09
 build_command: npm run build
 build_exit_code: 0
-build_output_hash: sha256:96d7d15b07766907f559f398fc18008c74479826d71ec27416e1e83ea9421b93
+build_output_hash: sha256:7a82634ebad59d985c8bc86c4d26cacf1776371307e48d9cf14ff89b452659d8
 ```
 
-## Verification Report — console-redesign SLICE 3 only (PR3)
+## Verification Report — console-redesign SLICE 4 only (PR4)
 
-**Change**: console-redesign
-**Slice**: 3 — Recent sends: cap 5, "Vaciar" control, first-load truncate-to-5 migration, layout rework
-**Branch**: `feat/console-redesign-s3-send` @ `a5ab95c` (child of `feat/console-redesign-s2-connect` @ `a2d1a35`)
-**Mode**: Strict TDD (Vitest) | **Verdict**: PASS WITH WARNINGS — ready to open as PR3 targeting `feat/console-redesign-s2-connect`.
-**Validator**: `gentle-ai sdd-verify-validate --requirements 1 --scenarios 4` → admitted, verdict pass_with_warnings.
+**Change**: console-redesign | **Slice**: 4 — Messages feed cards + per-queue tinted pill + 6px dot (FNV-1a `queueColorIndex`)
+**Branch**: `feat/console-redesign-s4-messages` @ `0f029a0` (child of `feat/console-redesign-s3-send` @ `a5ab95c`)
+**Mode**: Strict TDD (Vitest) | **Verdict**: PASS WITH WARNINGS — ready to open as PR4 targeting `feat/console-redesign-s3-send`.
+**Validator**: `gentle-ai sdd-verify-validate --requirements 1 --scenarios 3` → admitted.
+Hybrid store: this file is authoritative (replaced the slice-3 report); Engram `sdd/console-redesign/verify-report` (#174) is the mirror.
 
 ### Scope
-
-Slice-3 spec scope is exactly one ui-presentation requirement: **"Recent Sends Are Recorded, Capped, and Recallable"** (4 scenarios). The other ui-presentation requirements (Dark Mode, Graphite palette, Accent) were verified with slice 1; "Queues Are Identified by a Tinted Pill and Dot" belongs to slice 4. Slices 4–5 are not implemented and are not flagged as missing. The D7 reply-mode / unsaved-edits guard code in `send.component.ts` is deliberately retained for slice 5 (task 5.8) and is not flagged.
+Slice-4 spec scope = one ui-presentation requirement "Queues Are Identified by a Tinted Pill and Dot" (3 scenarios). Dark Mode / Graphite / accent verified in slice 1; recent-sends in slice 3. Slice 5 (reply drawer) not implemented — not flagged. The D7 reply-mode code in `send.component.ts` and the `respond()` → `ReplyDraftService.request()` path in `messages.component.ts` are deliberately intact for slice 5 task 5.7/5.8 — not flagged.
 
 ### Completeness
-
-| Task | State | Code match |
-|---|---|---|
-| 3.1 RED — service spec: cap 5 FIFO, `clearRecentSends()` memory+removeItem, `loadCapped()` truncate+rewrite | [x] | Yes — 5 new/rewritten tests in `send-history.service.spec.ts` |
-| 3.2 RED — component spec: `Vaciar` → `clearRecentSends()`, recall populates fields | [x] | Yes — 2 new tests + row-action count update in `send.component.spec.ts` |
-| 3.3 GREEN — `RECENT_SENDS_CAP = 5`, `loadCappedRecentSends()`, `clearRecentSends()` | [x] | Yes — `send-history.service.ts` |
-| 3.4 GREEN — recent-sends layout (≤5) + `Vaciar` wired | [x] | Yes — `send.component.{ts,html}` |
-| 3.5 REFACTOR — component delegates only, zero storage access | [x] | Yes — `clearRecent()` is a one-line delegate; `rg localStorage` on `send.component.ts` = 0 hits |
-
-All slice-3 tasks 3.1–3.5 are `[x]` in `tasks.md` and consistent with the committed code. `apply-progress.md` slice-3 section (lines 184+) and Engram #163 match.
+Tasks 4.1–4.5 all `[x]` in `tasks.md` and consistent with committed code (`queue-color.{ts,spec.ts}` created; `messages.component.{ts,html,spec.ts}` + `styles.css` updated). `apply-progress.md` slice-4 section and Engram #163 match the diff.
 
 ### Build & Tests
+- `npm test -- --watch false` (frontend/) → exit 0 · **14 files / 211 tests passed, 0 failed** (baseline 13/199; net +12: queue-color +6, messages +6). Hash `sha256:ee0148e3…`.
+- Focused `ng test --include 'src/app/features/messages/**/*.spec.ts'` → 3 files / 49 passed.
+- `npm run build` (frontend/) → exit 0. Initial bundle 632.87 kB. Hash `sha256:7a826346…`.
+- No coverage tool, no e2e/integration harness (Vitest only).
 
-- `npm test -- --watch false` (frontend/) → **exit 0 · 13 files / 199 tests passed, 0 failed** (slice-2 baseline 13 / 193; net +6: service +4, component +2). Output hash `sha256:a45305f0…`.
-- `npm run build` (frontend/) → **exit 0**. Initial bundle 630.24 kB; the 500 kB budget WARNING is the pre-existing `@angular/cdk/overlay` cost introduced by slice 2's vendored dialog (design D3), not a slice-3 regression. Slice 3 adds ~2 kB (628.09 → 630.24). Output hash `sha256:96d7d15b…`.
-- Coverage: no coverage tool configured. No e2e/integration harness — Vitest unit/component layer only.
+### Spec compliance — 1 requirement / 3 scenarios — 3/3 COMPLIANT with passing covering tests
+1. **Message row shows a queue pill and dot** (tinted pill + queue name + 6px dot of the same hue) → `messages.component.spec.ts` "renders a queue pill on each feed row carrying the queue name and its deterministic data-queue-color (4.2)" + "renders a 6px colour dot inside each feed-row queue pill (4.2)". Dot is `size-1.5` (6px), nested inside the `[data-queue-color]` pill; pill fill = `color-mix(in oklab, var(--queue-hue) 18%, transparent)`, dot fill = `var(--queue-hue)` — same hue by CSS custom-property cascade.
+2. **The same queue keeps the same color** → `messages.component.spec.ts` "gives two rows received on the same queue the identical data-queue-color (4.2)" + `queue-color.spec.ts` determinism (50 calls) and resubscribe-stability tests.
+3. **No left color rail is rendered** → `messages.component.spec.ts` "renders no left-side per-queue colour rail on the feed (4.2)"; `rg` confirms no `border-l`/`absolute left-0`/rail markup in the template.
 
-### Spec Compliance — "Recent Sends Are Recorded, Capped, and Recallable" (1 requirement / 4 scenarios)
+### Algorithm correctness (design D5) — independently recomputed
+`queue-color.ts` `queueColorIndex(name)`: `h = 0x811c9dc5`; per UTF-16 code unit `h ^= c; h = Math.imul(h, 0x01000193)`; returns `((h >>> 0) % 6) + 1`. Pure, zero imports, zero side effects, deterministic, return type `QueueColor = 1|2|3|4|5|6`. Constants named `FNV_OFFSET_BASIS` / `FNV_PRIME` / `PALETTE_SLOTS` (behaviour identical to the inline D5 snippet).
+Reference values recomputed by an independent Node script — all six match the pinned test values: `orders`→3, `payments`→1, `shipping-queue`→4, `orders-queue`→5, `orders.created`→5, `orders.updated`→6. Long-name `Math.imul` int32 cases also match (`'a'×5000`→2, `'queue-'+'x'×2000`→6) and stay in 1..6.
 
-| Scenario | Status | Covering test (passed at runtime) |
-|---|---|---|
-| Successful send added newest-first and capped at 5 (FIFO evict oldest) | COMPLIANT | `send-history.service.spec.ts` — "recordSend caps the list at 5 entries, evicting the oldest (FIFO)": records 6, asserts `length === 5`, `sends[0].routingKey === 'orders.5'`, `sends[4].routingKey === 'orders.1'` |
-| Recalling a recent send populates `exchange`, `routingKey`, `payload` | COMPLIANT | `send.component.spec.ts` — "useRecent(entry) populates exchange/routingKey/payload from a recent send" |
-| Vaciar clears the list AND deletes the persisted key; still empty after reload | COMPLIANT | `send-history.service.spec.ts` — "clearRecentSends empties the in-memory list AND removes the persisted localStorage key" (asserts `recentSends() === []` and `getItem(key) === null`) + "clearRecentSends keeps the list empty after a reload" (`TestBed.resetTestingModule()` + re-inject → `[]`). Component wiring: `send.component.spec.ts` "the 'Vaciar' control is shown only when recent sends exist and clears them via the service" |
-| Upgrade migration — persisted list >5 truncated to 5 most recent AND key rewritten on first init | COMPLIANT | `send-history.service.spec.ts` — "truncates a persisted list longer than 5 to the 5 most recent AND rewrites the key on first load": seeds an 8-entry array, `resetTestingModule()` + re-inject, asserts in-memory list is the first 5 AND `JSON.parse(localStorage.getItem(key))` is those same 5 |
-
-4/4 scenarios COMPLIANT, each with a covering test that passed at runtime.
-
-### Migration Edge Cases
-
-| Case | Behavior | Evidence |
-|---|---|---|
-| Empty / missing key | `readArray` → `[]`; `length 0 ≤ 5` → returned untouched, no write | "starts with empty recentSends…when localStorage is empty" |
-| Corrupted JSON | `readArray` catch → `[]`; no throw, no rewrite | "falls back to an empty recentSends list without throwing when its localStorage entry is corrupted JSON" (line 134) |
-| Exactly 5 entries | `length 5 ≤ 5` → returned untouched, `localStorage.setItem` not called | "leaves a persisted list of 5 or fewer entries untouched on load" (asserts stored list still length 5) |
-| Fewer than 5 | same untouched path | covered by empty-list + 2-entry newest-first tests; 5-or-fewer test name is inclusive |
-| More than 5 | `slice(0, 5)` + `setItem` rewrite | migration test above |
-
-### Correctness / Coherence (design D6)
-
-- `RECENT_SENDS_CAP` is `5` (`send-history.service.ts:5`). Was 20.
-- Construction-time migration: `_recentSends` signal initializer calls `loadCappedRecentSends()` (`:69`) — runs once at service instantiation, matching D6 "construction-time `loadCapped()`" and the spec's "first init after upgrade".
-- `loadCappedRecentSends()` (`:50`) truncates with `stored.slice(0, RECENT_SENDS_CAP)` (list is newest-first, so this keeps the 5 most recent) and `localStorage.setItem(RECENT_SENDS_KEY, …)` only when `stored.length > 5`. No preserve-and-hide. Matches decision #152.3.
-- `clearRecentSends()` (`:87`) = `_recentSends.set([])` + `localStorage.removeItem(RECENT_SENDS_KEY)`. Templates untouched. Matches decision #152.2.
-- `recordSend` already applies `.slice(0, RECENT_SENDS_CAP)` (`:77`), so cap-5 FIFO on new sends needs no extra code.
-- Component only delegates: `clearRecent()` (`send.component.ts:379`) is `this.history.clearRecentSends();` and nothing else. No `localStorage` reference anywhere in `send.component.ts` (task 3.5).
-- Deviation: D6 names the helper `loadCapped()`; implemented as module-level `loadCappedRecentSends()`, the same pattern as the existing `readArray` helper. Behaviourally identical; not a spec break.
-
-### Layout rework
-
-`send.component.html` recent-sends block: container `[data-testid="recent-sends"]`; header row with `Envíos recientes` + live `N/5` counter (shown only when entries exist); ghost `[data-testid="recent-sends-clear"]` "Vaciar" button with `lucideTrash2`, rendered only while `history.recentSends().length > 0`; two-line `[data-testid="recent-send-row"]` cards (exchange over routing key, `(intercambio predeterminado)` / `(sin clave de enrutamiento)` placeholders) on `bg-background/60` + `rounded-lg`; `@for` track changed from `recent.sentAt` to `$index`. "Cargar" recall button unchanged. No hardcoded radii or colors introduced — all Tailwind token classes.
+### Rendering correctness (design D5)
+- `styles.css`: exactly 6 rules `[data-queue-color='N'] { --queue-hue: var(--color-queue-N); }` (+ a 3-line comment), placed after the `[data-broker]` map. `--color-queue-1..6` tokens pre-existed from slice 1.
+- Hue travels only via `[attr.data-queue-color]` + static `[style.background-color]` component string fields (`queuePillTint`, `queueDotFill`). No `ngClass`, no `[class]`, no interpolated class strings for the hue. The only `[class.…]` binding in the template is the pre-existing `[class.animate-message-enter]` highlight — unrelated to hue. Satisfies D5 "dynamic class strings are rejected" and task 4.5.
+- Feed rows restyled onto surface tokens: `rounded-lg border border-border bg-panel-2/40 … shadow-sm`. No hardcoded radii/colors.
+- Subscription chips carry the same pill+dot inside `hlmBadge` (ui-presentation: "each message row AND each subscription chip MUST identify its queue") — covered by "renders a matching queue pill with data-queue-color on each subscription chip (4.2)".
+- No left-side color rail anywhere.
 
 ### No scope leak
+Feature commit `f4bc7d7` touches only `frontend/src/app/features/messages/**` (5 files) + `frontend/src/styles.css` (the 6 hue rules) + `openspec/changes/console-redesign/tasks.md` (checkbox flips). The `a5ab95c..0f029a0` range also contains `1b01c4d` (slice-3 verify-report doc) and `0f029a0` (slice-4 apply-progress doc) — SDD docs only. No send-panel, reply-draft, connect, or reply-drawer source changes. `messages.component.ts` `respond()` is unchanged from slice 1–3. Working tree clean at `0f029a0` (only the untracked `frontend/src/app/core/api-config.ts` local edit, unrelated to this change).
 
-Slice-3 diff `a2d1a35..a5ab95c` touches only:
+### TDD compliance
+Evidence table present in `apply-progress.md`. 4.1/4.2 are RED test tasks; 4.3/4.4 GREEN driven by them; 4.5 REFACTOR. RED for 4.1/4.2 was a `Cannot find module './queue-color'` compile gate, then substantive behavioural assertions (reference values, range, determinism, dispersion, int32) followed. 12 new tests, full suite 211/211 green on a fresh run.
 
-```
-frontend/src/app/features/send/send-history.service.spec.ts | 70 +
-frontend/src/app/features/send/send-history.service.ts      | 32 +
-frontend/src/app/features/send/send.component.html          | 45 +
-frontend/src/app/features/send/send.component.spec.ts       | 35 +
-frontend/src/app/features/send/send.component.ts            |  6 +
-openspec/changes/console-redesign/apply-progress.md         | 65 +
-openspec/changes/console-redesign/tasks.md                  | 10 +
-```
-
-Only `features/send/**` + SDD docs. No messages-feed, queue-color, reply-drawer, connect, or token changes. Reply-mode / dirty-guard regions of `send.component.ts` are untouched (the 6 added lines are the `clearRecent()` method only). No vendored output. Working tree clean at `a5ab95c`.
-
-### TDD Compliance
-
-| Check | Result | Details |
-|---|---|---|
-| TDD evidence reported | Yes | apply-progress "TDD evidence" table, tasks 3.1–3.5 |
-| All tasks have tests | Yes | 3.1/3.2 are the test tasks; 3.3/3.4 driven by them; 3.5 refactor |
-| RED confirmed (tests exist) | Yes | all 7 new test cases present in the two spec files |
-| GREEN confirmed (tests pass) | Yes | 199/199 on fresh run |
-| Triangulation | Adequate | migration path has 3 distinct cases (>5 truncate+rewrite, exactly-5 untouched, empty); clear path has 2 (removeItem + reload persistence); assertions use varied expected values, not repeated empties |
-| Safety net for modified files | Yes | both spec files pre-existed; full suite (193) run green before the change per apply-progress |
-
-RED evidence is a compile-gate (`Property 'clearRecentSends' does not exist on type 'SendHistoryService'`) rather than a red assertion for tasks 3.1/3.2 — acceptable for an additive API in a typed codebase; the behavioural assertions that follow are substantive.
-
-### Assertion Quality Audit
-
-New/changed test files: `send-history.service.spec.ts`, `send.component.spec.ts`.
-
-| File | Line | Assertion | Issue | Severity |
-|---|---|---|---|---|
-| `send.component.spec.ts` | 223 | `expect(clearSpy).toHaveBeenCalledTimes(1)` (delegation-only test) | Mock call-count assertion with no behavioural companion in the same test | SUGGESTION |
-| `send.component.spec.ts` | 416 | `expect(buttons.length).toBe(6)` | DOM element-count coupling (pre-existing pattern in this file, bumped 5→6) | SUGGESTION |
-
-No tautologies, no assertions without a production-code call, no ghost loops, no orphan empty-array checks (every `toEqual([])` has a companion assertion of non-empty state or a prior `recordSend`). The delegation concern is mitigated by the sibling test "the 'Vaciar' control is shown only when recent sends exist…" which asserts real show/hide DOM behaviour + click wiring, and by the service-level `clearRecentSends` tests that assert the actual `[]` + `removeItem` outcome.
-
-**Assertion quality**: 0 CRITICAL, 0 WARNING, 2 SUGGESTION.
-
-### Test Layer Distribution
-
-| Layer | Tests | Files | Tool |
-|---|---|---|---|
-| Unit (service, isolated) | 9 (`send-history.service.spec.ts`) | 1 | Vitest + TestBed |
-| Component (TestBed `createComponent` + DOM queries) | remainder of `send.component.spec.ts` | 1 | Vitest + Angular TestBed |
-| E2E | 0 | 0 | not installed |
-| **Total (suite)** | **199** | **13** | |
+### Assertion quality
+0 CRITICAL, 0 WARNING, 3 SUGGESTION.
+- S1: pill/dot "same hue" is structurally guaranteed by the `--queue-hue` cascade but not asserted via computed style (jsdom does not resolve `color-mix`/custom properties). The tests assert dot-inside-pill structure and the shared `data-queue-color`; a jsdom `getComputedStyle` check would add little. Acceptable.
+- S2: `queue-color.spec.ts` "spreads a realistic queue set across all six palette slots" pins a hand-picked name set to hit all 6 slots — a dispersion smoke test that is coupled to the hash output; a hash tweak would require re-deriving it.
+- S3 (carried from slices 2–3): initial bundle 632.87 kB exceeds the 500 kB budget — pre-existing `@angular/cdk/overlay` cost from slice 2 (design D3); slice 4 adds ~2.6 kB. Not a slice-4 regression. Resolve globally at chain end.
 
 ### Issues
-
-**CRITICAL**: none.
-
-**WARNING**: none.
-
-**SUGGESTION**:
-- S1: `clearRecent()` delegation test (`send.component.spec.ts:215`) asserts only `spy.toHaveBeenCalledTimes(1)`. Consider asserting the observable outcome (list emptied in the rendered DOM) so the test survives a refactor of the delegation target's name.
-- S2: The exactly-5 migration test asserts the persisted list still has length 5 but does not assert `localStorage.setItem` was *not* called. The code path is correct (early return before any write); an explicit "no rewrite" spy assertion would lock it in.
-- S3: `expect(buttons.length).toBe(6)` couples a test to the total button count of the panel; a future control added elsewhere in `send.component.html` will break it for an unrelated reason.
-- S4 (carried from slice 2): initial bundle remains over the 500 kB Angular budget (630.24 kB). Pre-existing `@angular/cdk/overlay` cost from slice 2; slice 3 adds ~2 kB. Not a slice-3 regression — resolve the budget globally (raise the budget or lazy-load the dialog) at chain end.
+CRITICAL: none. WARNING: none. SUGGESTION: 3 (above).
 
 ### Verdict
-
-**PASS WITH WARNINGS** (0 blockers, 0 critical, 0 warning, 4 suggestions).
-
-Slice 3 is **ready to open as PR3 targeting `feat/console-redesign-s2-connect`**. The spec requirement and all 4 scenarios are implemented and covered by passing tests, the design D6 contract is met, TDD was followed, and the diff is scope-clean. The build budget warning is a pre-existing slice-2 artifact, not a slice-3 regression.
-
-**Next recommended**: `sdd-apply` for slice 4 (or open PR3 first per the feature-branch chain). No `sdd-archive` until all 5 slices land.
+PASS WITH WARNINGS (0 blockers, 0 critical, 0 warning, 3 suggestions). Slice 4 is **READY to open as PR4 targeting `feat/console-redesign-s3-send`**. No archive until all 5 slices land.
