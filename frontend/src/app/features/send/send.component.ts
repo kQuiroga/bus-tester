@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideDownload, lucideTrash2 } from '@ng-icons/lucide';
+import { lucideTrash2 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
@@ -70,7 +70,7 @@ const TOAST_ERROR_CLASS = 'bg-status-error-bg text-status-error';
     HlmTextarea,
     NgIcon,
   ],
-  providers: [provideIcons({ lucideDownload, lucideTrash2 })],
+  providers: [provideIcons({ lucideTrash2 })],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './send.component.html',
 })
@@ -226,6 +226,15 @@ export class SendComponent {
           toast.error(ApiClientService.errorDetail(err, 'No se pudo enviar el mensaje.'), { class: TOAST_ERROR_CLASS });
         },
       });
+  }
+
+  /** One-line `exchange / routingKey` summary for a recent-send row (prototype `r.text`,
+   *  docs/redesign-prototype/Main.dc.html). An empty exchange renders the AMQP default-exchange
+   *  marker; an empty routing key renders its own marker. */
+  recentSummary(entry: RecentSend): string {
+    const exchange = entry.exchange || '(intercambio predeterminado)';
+    const routingKey = entry.routingKey || '(sin clave de enrutamiento)';
+    return `${exchange} / ${routingKey}`;
   }
 
   useRecent(entry: RecentSend): void {

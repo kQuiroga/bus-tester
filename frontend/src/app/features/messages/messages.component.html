@@ -1,50 +1,49 @@
-<section class="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+<section class="rounded-xl border border-border bg-card p-[18px] text-card-foreground shadow-sm">
   <h2 class="text-lg font-medium text-card-foreground">Mensajes en vivo</h2>
-  <form class="mt-3 flex flex-col gap-3" (ngSubmit)="subscribeToQueue()">
-    <label hlmLabel class="flex flex-col gap-1 text-card-foreground/80">
-      Cola
-      <input
-        hlmInput
-        name="queueName"
-        [ngModel]="queueName()"
-        (ngModelChange)="queueName.set($event)"
-      />
-    </label>
-    <button hlmBtn type="submit" [disabled]="isDuplicateQueue()">Suscribirse</button>
+  <form class="mt-3 flex gap-2" (ngSubmit)="subscribeToQueue()">
+    <input
+      hlmInput
+      class="h-[34px] flex-1 rounded-[8px] bg-muted"
+      name="queueName"
+      placeholder="Nombre de la cola"
+      aria-label="Nombre de la cola"
+      [ngModel]="queueName()"
+      (ngModelChange)="queueName.set($event)"
+    />
+    <button hlmBtn type="submit" class="h-[34px] whitespace-nowrap rounded-[8px] px-[14px]" [disabled]="isDuplicateQueue()">
+      Suscribirse
+    </button>
   </form>
-  @if (chipCounts().length > 0) {
-    <div class="mt-3 flex flex-wrap items-center gap-2">
+  <div class="mt-3 flex min-h-[22px] flex-wrap items-center gap-[7px]" data-testid="subscription-chips">
+    @if (chipCounts().length === 0) {
+      <span class="text-[11px] text-muted-foreground">Ninguna cola suscrita.</span>
+    } @else {
       @for (chip of chipCounts(); track chip.id) {
-        <span hlmBadge variant="outline" class="gap-1.5 bg-card py-1 pr-1 pl-2 text-sm">
+        <span
+          data-testid="queue-pill"
+          class="inline-flex items-center gap-1.5 rounded-full px-[9px] py-[3px] text-[11px] font-semibold"
+          [attr.data-queue-color]="queueColor(chip.queueName)"
+          [style.background-color]="queuePillTint"
+          [style.color]="queuePillText"
+        >
           <span
-            data-testid="queue-pill"
-            class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-sans text-xs font-medium text-card-foreground"
-            [attr.data-queue-color]="queueColor(chip.queueName)"
-            [style.background-color]="queuePillTint"
-          >
-            <span
-              data-testid="queue-dot"
-              class="size-1.5 shrink-0 rounded-full"
-              [style.background-color]="queueDotFill"
-            ></span>
-            {{ chip.queueName }}
-          </span>
-          <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{{ chip.count }}</span>
+            data-testid="queue-dot"
+            class="size-1.5 shrink-0 rounded-[3px]"
+            [style.background-color]="queueDotFill"
+          ></span>
+          {{ chip.queueName }} · {{ chip.count }}
           <button
-            hlmBtn
-            variant="ghost"
-            size="sm"
             type="button"
-            class="text-card-foreground/60 hover:text-status-error"
+            class="bg-transparent text-[11px] leading-none text-muted-foreground transition hover:brightness-125"
             [attr.aria-label]="'Cancelar suscripción a ' + chip.queueName"
             (click)="unsubscribe(chip.id)"
           >
-            <ng-icon name="lucideX" />
+            ✕
           </button>
         </span>
       }
-    </div>
-  }
+    }
+  </div>
   @if (errorMessage()) {
     <p class="rounded-md bg-status-error-bg px-3 py-2 text-sm font-medium text-status-error">{{ errorMessage() }}</p>
   }
@@ -86,79 +85,83 @@
     </div>
   }
 
-  <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-    <div class="relative flex-1">
-      <ng-icon
-        name="lucideSearch"
-        class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-      />
-      <input
-        hlmInput
-        class="pl-8"
-        type="search"
-        placeholder="Buscar mensajes"
-        [ngModel]="searchTerm()"
-        (ngModelChange)="searchTerm.set($event)"
-      />
-    </div>
-    <button hlmBtn variant="outline" type="button" (click)="togglePause()">
-      @if (paused()) {
-        <ng-icon name="lucidePlay" />
-      } @else {
-        <ng-icon name="lucidePause" />
-      }
+  <div class="mt-3 flex gap-2">
+    <input
+      hlmInput
+      class="h-[34px] flex-1 rounded-[8px] bg-muted"
+      type="search"
+      placeholder="Buscar mensajes"
+      [ngModel]="searchTerm()"
+      (ngModelChange)="searchTerm.set($event)"
+    />
+    <button
+      hlmBtn
+      variant="ghost"
+      size="sm"
+      type="button"
+      class="h-[34px] shrink-0 whitespace-nowrap rounded-[7px] border border-border bg-muted text-[11px]"
+      (click)="togglePause()"
+    >
       {{ paused() ? 'Reanudar' : 'Pausar' }}
     </button>
   </div>
-  <ul class="mt-3 flex max-h-64 flex-col gap-2 overflow-y-auto">
-    @for (message of filteredMessages(); track message.seq) {
-      <li
-        data-testid="message-row"
-        class="flex flex-col gap-2 rounded-lg border border-border bg-panel-2/40 px-3 py-2.5 shadow-sm transition-colors hover:border-border"
-        [class.animate-message-enter]="isNewRow(message)"
-        [class.ring-2]="isReplying(message)"
-        [class.ring-accent]="isReplying(message)"
-        [class.border-accent]="isReplying(message)"
-        [attr.data-replying]="isReplying(message) ? 'true' : null"
-      >
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <span
-              data-testid="queue-pill"
-              class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-sans text-xs font-medium text-card-foreground"
-              [attr.data-queue-color]="queueColor(queueNameOf(message))"
-              [style.background-color]="queuePillTint"
-            >
+  @if (emptyFeedMessage(); as empty) {
+    <p
+      data-testid="feed-empty"
+      class="mt-3 rounded-[9px] border border-dashed border-border px-3 py-[22px] text-center text-xs text-muted-foreground"
+    >
+      {{ empty }}
+    </p>
+  } @else {
+    <ul class="mt-3 flex max-h-[600px] flex-col gap-2 overflow-y-auto">
+      @for (message of filteredMessages(); track message.seq) {
+        <li
+          data-testid="message-row"
+          class="flex flex-col gap-1.5 rounded-[9px] border border-border bg-panel-2 px-[11px] py-[9px] transition-colors"
+          [class.animate-message-enter]="isNewRow(message)"
+          [class.ring-2]="isReplying(message)"
+          [class.ring-accent]="isReplying(message)"
+          [class.border-accent]="isReplying(message)"
+          [attr.data-replying]="isReplying(message) ? 'true' : null"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
               <span
-                data-testid="queue-dot"
-                class="size-1.5 shrink-0 rounded-full"
-                [style.background-color]="queueDotFill"
-              ></span>
-              {{ queueNameOf(message) }}
-            </span>
-            <span class="min-w-0 break-all font-mono text-xs text-foreground">
-              <strong class="font-sans text-sm font-semibold text-card-foreground">{{ message.routingKey }}</strong>
-              <span class="text-card-foreground/50">({{ message.exchange }})</span>
-            </span>
+                data-testid="queue-pill"
+                class="inline-flex items-center gap-1.5 rounded-full px-[9px] py-[3px] text-[11px] font-semibold"
+                [attr.data-queue-color]="queueColor(queueNameOf(message))"
+                [style.background-color]="queuePillTint"
+                [style.color]="queuePillText"
+              >
+                <span
+                  data-testid="queue-dot"
+                  class="size-1.5 shrink-0 rounded-[3px]"
+                  [style.background-color]="queueDotFill"
+                ></span>
+                {{ queueNameOf(message) }}
+              </span>
+              <span class="min-w-0 break-all font-mono text-xs font-medium text-foreground">{{ message.routingKey }}</span>
+            </div>
+            @if (message.replyTo) {
+              <button
+                hlmBtn
+                variant="ghost"
+                size="sm"
+                type="button"
+                class="h-[26px] shrink-0 rounded-[7px] border border-border bg-muted px-[9px] text-[11px] text-accent"
+                [attr.aria-label]="'Responder a ' + message.routingKey"
+                (click)="respond(message)"
+              >
+                Responder
+              </button>
+            }
           </div>
-          @if (message.replyTo) {
-            <button
-              hlmBtn
-              variant="ghost"
-              size="sm"
-              type="button"
-              class="h-auto shrink-0 px-2 py-0.5 text-xs text-primary hover:text-primary"
-              [attr.aria-label]="'Responder a ' + message.routingKey"
-              (click)="respond(message)"
-            >
-              Responder
-            </button>
-          }
-        </div>
-        <pre class="whitespace-pre-wrap font-mono text-xs text-foreground">{{ message.payload | jsonPretty }}</pre>
-      </li>
-    }
-  </ul>
+          <div class="font-mono text-[10px] text-muted-foreground">exchange: {{ metaExchange(message) }}</div>
+          <pre class="whitespace-pre-wrap break-words font-mono text-[11px] text-muted-foreground">{{ message.payload | jsonPretty }}</pre>
+        </li>
+      }
+    </ul>
+  }
 
   <app-reply-drawer />
 </section>

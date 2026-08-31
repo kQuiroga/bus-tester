@@ -390,7 +390,7 @@ describe('SendComponent', () => {
     expect(root.querySelector('hlm-checkbox[data-slot="checkbox"]')).not.toBeNull();
   });
 
-  it('renders the Enviar and Guardar plantilla buttons via hlmBtn (default variant, data-slot="button")', () => {
+  it('renders "Enviar" as a full-width accent button and "Guardar" as a compact accent button', () => {
     const fixture = TestBed.createComponent(SendComponent);
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
@@ -400,9 +400,42 @@ describe('SendComponent', () => {
     for (const button of buttons) {
       expect(button.className).toContain('bg-primary');
     }
+
+    const enviar = buttons.find((b) => b.textContent?.trim() === 'Enviar') as HTMLElement;
+    expect(enviar.getAttribute('type')).toBe('submit');
+    expect(enviar.className).toContain('w-full');
+    expect(enviar.className).toContain('h-[38px]');
+    expect(enviar.className).toContain('rounded-[9px]');
+
+    const guardar = buttons.find((b) => b.textContent?.trim() === 'Guardar') as HTMLElement;
+    expect(guardar).not.toBeUndefined();
+    expect(guardar.className).toContain('h-[34px]');
+    expect(guardar.className).toContain('rounded-[8px]');
   });
 
-  it('renders recent-send and template row actions as hlmBtn variant="ghost" size="sm"', () => {
+  it('renders the recent "Vaciar" as a plain text button (no hlmBtn, no icon) and row "Cargar" as a ghost button', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    const history = TestBed.inject(SendHistoryService);
+    history.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const clear = root.querySelector('[data-testid="recent-sends-clear"]') as HTMLButtonElement;
+    expect(clear).not.toBeNull();
+    expect(clear.getAttribute('data-slot')).toBeNull();
+    expect(clear.querySelector('ng-icon')).toBeNull();
+    expect(clear.textContent?.trim()).toBe('Vaciar');
+    expect(clear.className).toContain('text-[11px]');
+    expect(clear.className).toContain('bg-transparent');
+
+    const row = root.querySelector('[data-testid="recent-send-row"]') as HTMLElement;
+    const cargar = row.querySelector('button[data-slot="button"]') as HTMLButtonElement;
+    expect(cargar.textContent?.trim()).toBe('Cargar');
+    expect(cargar.querySelector('ng-icon')).toBeNull();
+    expect(cargar.className).not.toContain('bg-primary');
+  });
+
+  it('recent-send and template rows render text-only actions with no lucide icons', () => {
     const fixture = TestBed.createComponent(SendComponent);
     const history = TestBed.inject(SendHistoryService);
     history.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
@@ -410,34 +443,67 @@ describe('SendComponent', () => {
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
 
-    const buttons = Array.from(root.querySelectorAll('button[data-slot="button"]'));
-    // Enviar + Guardar plantilla (default) + Vaciar (recent) + Cargar (recent) + Cargar (template) + Eliminar (template)
-    expect(buttons.length).toBe(6);
-    const rowActionButtons = buttons.filter((button) => button.textContent?.trim().includes('Cargar') || button.textContent?.trim().includes('Eliminar'));
-    expect(rowActionButtons.length).toBe(3);
-    for (const button of rowActionButtons) {
-      expect(button.className).toContain('h-8');
-      expect(button.className).not.toContain('bg-primary');
-    }
+    const recentRow = root.querySelector('[data-testid="recent-send-row"]') as HTMLElement;
+    expect(recentRow.querySelectorAll('ng-icon').length).toBe(0);
+    expect(recentRow.textContent).toContain('Cargar');
+
+    const templateRow = root.querySelector('[data-testid="template-row"]') as HTMLElement;
+    expect(templateRow.querySelectorAll('ng-icon').length).toBe(0);
+    expect(templateRow.textContent).toContain('Cargar');
+    expect(templateRow.textContent).toContain('Eliminar');
   });
 
-  it('renders lucideDownload on every "Cargar" row action and lucideTrash2 on "Eliminar"', () => {
+  it('recent-sends header carries the count inline in a .field-label and rows render a one-line mono summary', () => {
     const fixture = TestBed.createComponent(SendComponent);
     const history = TestBed.inject(SendHistoryService);
-    history.recordSend({ exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
-    history.saveTemplate({ name: 'my-template', exchange: 'orders', routingKey: 'orders.created', payload: '{"id":1}' });
+    history.recordSend({ exchange: 'ordenes.event', routingKey: 'orden.creada', payload: '{}' });
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
 
-    const buttons = Array.from(root.querySelectorAll('button[data-slot="button"]'));
-    const cargarButtons = buttons.filter((button) => button.textContent?.trim().includes('Cargar'));
-    expect(cargarButtons.length).toBe(2);
-    for (const button of cargarButtons) {
-      expect(button.querySelector('ng-icon[name="lucideDownload"]')).not.toBeNull();
-    }
+    const header = root.querySelector('[data-testid="recent-sends"] .field-label') as HTMLElement;
+    expect(header).not.toBeNull();
+    expect(header.textContent?.replace(/\s+/g, ' ').trim()).toBe('Envíos recientes · 1');
 
-    const eliminarButton = buttons.find((button) => button.textContent?.trim().includes('Eliminar'));
-    expect(eliminarButton?.querySelector('ng-icon[name="lucideTrash2"]')).not.toBeNull();
+    const summary = root.querySelector('[data-testid="recent-send-row"] span.font-mono') as HTMLElement;
+    expect(summary.textContent?.trim()).toBe('ordenes.event / orden.creada');
+
+    expect(root.textContent).toContain('últimos 5 · el resto se descarta de localStorage');
+  });
+
+  it('a recent send with an empty exchange shows the default-exchange marker in the summary', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    const history = TestBed.inject(SendHistoryService);
+    history.recordSend({ exchange: '', routingKey: 'orden.creada', payload: '{}' });
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const summary = root.querySelector('[data-testid="recent-send-row"] span.font-mono') as HTMLElement;
+    expect(summary.textContent?.trim()).toBe('(intercambio predeterminado) / orden.creada');
+  });
+
+  it('the recent-sends and templates section headers use the .field-label treatment', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const headers = Array.from(root.querySelectorAll('h3.field-label')).map((h) => h.textContent?.trim() ?? '');
+    expect(headers).toContain('Plantillas');
+    expect(headers.some((t) => t.startsWith('Envíos recientes'))).toBe(true);
+  });
+
+  it('send-panel text inputs and the payload textarea adopt the prototype .in utilities', () => {
+    const fixture = TestBed.createComponent(SendComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    const inputs = Array.from(root.querySelectorAll('input[data-slot="input"]')) as HTMLElement[];
+    for (const input of inputs) {
+      expect(input.className).toContain('rounded-[8px]');
+      expect(input.className).toContain('bg-muted');
+    }
+    const textarea = root.querySelector('textarea[data-slot="textarea"]') as HTMLElement;
+    expect(textarea.className).toContain('rounded-[8px]');
+    expect(textarea.className).toContain('bg-muted');
   });
 
   describe('custom headers', () => {
