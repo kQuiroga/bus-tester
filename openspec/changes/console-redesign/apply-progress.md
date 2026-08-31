@@ -376,9 +376,33 @@ Authored total ≈ 278 (SDD docs 10). No vendored output this slice. Under the 8
 
 - None. The `--include 'src/app/features/messages/**'` glob (without `/*.spec.ts`) makes the Angular test builder try to load `.html` as a spec — use `--include '…/**/*.spec.ts'` for focused runs.
 
-## STATUS: slices 1-3 at prototype fidelity. Slices 4-5 fidelity passes run after this (separate agents).
+## SLICE 4 — correction C5: prototype fidelity (LIVE messages feed + queue pill/dot)
+
+Branch `feat/console-redesign-s4-messages`. Source of truth: prototype LIVE card (~113-155). Strict TDD, 13 RED in `messages.component.spec.ts` (removed 3 icon/badge tests, added 11) → GREEN.
+
+| Gap | Fix |
+|-----|-----|
+| `.qpill` tint | `queuePillTint` → `color-mix(in oklab, var(--queue-hue) 14%, var(--color-ground))` (dark chip); new `queuePillText = var(--queue-hue)` bound as `[style.color]`. Was 18%/transparent + `text-card-foreground`. `[data-queue-color]` → `--queue-hue` mechanism unchanged. |
+| `.dot` | `rounded-full` → `rounded-[3px]` (rounded square), `size-1.5` kept. |
+| Chips | Single `.qpill` `● name · count ✕` with plain `✕` button; dropped `hlmBadge` + count badge + `lucideX`. Empty: `Ninguna cola suscrita.` `data-testid="subscription-chips"` wrapper. |
+| `.msg` | `bg-panel-2 border-border rounded-[9px] px-[11px] py-[9px]`; routing key `font-mono text-xs font-medium` (dropped `(exchange)` suffix); meta line `exchange: {{ metaExchange(m) }}` (`(intercambio predeterminado)` when empty). |
+| Responder | `.ghost` button + `text-accent`. |
+| Subscribe/search rows | `.in` inputs (`h-[34px] rounded-[8px] bg-muted`) + `.btn-sm` "Suscribirse" / `.ghost` "Pausar"·"Reanudar". `lucideSearch`/`lucidePause`/`lucidePlay` removed. |
+| Empty states | `emptyFeedMessage()` computed → 3 prototype strings in a `.empty` dashed box (`data-testid="feed-empty"`). |
+| Card | `p-4` → `p-[18px]`; feed `max-h-64` → `max-h-[600px]`. |
+
+### C5 evidence
+RED: 13 failing in `messages.component.spec.ts`. GREEN: **14 files / 235 tests passed**, 0 failed. Focused `--include 'src/app/features/messages/**/*.spec.ts'` → 3 files / 57 passed. `npm run build` OK (styles 46.16 kB; pre-existing 500 kB bundle-budget warning at 632.57 kB, unchanged). Built CSS verified for `text-accent`, `bg-panel-2`, `rounded-[3px]`, `py-[22px]`, `px-[11px]`, `border-dashed`.
+
+### Files (C5)
+`messages.component.{ts,html,spec.ts}` only. `styles.css` NOT touched (tint moved to component inline binding, `[data-queue-color]` rules already correct). Rollback = revert the C5 commit; slice 5 reply-drawer / `data-replying` regions untouched.
+
+### Deviations (C5)
+- None. Tint stays in a custom property via inline `[style]` binding (no dynamic Tailwind class) — D5 compliant.
+- Arbitrary px utilities where the token scale has no step — S1 C2 / S2 C3 / S3 C4 precedent.
 
 ### Notes for slice 5 fidelity pass
 - `.field-label` = caption treatment; `.ghost` = `hlmBtn variant="ghost" size="sm"` + `rounded-[7px] border border-border bg-muted text-[11px]`; `.x` = plain `<button>` `bg-transparent text-[11px] text-muted-foreground hover:brightness-125`.
 - Prototype row chrome = `rounded-[7px] border-border bg-muted px-[9px] py-[6px]`.
 - Slice 5's D7 removal deletes `replyMode`/`correlationId`/dirty-guard from `send.component.{ts,html}` — `recentSummary` (added in C4) stays.
+- `.qpill` pattern now: `inline-flex items-center gap-1.5 rounded-full px-[9px] py-[3px] text-[11px] font-semibold` + `[style.background-color]="queuePillTint"` + `[style.color]="queuePillText"`; dot `size-1.5 shrink-0 rounded-[3px]`. Drawer dot + `MENSAJE ORIGINAL` `border-left` should reuse `queueDotFill` / `--queue-hue`.

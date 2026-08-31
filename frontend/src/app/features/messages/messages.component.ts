@@ -1,11 +1,9 @@
 import { Component, computed, inject, linkedSignal, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucidePause, lucidePlay, lucideSearch, lucideX } from '@ng-icons/lucide';
+import { lucideX } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmInput } from '@spartan-ng/helm/input';
-import { HlmLabel } from '@spartan-ng/helm/label';
-import { HlmBadge } from '@spartan-ng/helm/badge';
 import { ApiClientService } from '../../core/api-client.service';
 import { BusHubService, ReceivedMessage } from '../../core/bus-hub.service';
 import { ReplySubscriptionService } from '../../core/reply-subscription.service';
@@ -47,8 +45,8 @@ interface Subscription {
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [FormsModule, JsonPrettyPipe, HlmButton, HlmInput, HlmLabel, HlmBadge, NgIcon],
-  providers: [provideIcons({ lucidePause, lucidePlay, lucideSearch, lucideX })],
+  imports: [FormsModule, JsonPrettyPipe, HlmButton, HlmInput, NgIcon],
+  providers: [provideIcons({ lucideX })],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './messages.component.html',
 })
@@ -107,10 +105,34 @@ export class MessagesComponent {
     return queueColorIndex(queueName);
   }
 
-  /** Pill fill and solid-dot fill. The hue itself arrives through `--queue-hue`, set by
-   *  the `[data-queue-color='N']` rule in styles.css — never a dynamic Tailwind class. */
-  readonly queuePillTint = 'color-mix(in oklab, var(--queue-hue) 18%, transparent)';
+  /** Pill fill, pill text and solid-dot fill. The hue itself arrives through `--queue-hue`,
+   *  set by the `[data-queue-color='N']` rule in styles.css — never a dynamic Tailwind class.
+   *  Prototype `.qpill`: a dark chip (hue mixed toward ground) with the hue as the text colour
+   *  and a solid-hue dot (`docs/redesign-prototype/Main.dc.html` — `qc()` / `mix(hue, ground, .82)`). */
+  readonly queuePillTint = 'color-mix(in oklab, var(--queue-hue) 14%, var(--color-ground))';
+  readonly queuePillText = 'var(--queue-hue)';
   readonly queueDotFill = 'var(--queue-hue)';
+
+  /** Meta line under a feed row's header — `exchange: {value}`, with the AMQP default-exchange
+   *  marker when the message carries no exchange (prototype `meta()`; C4 send-panel wording). */
+  metaExchange(message: ReceivedMessage): string {
+    return message.exchange || '(intercambio predeterminado)';
+  }
+
+  /** The `.empty` placeholder the feed shows instead of rows, mirroring the prototype's three
+   *  states; `null` once there is at least one visible message. */
+  readonly emptyFeedMessage = computed<string | null>(() => {
+    if (this.subscriptions().length === 0) {
+      return 'Suscribite a una cola para ver mensajes en vivo.';
+    }
+    if (this.displayedMessages().length === 0) {
+      return 'Esperando mensajes…';
+    }
+    if (this.filteredMessages().length === 0) {
+      return 'Ningún mensaje coincide con la búsqueda.';
+    }
+    return null;
+  });
 
   /** Freezes rows while paused, resyncs instantly on resume, and diffs which `seq`s are new
    *  since the last unpaused render — see design.md decision #2. */

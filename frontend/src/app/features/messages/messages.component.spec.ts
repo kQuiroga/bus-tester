@@ -483,9 +483,6 @@ describe('MessagesComponent', () => {
     const queueInput = root.querySelector('input[name="queueName"]');
     expect(queueInput?.getAttribute('data-slot')).toBe('input');
 
-    const queueLabel = root.querySelector('label');
-    expect(queueLabel?.getAttribute('data-slot')).toBe('label');
-
     const subscribeButton = Array.from(root.querySelectorAll('button')).find(
       (b) => b.textContent?.trim() === 'Suscribirse',
     );
@@ -498,7 +495,7 @@ describe('MessagesComponent', () => {
     expect(pauseButton?.getAttribute('data-slot')).toBe('button');
   });
 
-  it('renders active subscription chips as hlmBadge pills, with an icon-only unsubscribe button (lucideX)', () => {
+  it('renders each subscription chip as a tinted qpill with "name · count" and a plain ✕ unsubscribe button', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
     component.queueName.set('orders-queue');
@@ -508,16 +505,22 @@ describe('MessagesComponent', () => {
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
 
-    const chip = root.querySelector('span[data-slot="badge"]');
-    expect(chip?.getAttribute('data-variant')).toBe('outline');
-    expect(chip?.textContent).toContain('orders-queue');
+    const chip = root.querySelector('[data-testid="subscription-chips"] [data-testid="queue-pill"]');
+    expect(chip?.getAttribute('data-queue-color')).toBe(String(queueColorIndex('orders-queue')));
+    expect(chip?.textContent).toContain('orders-queue · 0');
 
     const unsubscribeButton = Array.from(root.querySelectorAll('button')).find((b) =>
       b.getAttribute('aria-label')?.startsWith('Cancelar suscripción a orders-queue'),
     );
-    expect(unsubscribeButton?.getAttribute('data-slot')).toBe('button');
-    expect(unsubscribeButton?.querySelector('ng-icon[name="lucideX"]')).not.toBeNull();
-    expect(unsubscribeButton?.textContent).not.toContain('×');
+    expect(unsubscribeButton?.querySelector('ng-icon')).toBeNull();
+    expect(unsubscribeButton?.textContent).toContain('✕');
+  });
+
+  it('shows "Ninguna cola suscrita." when there are no active subscription chips', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Ninguna cola suscrita.');
   });
 
   it('renders the reply-panel unsubscribe button as icon-only (lucideX)', () => {
@@ -534,34 +537,30 @@ describe('MessagesComponent', () => {
     expect(unsubscribeButton?.querySelector('ng-icon[name="lucideX"]')).not.toBeNull();
   });
 
-  it('renders a leading search icon (lucideSearch) alongside the message search input', () => {
+  it('renders the message search input and a ghost pause toggle without icons (prototype LIVE card)', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
 
     const searchInput = root.querySelector('input[type="search"]');
-    expect(searchInput?.parentElement?.querySelector('ng-icon[name="lucideSearch"]')).not.toBeNull();
+    expect(searchInput?.getAttribute('data-slot')).toBe('input');
+    expect(root.querySelector('ng-icon[name="lucideSearch"]')).toBeNull();
+
+    const pauseButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Pausar');
+    expect(pauseButton?.getAttribute('data-slot')).toBe('button');
+    expect(pauseButton?.querySelector('ng-icon')).toBeNull();
   });
 
-  it('the pause button renders the lucidePause icon while running', () => {
-    const fixture = TestBed.createComponent(MessagesComponent);
-    fixture.detectChanges();
-    const root: HTMLElement = fixture.nativeElement;
-
-    const pauseButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.includes('Pausar'));
-    expect(pauseButton?.querySelector('ng-icon[name="lucidePause"]')).not.toBeNull();
-  });
-
-  it('the pause/resume button keeps its hlm-primitive marker and swaps to the lucidePlay icon after toggling to Reanudar (T13)', () => {
+  it('the pause/resume button keeps its hlm-primitive marker and swaps its label to Reanudar (T13)', () => {
     const fixture = TestBed.createComponent(MessagesComponent);
     const component = fixture.componentInstance;
     component.togglePause();
     fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
 
-    const resumeButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim().includes('Reanudar'));
+    const resumeButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Reanudar');
     expect(resumeButton?.getAttribute('data-slot')).toBe('button');
-    expect(resumeButton?.querySelector('ng-icon[name="lucidePlay"]')).not.toBeNull();
+    expect(resumeButton?.querySelector('ng-icon')).toBeNull();
   });
 
   /** Renders the feed, subscribed to 'sub-1', with the given messages pushed onto the fake hub. */
@@ -686,7 +685,7 @@ describe('MessagesComponent', () => {
     const { root } = renderTwoQueueFeed();
 
     const chipPills = Array.from(
-      root.querySelectorAll<HTMLElement>('span[data-slot="badge"] [data-testid="queue-pill"]'),
+      root.querySelectorAll<HTMLElement>('[data-testid="subscription-chips"] [data-testid="queue-pill"]'),
     );
     expect(chipPills.map((p) => p.getAttribute('data-queue-color'))).toEqual([
       String(queueColorIndex('orders-queue')),
@@ -698,5 +697,75 @@ describe('MessagesComponent', () => {
     const { root } = renderFeed([msg(0)]);
 
     expect(root.querySelector('[data-testid="queue-color-rail"]')).toBeNull();
+  });
+
+  // --- Prototype fidelity: LIVE feed card (docs/redesign-prototype/Main.dc.html) ---
+
+  it('renders the queue dot as a rounded square (rounded-[3px]), not a circle (prototype .dot)', () => {
+    const { root } = renderFeed([msg(0)]);
+
+    const dot = root.querySelector('[data-testid="message-row"] [data-testid="queue-dot"]');
+    expect(dot?.className).toContain('rounded-[3px]');
+    expect(dot?.className).not.toContain('rounded-full');
+  });
+
+  it('colours the queue pill text with the --queue-hue custom property (prototype .qpill text=hue)', () => {
+    const { root } = renderFeed([msg(0)]);
+
+    const pill = root.querySelector('[data-testid="message-row"] [data-testid="queue-pill"]') as HTMLElement;
+    expect(pill.style.color).toContain('--queue-hue');
+  });
+
+  it('renders the exchange on a meta line as "exchange: {value}" (prototype meta())', () => {
+    const { root } = renderFeed([msg(0, { exchange: 'ordenes.event' })]);
+
+    const row = root.querySelector('[data-testid="message-row"]');
+    expect(row?.textContent).toContain('exchange: ordenes.event');
+  });
+
+  it('renders the default-exchange marker on the meta line when exchange is empty (C4 wording)', () => {
+    const { root } = renderFeed([msg(0, { exchange: '' })]);
+
+    const row = root.querySelector('[data-testid="message-row"]');
+    expect(row?.textContent).toContain('exchange: (intercambio predeterminado)');
+  });
+
+  it('gives the row Responder button accent text colour (prototype color:var(--accent))', () => {
+    const { root } = renderFeed([msg(0, { replyTo: 'amq.gen-reply-xyz', correlationId: 'corr-9' })]);
+
+    expect(findResponder(root)?.className).toContain('text-accent');
+  });
+
+  it('shows the subscribe prompt empty state when there are no subscriptions (prototype .empty)', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="feed-empty"]')?.textContent).toContain(
+      'Suscribite a una cola para ver mensajes en vivo.',
+    );
+  });
+
+  it('shows the waiting-for-messages empty state once subscribed with no messages', () => {
+    const fixture = TestBed.createComponent(MessagesComponent);
+    const component = fixture.componentInstance;
+    component.queueName.set('orders-queue');
+    component.subscribeToQueue();
+    httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/api/subscriptions')).flush({ id: 'sub-1' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="feed-empty"]')?.textContent).toContain(
+      'Esperando mensajes…',
+    );
+  });
+
+  it('shows the no-match empty state when the search filters every message out', () => {
+    const { component, fixture, root } = renderFeed([msg(0, { routingKey: 'orders.created', exchange: 'o' })]);
+
+    component.searchTerm.set('zzz-nothing-matches');
+    fixture.detectChanges();
+
+    expect(root.querySelector('[data-testid="feed-empty"]')?.textContent).toContain(
+      'Ningún mensaje coincide con la búsqueda.',
+    );
   });
 });
